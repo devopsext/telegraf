@@ -21,12 +21,19 @@ var ValidTopicSuffixMethods = []string{
 	"tags",
 }
 
+var ValidTopicPrefixMethods = []string{
+	"",
+	"measurement",
+	"tags",
+}
+
 type (
 	Kafka struct {
 		Brokers          []string
 		Topic            string
 		ClientID         string      `toml:"client_id"`
 		TopicSuffix      TopicSuffix `toml:"topic_suffix"`
+		TopicPrefix      TopicPrefix `toml:"topic_prefix"`
 		RoutingTag       string      `toml:"routing_tag"`
 		RoutingKey       string      `toml:"routing_key"`
 		CompressionCodec int
@@ -57,6 +64,11 @@ type (
 		serializer serializers.Serializer
 	}
 	TopicSuffix struct {
+		Method    string   `toml:"method"`
+		Keys      []string `toml:"keys"`
+		Separator string   `toml:"separator"`
+	}
+	TopicPrefix struct {
 		Method    string   `toml:"method"`
 		Keys      []string `toml:"keys"`
 		Separator string   `toml:"separator"`
@@ -175,14 +187,41 @@ func ValidateTopicSuffixMethod(method string) error {
 	return fmt.Errorf("Unknown topic suffix method provided: %s", method)
 }
 
+func ValidateTopicPrefixMethod(method string) error {
+	for _, validMethod := range ValidTopicPrefixMethods {
+		if method == validMethod {
+			return nil
+		}
+	}
+	return fmt.Errorf("Unknown topic prefix method provided: %s", method)
+}
+
 func (k *Kafka) GetTopicName(metric telegraf.Metric) string {
 	var topicName string
-	switch k.TopicSuffix.Method {
+
+	switch k.TopicPrefix.Method {
 	case "measurement":
-		topicName = k.Topic + k.TopicSuffix.Separator + metric.Name()
+		topicName = metric.Name() + k.TopicPrefix.Separator + k.Topic
 	case "tags":
 		var topicNameComponents []string
+		for _, tag := range k.TopicPrefix.Keys {
+			tagValue := metric.Tags()[tag]
+			if tagValue != "" {
+				topicNameComponents = append(topicNameComponents, tagValue)
+			}
+		}
 		topicNameComponents = append(topicNameComponents, k.Topic)
+		topicName = strings.Join(topicNameComponents, k.TopicPrefix.Separator)
+	default:
+		topicName = k.Topic
+	}
+
+	switch k.TopicSuffix.Method {
+	case "measurement":
+		topicName = topicName + k.TopicSuffix.Separator + metric.Name()
+	case "tags":
+		var topicNameComponents []string
+		topicNameComponents = append(topicNameComponents, topicName)
 		for _, tag := range k.TopicSuffix.Keys {
 			tagValue := metric.Tags()[tag]
 			if tagValue != "" {
@@ -190,9 +229,8 @@ func (k *Kafka) GetTopicName(metric telegraf.Metric) string {
 			}
 		}
 		topicName = strings.Join(topicNameComponents, k.TopicSuffix.Separator)
-	default:
-		topicName = k.Topic
 	}
+
 	return topicName
 }
 
@@ -201,10 +239,18 @@ func (k *Kafka) SetSerializer(serializer serializers.Serializer) {
 }
 
 func (k *Kafka) Connect() error {
-	err := ValidateTopicSuffixMethod(k.TopicSuffix.Method)
+
+	var err error
+	err = ValidateTopicSuffixMethod(k.TopicSuffix.Method)
 	if err != nil {
 		return err
 	}
+
+	err = ValidateTopicPrefixMethod(k.TopicPrefix.Method)
+	if err != nil {
+		return err
+	}
+	
 	config := sarama.NewConfig()
 
 	if k.Version != "" {
