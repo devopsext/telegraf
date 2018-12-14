@@ -22,6 +22,7 @@ type Process interface {
 	Times() (*cpu.TimesStat, error)
 	RlimitUsage(bool) ([]process.RlimitStat, error)
 	Username() (string, error)
+	Cmdline() (string, error)
 }
 
 type PIDFinder interface {
@@ -61,6 +62,10 @@ func (p *Proc) PID() PID {
 
 func (p *Proc) Username() (string, error) {
 	return p.Process.Username()
+}
+
+func (p *Proc) Cmdline() (string, error) {
+	return p.Process.Cmdline()
 }
 
 func (p *Proc) Percent(interval time.Duration) (float64, error) {
