@@ -3,3 +3,4 @@
 /telegraf.exe
 /telegraf.gz
 /vendor
+plugins/inputs/docker_cnt_logs/deb/*

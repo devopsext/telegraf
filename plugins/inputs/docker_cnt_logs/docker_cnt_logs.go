@@ -176,17 +176,17 @@ func (dl *DockerCNTLogs) LogReceiver() {
 		dl.acc.AddFields("stream", field, tags)
 	}
 	if err := dl.streamScanner.Err(); err != nil {
-		/*
-		select {
-		case <-dl.stopFlag: //Non blocking read from channel
-			if fmt.Sprintf("%v", err) != "read unix ->docker.sock: use of closed network connection" {
-				dl.acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
-			}
-			return
-		default:
-			dl.acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
-		}
-		*/
+
+		//select {
+		//case <-dl.stopFlag: //Non blocking read from channel
+		//	if fmt.Sprintf("%v", err) != "read unix ->docker.sock: use of closed network connection" {
+		//		dl.acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
+		//	}
+		//	return
+		//default:
+		//	dl.acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
+		//}
+
 		dl.acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
 	}
 	return
