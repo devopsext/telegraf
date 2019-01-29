@@ -92,6 +92,8 @@ func (p *Procstat) Gather(acc telegraf.Accumulator) error {
 			p.createPIDFinder = NewNativeFinder
 		case "pgrep":
 			p.createPIDFinder = NewPgrep
+		case "parent":
+			p.createPIDFinder = NewParentFinder
 		default:
 			p.createPIDFinder = defaultPIDFinder
 		}
@@ -123,6 +125,14 @@ func (p *Procstat) addMetrics(proc Process, acc telegraf.Accumulator) {
 	}
 
 	fields := map[string]interface{}{}
+
+	//If process_cmdline tag is not already set, set to actual name
+	if _, lineInTags := proc.Tags()["process_cmdline"]; !lineInTags {
+		line, err := proc.Cmdline()
+		if err == nil {
+			proc.Tags()["process_cmdline"] = line
+		}
+	}
 
 	//If process_name tag is not already set, set to actual name
 	if _, nameInTags := proc.Tags()["process_name"]; !nameInTags {
