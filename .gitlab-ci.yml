@@ -1,0 +1,4 @@
+include:
+  - project: 'devopsext/template/gitlab-ci'
+    ref: master
+    file: 'publish-source.yml'
