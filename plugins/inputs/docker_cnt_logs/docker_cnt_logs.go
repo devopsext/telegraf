@@ -8,6 +8,8 @@ import (
 	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 	"github.com/influxdata/telegraf"
+	"runtime"
+
 	//"github.com/influxdata/telegraf/internal/models"
 	tlsint "github.com/influxdata/telegraf/internal/tls"
 	"github.com/influxdata/telegraf/plugins/inputs"
@@ -38,6 +40,7 @@ type DockerCNTLogs struct {
 	length int
 	endOfLineIndex int
 	quitFlag chan bool
+	msgHeaderExamined bool
 }
 
 const defaultInitialChunkSize = 10000
@@ -125,11 +128,21 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 	dl.wg.Add(1)
 	defer dl.wg.Done()
 
+
 	//Iterative reads by chunks
-	// Read returns:
+	// While reading in chunks, there are 2 general cases:
 	// 1. Either full buffer (it means that the message either fit to chunkSize or exceed it. To figure out if it exceed we need to check
 	// if the buffer ends with "\r\n"
 	// 2. Or partially filled buffer. In this case the rest of the buffer is '\0'
+
+	if ! dl.msgHeaderExamined {
+		if IsContainHeader(&dl.buffer,dl.length) {
+			dl.outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
+		} else {
+			dl.outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
+		}
+		dl.msgHeaderExamined = true
+	}
 
 	if len(dl.leftoverBuffer) >0{ //append leftover from previous iteration
 		oldLength := dl.length
@@ -154,6 +167,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 		for ; dl.endOfLineIndex >= 0; dl.endOfLineIndex-- {
 			if dl.buffer[dl.endOfLineIndex] == '\n' /*THIS SHOULD BE REVISED*/ {
 				if dl.endOfLineIndex != dl.length -1{
+					// Moving everything that is after dl.endOfLineIndex to leftover buffer (2nd case)
 					dl.leftoverBuffer = nil
 					dl.leftoverBuffer = make ([]byte, (dl.length -1) - dl.endOfLineIndex)
 					copy(dl.leftoverBuffer, dl.buffer[dl.endOfLineIndex+1:])
@@ -163,10 +177,14 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 
 		//Check if line end is not found
 		if dl.endOfLineIndex == -1 {
+			//This is 1st case...
+
 			//Read next chunk and append to initial buffer (this is expensive operation)
 			tempBuffer := make([]byte, dl.currentChunkSize)
+
+			//This would be non blocking read, as it is reading of something that is for sure in the io stream
 			tempLength,err := dl.contStream.Read(tempBuffer)
-			if err != nil {
+			if err != nil { //Here there is no special check for 'EOF'. In this case we will have EOF check on the read above (in next iteration).
 				acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
 				return err
 			}
@@ -184,9 +202,9 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 			return nil
 		}
 	}
-	//2nd case is addressed by definition of endOfLineIndex
 
-	//Reading the buffer
+
+	//Parsing the buffer and passing data to accumulator
 	//Since read from API can return dl.length==0, and err==nil, we need to additionally check the boundaries
 	if (len(dl.buffer) > 0 ) {
 
@@ -211,16 +229,16 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 			dl.acc.AddFields("stream", field, tags,timeStamp)
 
 		}
-
-
-		//Control the size of buffer
-		if len (dl.buffer) > dl.MaxChunkSize {
-			dl.buffer = nil
-			dl.buffer = make([]byte,dl.currentChunkSize)
-		}
 	}
 
-	//Read next chunk
+	//Control the size of buffer
+	if len (dl.buffer) > dl.MaxChunkSize {
+		dl.buffer = nil
+		dl.buffer = make([]byte,dl.currentChunkSize)
+		runtime.GC()
+	}
+
+	//Read from docker API
 	dl.length,err = dl.contStream.Read(dl.buffer) //Can be a case when API returns dl.length==0, and err==nil
 
 	if err != nil {
@@ -244,7 +262,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 			return err
 		}
 	}
-	//runtime.GC()
+
 
 	return nil
 }
@@ -299,23 +317,10 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		return err
 	}
 
-	dl.quitFlag = make (chan bool)
 
 	dl.buffer = make([]byte, dl.InitialChunkSize)
-	dl.length,err = dl.contStream.Read(dl.buffer)
-
-	if err != nil {
-		acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
-		dl.Stop()
-		return err
-	}
-
-	if IsContainHeader(&dl.buffer,dl.length) {
-		dl.outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
-	} else {
-		dl.outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
-	}
-	dl.endOfLineIndex = dl.length - 1
+	dl.msgHeaderExamined = false
+	dl.quitFlag = make (chan bool)
 
 	return nil
 }
