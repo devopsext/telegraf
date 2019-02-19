@@ -77,9 +77,9 @@ const sampleConfig = `
   ## buffer can grow in capacity adjusting to volume of data received from docker sock 
   #max_chunk_size = "50000"	
 `
-
+//TODO: Check what version to support!!!
 var (
-	version        = "1.21" // 1.24 is when server first started returning its version
+	version        = "1.24" // 1.24 is when server first started returning its version
 	defaultHeaders = map[string]string{"User-Agent": "engine-api-cli-1.0"}
 )
 
@@ -244,6 +244,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 	if err != nil {
 		if err.Error() == "EOF" {
 			err = fmt.Errorf("Can't read from container '%s'. Stream closed unexpectedly, 'EOF' received, looks like container stopped...", dl.ContID)
+			dl.quitFlag <- true
 			if dl.contStream != nil {
 				dl.contStream.Close()
 				dl.contStream = nil
@@ -317,12 +318,46 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		return err
 	}
 
-
 	dl.buffer = make([]byte, dl.InitialChunkSize)
 	dl.msgHeaderExamined = false
 	dl.quitFlag = make (chan bool)
 
+	//Starting container cheking go routine
+	go dl.CheckContainerStatus()
+
 	return nil
+}
+
+func (dl *DockerCNTLogs) CheckContainerStatus() {
+	var err error
+	var response types.ContainerJSON
+
+	for {
+		select {
+		case <- dl.quitFlag:
+			return
+		default:
+			response, err = dl.client.ContainerInspect(dl.context, dl.ContID)
+			if (err!=nil) || (response.ContainerJSONBase.State.Status != "running" )  {
+				if err == nil {
+					err = fmt.Errorf("Container '%s' status: %s",dl.ContID,response.ContainerJSONBase.State.Status)
+				}
+				if dl.contStream != nil {
+					dl.contStream.Close()
+					dl.contStream = nil
+				}
+
+				if dl.client !=nil {
+					dl.client.Close()
+					dl.client = nil
+				}
+
+				dl.acc.AddError(err)
+				panic(err) //Crashing telegraf
+			}
+		}
+		time.Sleep(3* time.Second)
+	}
 }
 
 func (dl *DockerCNTLogs) Stop() {
