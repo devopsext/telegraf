@@ -79,7 +79,7 @@ const sampleConfig = `
 `
 //TODO: Check what version to support!!!
 var (
-	version        = "1.24" // 1.24 is when server first started returning its version
+	version        = "1.21" // 1.24 is when server first started returning its version
 	defaultHeaders = map[string]string{"User-Agent": "engine-api-cli-1.0"}
 )
 
@@ -134,15 +134,6 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 	// 1. Either full buffer (it means that the message either fit to chunkSize or exceed it. To figure out if it exceed we need to check
 	// if the buffer ends with "\r\n"
 	// 2. Or partially filled buffer. In this case the rest of the buffer is '\0'
-
-	if ! dl.msgHeaderExamined {
-		if IsContainHeader(&dl.buffer,dl.length) {
-			dl.outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
-		} else {
-			dl.outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
-		}
-		dl.msgHeaderExamined = true
-	}
 
 	if len(dl.leftoverBuffer) >0{ //append leftover from previous iteration
 		oldLength := dl.length
@@ -211,7 +202,6 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 		reader = bytes.NewReader(dl.buffer[:dl.endOfLineIndex])
 		s := bufio.NewScanner(reader)
 		for s.Scan() {
-			//fmt.Println(s.Bytes())
 			totalLineLength := len(s.Bytes())
 			if uint(totalLineLength) < dl.outputMsgStartIndex + dl.dockerTimeStampLength + 1 { //no time stamp
 				timeStamp = time.Now()
@@ -219,7 +209,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 
 			}else{
 				field["value"] = fmt.Sprintf("%s\n", s.Bytes()[dl.outputMsgStartIndex + dl.dockerTimeStampLength:])
-				timeStamp,err = time.Parse(time.RFC3339Nano,fmt.Sprintf("%s",s.Bytes()[dl.outputMsgStartIndex:dl.dockerTimeStampLength]))
+				timeStamp,err = time.Parse(time.RFC3339Nano,fmt.Sprintf("%s",s.Bytes()[dl.outputMsgStartIndex:dl.outputMsgStartIndex+dl.dockerTimeStampLength]))
 				if err != nil{
 					acc.AddError(fmt.Errorf("Can't parse time stamp from string, comtainer '%s': %v", dl.ContID, err))
 					timeStamp = time.Now()
@@ -264,6 +254,14 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 		}
 	}
 
+	if ! dl.msgHeaderExamined {
+		if IsContainHeader(&dl.buffer,dl.length) {
+			dl.outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
+		} else {
+			dl.outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
+		}
+		dl.msgHeaderExamined = true
+	}
 
 	return nil
 }
