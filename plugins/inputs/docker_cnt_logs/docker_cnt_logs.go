@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/binary"
 	"fmt"
 	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
@@ -103,11 +104,16 @@ func IsContainHeader(str *[]byte, length int ) (bool) {
 
 	//Examine first 4 bytes to detect if they match to header structure (see above)
 	if ((*str)[0] == 0x0 || (*str)[0] == 0x1 || (*str)[0] == 0x2) &&
-		((*str)[1] == 0x0 && (*str)[2] == 0x0 && (*str)[3] == 0x0) {
-
+		((*str)[1] == 0x0 && (*str)[2] == 0x0 && (*str)[3] == 0x0) &&
+		binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) >=2 /*Encoding big endian*/ {
+		//binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) - calculates message length.
+		//Minimum message length with timestamp is 32 (timestamp (30 symbols) + space + '\n' = 32.  But in case you switch timestamp off
+		//it will be 2 (space + '\n')
 		return true
+
 	}else{
-		return false}
+		return false
+    }
 }
 
 //Primary plugin interface
@@ -205,7 +211,14 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 			totalLineLength := len(s.Bytes())
 			if uint(totalLineLength) < dl.outputMsgStartIndex + dl.dockerTimeStampLength + 1 { //no time stamp
 				timeStamp = time.Now()
-				field["value"] = fmt.Sprintf("%s\n", s.Bytes()[dl.outputMsgStartIndex:])
+
+				//This is added because sometime the message contains less symbols than 'dl.outputMsgStartIndex' and it throws exception here.
+				if uint(totalLineLength) < dl.outputMsgStartIndex +1 { //Sort of garbage, or  outputMsgStartIndex is not defined correctly
+					field["value"] = fmt.Sprintf("%s\n", s.Bytes())
+				}else {
+
+					field["value"] = fmt.Sprintf("%s\n", s.Bytes()[dl.outputMsgStartIndex:])
+				}
 
 			}else{
 				field["value"] = fmt.Sprintf("%s\n", s.Bytes()[dl.outputMsgStartIndex + dl.dockerTimeStampLength:])
@@ -298,8 +311,21 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		return err
 	}
 
-	if dl.InitialChunkSize == 0 {dl.InitialChunkSize = defaultInitialChunkSize}
-	if dl.MaxChunkSize == 0 {dl.MaxChunkSize = defaultMaxChunkSize}
+	if dl.InitialChunkSize == 0 {
+		dl.InitialChunkSize = defaultInitialChunkSize
+	}else{
+		if dl.InitialChunkSize <= dockerLogHeaderSize {
+			dl.InitialChunkSize = 2*dockerLogHeaderSize
+		}
+	}
+
+	if dl.MaxChunkSize == 0 {
+		dl.MaxChunkSize = defaultMaxChunkSize
+	}else{
+		if dl.MaxChunkSize <= dl.InitialChunkSize{
+			dl.MaxChunkSize = 5*dl.InitialChunkSize
+		}
+	}
 
 	dl.currentChunkSize = dl.InitialChunkSize
 	dl.dockerTimeStampLength = 30
