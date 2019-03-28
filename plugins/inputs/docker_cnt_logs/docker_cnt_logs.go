@@ -237,7 +237,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 				field["value"] = fmt.Sprintf("%s\n", s.Bytes()[dl.outputMsgStartIndex + dl.dockerTimeStampLength:])
 				timeStamp,err = time.Parse(time.RFC3339Nano,fmt.Sprintf("%s",s.Bytes()[dl.outputMsgStartIndex:dl.outputMsgStartIndex+dl.dockerTimeStampLength]))
 				if err != nil{
-					//acc.AddError(fmt.Errorf("Can't parse time stamp from string, comtainer '%s': %v. Raw message string:\n%s\nOutput msg start index: %d", dl.ContID, err, s.Bytes(),dl.outputMsgStartIndex))
+					acc.AddError(fmt.Errorf("Can't parse time stamp from string, comtainer '%s'", dl.ContID)
 					log.Printf("W! [inputs.docker_cnt_logs] Can't parse time stamp from string, comtainer '%s': %v. ", dl.ContID, err)
 					log.Printf("D! [inputs.docker_cnt_logs] Raw message string:\n%s\nOutput msg start index: %d",s.Bytes(),dl.outputMsgStartIndex)
 					timeStamp = time.Now()
