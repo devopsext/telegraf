@@ -9,6 +9,7 @@ import (
 	"github.com/docker/docker/api/types"
 	docker "github.com/docker/docker/client"
 	"github.com/influxdata/telegraf"
+	"log"
 	"runtime"
 
 	//"github.com/influxdata/telegraf/internal/models"
@@ -99,8 +100,13 @@ func IsContainHeader(str *[]byte, length int ) (bool) {
 
 	Following the header is the payload, which is the specified number of bytes of STREAM_TYPE.
 	*/
+	var result bool
 	if length <= 0 || /*garbage*/
 		length < dockerLogHeaderSize /*No header*/  { return false}
+
+	log.Printf("D! [inputs.docker_cnt_logs] Raw string for detecting headers:\n%s\n",str)
+	log.Printf("D! [inputs.docker_cnt_logs] First 4 bytes: '%v,%v,%v,%v', string representation: '%s'",(*str)[0],(*str)[1],(*str)[2],(*str)[3], (*str)[0:4])
+	log.Printf("D! [inputs.docker_cnt_logs] Big endian value: %d",binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]))
 
 	//Examine first 4 bytes to detect if they match to header structure (see above)
 	if ((*str)[0] == 0x0 || (*str)[0] == 0x1 || (*str)[0] == 0x2) &&
@@ -109,11 +115,18 @@ func IsContainHeader(str *[]byte, length int ) (bool) {
 		//binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) - calculates message length.
 		//Minimum message length with timestamp is 32 (timestamp (30 symbols) + space + '\n' = 32.  But in case you switch timestamp off
 		//it will be 2 (space + '\n')
-		return true
+
+		log.Printf("I! [inputs.docker_cnt_logs] Detected: log messages from docker API streamed WITH headers...")
+		result = true
 
 	}else{
-		return false
+		log.Printf("I! [inputs.docker_cnt_logs] Detected: log messages from docker API streamed WITHOUT headers...")
+
+		result = false
     }
+
+
+	return result
 }
 
 //Primary plugin interface
@@ -224,7 +237,9 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 				field["value"] = fmt.Sprintf("%s\n", s.Bytes()[dl.outputMsgStartIndex + dl.dockerTimeStampLength:])
 				timeStamp,err = time.Parse(time.RFC3339Nano,fmt.Sprintf("%s",s.Bytes()[dl.outputMsgStartIndex:dl.outputMsgStartIndex+dl.dockerTimeStampLength]))
 				if err != nil{
-					acc.AddError(fmt.Errorf("Can't parse time stamp from string, comtainer '%s': %v. Raw message string:\n%s\nOutput msg start index: %d", dl.ContID, err, s.Bytes(),dl.outputMsgStartIndex))
+					//acc.AddError(fmt.Errorf("Can't parse time stamp from string, comtainer '%s': %v. Raw message string:\n%s\nOutput msg start index: %d", dl.ContID, err, s.Bytes(),dl.outputMsgStartIndex))
+					log.Printf("W! [inputs.docker_cnt_logs] Can't parse time stamp from string, comtainer '%s': %v. ", dl.ContID, err)
+					log.Printf("D! [inputs.docker_cnt_logs] Raw message string:\n%s\nOutput msg start index: %d",s.Bytes(),dl.outputMsgStartIndex)
 					timeStamp = time.Now()
 				}
 			}
