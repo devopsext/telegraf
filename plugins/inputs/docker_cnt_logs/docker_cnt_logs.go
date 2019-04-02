@@ -320,7 +320,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 		if IsContainHeader(&dl.buffer,dl.length) {
 			dl.outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
 		} else {
-			dl.outputMsgStartIndex = 50 //No header in the output, start from the 1st letter.
+			dl.outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
 		}
 		dl.msgHeaderExamined = true
 	}
