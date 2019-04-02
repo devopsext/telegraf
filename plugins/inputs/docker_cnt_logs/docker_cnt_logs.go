@@ -220,21 +220,48 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 
 		reader = bytes.NewReader(dl.buffer[:dl.endOfLineIndex])
 		s := bufio.NewScanner(reader)
+		var prefix []byte
+		var buffer []byte
+		prefixLen := 0
 		for s.Scan() {
 			totalLineLength := len(s.Bytes())
+
+			//Checking if line is cut up somewhere in the middle of header (because header sometimes has '\n' symbol
+			if uint(totalLineLength) < dl.outputMsgStartIndex +1 {
+				if prefix != nil {
+					prefix = nil
+				}
+				prefix = make ([]byte, totalLineLength)
+				copy(prefix, s.Bytes())
+				prefixLen = totalLineLength
+				continue
+			}
+
+			if prefixLen > 0 {
+				buffer = make([]byte, totalLineLength + len(prefix))
+				buffer = append(prefix, s.Bytes()...)
+				totalLineLength = totalLineLength + len(prefix)
+				//Clear prefix
+				prefix = nil
+				prefixLen = 0
+			}else{
+				buffer = s.Bytes()
+			}
+
+
 			if uint(totalLineLength) < dl.outputMsgStartIndex + dl.dockerTimeStampLength + 1 { //no time stamp
 				timeStamp = time.Now()
 
 				//This is added because sometime the message contains less symbols than 'dl.outputMsgStartIndex' and it throws exception here.
 				if uint(totalLineLength) < dl.outputMsgStartIndex +1 { //Sort of garbage, or  outputMsgStartIndex is not defined correctly
-					field["value"] = fmt.Sprintf("%s\n", s.Bytes())
+					field["value"] = fmt.Sprintf("%s\n", buffer)
 				}else {
 
-					field["value"] = fmt.Sprintf("%s\n", s.Bytes()[dl.outputMsgStartIndex:])
+					field["value"] = fmt.Sprintf("%s\n", buffer[dl.outputMsgStartIndex:])
 				}
 
 			}else{
-				field["value"] = fmt.Sprintf("%s\n", s.Bytes()[dl.outputMsgStartIndex + dl.dockerTimeStampLength:])
+				field["value"] = fmt.Sprintf("%s\n", buffer[dl.outputMsgStartIndex + dl.dockerTimeStampLength:])
 				timeStamp,err = time.Parse(time.RFC3339Nano,fmt.Sprintf("%s",s.Bytes()[dl.outputMsgStartIndex:dl.outputMsgStartIndex+dl.dockerTimeStampLength]))
 				if err != nil{
 					//acc.AddError(fmt.Errorf("Can't parse time stamp from string, container '%s': %v. Raw message string:\n%s\nOutput msg start index: %d", dl.ContID, err, s.Bytes(),dl.outputMsgStartIndex))
@@ -242,7 +269,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 					log.Printf("E! [inputs.docker_cnt_logs]\n=========== buffer ===========\n%s\n=========== ====== ===========\n", dl.buffer)
 					log.Printf("E! [inputs.docker_cnt_logs]\n=========== buffer[:dl.endOfLineIndex] ===========\n%s\n=========== ====== ===========\n", dl.buffer[:dl.endOfLineIndex])
 					log.Printf("E! [inputs.docker_cnt_logs]\n=========== leftov ===========\n%s\n=========== ====== ===========\n", dl.leftoverBuffer)
-					log.Printf("E! [inputs.docker_cnt_logs]\n=========== string ===========\n%s\n=========== ====== ===========\n", s.Bytes())
+					log.Printf("E! [inputs.docker_cnt_logs]\n=========== string ===========\n%s\n=========== ====== ===========\n", buffer)
 					log.Printf("E! [inputs.docker_cnt_logs] dl.outputMsgStartIndex: %d",dl.outputMsgStartIndex)
 					log.Printf("E! [inputs.docker_cnt_logs] dl.length: %d",dl.length)
 					log.Printf("E! [inputs.docker_cnt_logs] dl.dockerTimeStampLength: %d",dl.dockerTimeStampLength)
@@ -293,10 +320,11 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 		if IsContainHeader(&dl.buffer,dl.length) {
 			dl.outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
 		} else {
-			dl.outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
+			dl.outputMsgStartIndex = 50 //No header in the output, start from the 1st letter.
 		}
 		dl.msgHeaderExamined = true
 	}
+
 
 	return nil
 }
