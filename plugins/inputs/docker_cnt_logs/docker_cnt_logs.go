@@ -231,11 +231,10 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 				if prefix != nil {
 					prefix = nil
 				}
-				prefix = make ([]byte, totalLineLength+1)
+				prefix = make ([]byte, totalLineLength)
 				copy(prefix, s.Bytes())
-				prefix = append(prefix,'\n') //This is stripped out by s.Scan()
-				prefixLen = totalLineLength+1
-				log.Printf("E! [inputs.docker_cnt_logs] Catch header with '\\n':\n<<<<\n%s\n>>>>>",prefix)
+				prefixLen = totalLineLength
+				log.Printf("E! [inputs.docker_cnt_logs] Catch header with '\\n':\n====>\n%s\n<====",prefix)
 				log.Printf("E! [inputs.docker_cnt_logs] prefixLen = %d",prefixLen)
 
 				continue
@@ -244,10 +243,10 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 			if prefixLen > 0 {
 				buffer = make([]byte, totalLineLength + prefixLen)
 				buffer = append(prefix, s.Bytes()...)
-				log.Printf("E! [inputs.docker_cnt_logs] Catch string to attend prefix to:\n<<<<\n%s\n>>>>>",s.Bytes())
+				log.Printf("E! [inputs.docker_cnt_logs] Catch string to append prefix to:\n====>\n%s\n<====",s.Bytes())
 				log.Printf("E! [inputs.docker_cnt_logs] String length = %d",totalLineLength)
 
-				log.Printf("E! [inputs.docker_cnt_logs] Assembled string:\n<<<<\n%s\n>>>>>",buffer)
+				log.Printf("E! [inputs.docker_cnt_logs] Assembled string:\n====>\n%s\n<====",buffer)
 				log.Printf("E! [inputs.docker_cnt_logs] totalLineLength = %d",totalLineLength+ prefixLen)
 
 				totalLineLength = totalLineLength + prefixLen
