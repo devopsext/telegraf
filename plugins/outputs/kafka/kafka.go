@@ -250,7 +250,7 @@ func (k *Kafka) Connect() error {
 	if err != nil {
 		return err
 	}
-	
+
 	config := sarama.NewConfig()
 
 	if k.Version != "" {
