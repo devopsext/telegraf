@@ -7,7 +7,7 @@ The stdout processor plugin prints every metric passing through it in predefined
 ```toml
 # Print metrics that pass through this filter using predefined format .
 [[processors.stdout]]
-  format = "{{.value}}"
+  format = "{{ printf \"%.25s\" .fields.value }}"
 ```
 
 ### Tags:

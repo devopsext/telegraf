@@ -11,8 +11,8 @@ import (
 )
 
 type Stdout struct {
-	template		*template.Template
-	Format      string `toml:"format"`
+	template *template.Template
+	Format   string `toml:"format"`
 }
 
 var sampleConfig = `
@@ -51,11 +51,10 @@ func (p *Stdout) Apply(in ...telegraf.Metric) []telegraf.Metric {
 		var b bytes.Buffer
 		err := p.template.Execute(&b, m)
 		if err == nil {
-	
+
 			fmt.Printf("%s\n", b.String())
 		}
 	}
-
 
 	return in
 }
@@ -63,7 +62,6 @@ func (p *Stdout) Apply(in ...telegraf.Metric) []telegraf.Metric {
 func init() {
 
 	processors.Add("stdout", func() telegraf.Processor {
-		return &Stdout{
-		}
+		return &Stdout{}
 	})
 }

@@ -21,34 +21,33 @@ import (
 
 // DockerCNTLogs object
 type DockerCNTLogs struct {
-	Endpoint		string			`toml:"endpoint"`
-	ContID			string			`toml:"cont_id"`
-	context			context.Context
-	client			*docker.Client
-	contStream		io.ReadCloser
-	streamScanner	*bufio.Scanner
-	wg				sync.WaitGroup
-	acc				telegraf.Accumulator
+	Endpoint      string `toml:"endpoint"`
+	ContID        string `toml:"cont_id"`
+	context       context.Context
+	client        *docker.Client
+	contStream    io.ReadCloser
+	streamScanner *bufio.Scanner
+	wg            sync.WaitGroup
+	acc           telegraf.Accumulator
 
-	InitialChunkSize int			`toml:"initial_chunk_size"`
-	currentChunkSize int
-	MaxChunkSize 	 int			`toml:"max_chunk_size"`
-	outputMsgStartIndex uint
+	InitialChunkSize      int `toml:"initial_chunk_size"`
+	currentChunkSize      int
+	MaxChunkSize          int `toml:"max_chunk_size"`
+	outputMsgStartIndex   uint
 	dockerTimeStampLength uint
-	buffer []byte
-	leftoverBuffer []byte
-	length int
-	endOfLineIndex int
-	quitFlag chan bool
-	msgHeaderExamined bool
-	dockerTimeStamps bool
+	buffer                []byte
+	leftoverBuffer        []byte
+	length                int
+	endOfLineIndex        int
+	quitFlag              chan bool
+	msgHeaderExamined     bool
+	dockerTimeStamps      bool
 }
 
 const defaultInitialChunkSize = 10000
 const defaultMaxChunkSize = 50000
 
 const dockerLogHeaderSize = 8
-
 
 const sampleConfig = `
 #[[inputs.docker_cnt_logs]]  
@@ -78,6 +77,7 @@ const sampleConfig = `
   ## buffer can grow in capacity adjusting to volume of data received from docker sock 
   #max_chunk_size = "50000"	
 `
+
 //TODO: Check what version to support!!!
 var (
 	version        = "1.21" // 1.24 is when server first started returning its version
@@ -85,32 +85,34 @@ var (
 )
 
 //Service functions
-func IsContainHeader(str *[]byte, length int ) (bool) {
+func IsContainHeader(str *[]byte, length int) bool {
 	/*
-	Docker inject headers when running in detached mode, to distinguish stdout, stderr, etc.
-	Header structure:
-	header := [8]byte{STREAM_TYPE, 0, 0, 0, SIZE1, SIZE2, SIZE3, SIZE4}
-	STREAM_TYPE can be:
+		Docker inject headers when running in detached mode, to distinguish stdout, stderr, etc.
+		Header structure:
+		header := [8]byte{STREAM_TYPE, 0, 0, 0, SIZE1, SIZE2, SIZE3, SIZE4}
+		STREAM_TYPE can be:
 
-	0: stdin (is written on stdout)
-	1: stdout
-	2: stderr
-	SIZE1, SIZE2, SIZE3, SIZE4 are the four bytes of the uint32 size encoded as big endian.
+		0: stdin (is written on stdout)
+		1: stdout
+		2: stderr
+		SIZE1, SIZE2, SIZE3, SIZE4 are the four bytes of the uint32 size encoded as big endian.
 
-	Following the header is the payload, which is the specified number of bytes of STREAM_TYPE.
+		Following the header is the payload, which is the specified number of bytes of STREAM_TYPE.
 	*/
 	var result bool
 	if length <= 0 || /*garbage*/
-		length < dockerLogHeaderSize /*No header*/  { return false}
+		length < dockerLogHeaderSize /*No header*/ {
+		return false
+	}
 
-	log.Printf("D! [inputs.docker_cnt_logs] Raw string for detecting headers:\n%s\n",str)
-	log.Printf("D! [inputs.docker_cnt_logs] First 4 bytes: '%v,%v,%v,%v', string representation: '%s'",(*str)[0],(*str)[1],(*str)[2],(*str)[3], (*str)[0:4])
-	log.Printf("D! [inputs.docker_cnt_logs] Big endian value: %d",binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]))
+	log.Printf("D! [inputs.docker_cnt_logs] Raw string for detecting headers:\n%s\n", str)
+	log.Printf("D! [inputs.docker_cnt_logs] First 4 bytes: '%v,%v,%v,%v', string representation: '%s'", (*str)[0], (*str)[1], (*str)[2], (*str)[3], (*str)[0:4])
+	log.Printf("D! [inputs.docker_cnt_logs] Big endian value: %d", binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]))
 
 	//Examine first 4 bytes to detect if they match to header structure (see above)
 	if ((*str)[0] == 0x0 || (*str)[0] == 0x1 || (*str)[0] == 0x2) &&
 		((*str)[1] == 0x0 && (*str)[2] == 0x0 && (*str)[3] == 0x0) &&
-		binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) >=2 /*Encoding big endian*/ {
+		binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) >= 2 /*Encoding big endian*/ {
 		//binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) - calculates message length.
 		//Minimum message length with timestamp is 32 (timestamp (30 symbols) + space + '\n' = 32.  But in case you switch timestamp off
 		//it will be 2 (space + '\n')
@@ -118,21 +120,22 @@ func IsContainHeader(str *[]byte, length int ) (bool) {
 		log.Printf("I! [inputs.docker_cnt_logs] Detected: log messages from docker API streamed WITH headers...")
 		result = true
 
-	}else{
+	} else {
 		log.Printf("I! [inputs.docker_cnt_logs] Detected: log messages from docker API streamed WITHOUT headers...")
 
 		result = false
-    }
-
+	}
 
 	return result
 }
 
 //If there is no new line in interval [eolIndex-HeaderSize,eolIndex+HeaderSize],
 //then we are definitely not in the middle of header, otherwise, we are.
-func IsNewLineInMsgHeader(str *[]byte, eolIndex int) (bool){
+func IsNewLineInMsgHeader(str *[]byte, eolIndex int) bool {
 	//Edge case:
-	if eolIndex == dockerLogHeaderSize {return false}
+	if eolIndex == dockerLogHeaderSize {
+		return false
+	}
 
 	//frame := (*str)[eolIndex-dockerLogHeaderSize:eolIndex]
 	//fmt.Printf("frmae: '%s'",frame)
@@ -140,16 +143,17 @@ func IsNewLineInMsgHeader(str *[]byte, eolIndex int) (bool){
 	//If in the frame there is the following sequence '\n, 0|1|2, 0,0,0',
 	// then we are somewhere in the header. First '\n means that there is another
 	// srting that ends before this, and we actually need to find this particular '\n'
-	for i:= eolIndex-dockerLogHeaderSize; i<eolIndex; i++ {
-		if  ((*str)[i]=='\n') &&
-			((*str)[i+1] == 0x1 ||	(*str)[i+1] == 0x2 || (*str)[i+1] == 0x0) &&
-			((*str)[i+2] == 0x0 && (*str)[i+3] == 0x0 && (*str)[i+4] == 0x0 ){
-				return true
+	for i := eolIndex - dockerLogHeaderSize; i < eolIndex; i++ {
+		if ((*str)[i] == '\n') &&
+			((*str)[i+1] == 0x1 || (*str)[i+1] == 0x2 || (*str)[i+1] == 0x0) &&
+			((*str)[i+2] == 0x0 && (*str)[i+3] == 0x0 && (*str)[i+4] == 0x0) {
+			return true
 		}
 	}
 
 	return false
 }
+
 //Primary plugin interface
 
 func (dl *DockerCNTLogs) Description() string {
@@ -165,27 +169,26 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 	dl.wg.Add(1)
 	defer dl.wg.Done()
 
-
 	//Iterative reads by chunks
 	// While reading in chunks, there are 2 general cases:
 	// 1. Either full buffer (it means that the message either fit to chunkSize or exceed it. To figure out if it exceed we need to check
 	// if the buffer ends with "\r\n"
 	// 2. Or partially filled buffer. In this case the rest of the buffer is '\0'
 
-	if len(dl.leftoverBuffer) >0{ //append leftover from previous iteration
+	if len(dl.leftoverBuffer) > 0 { //append leftover from previous iteration
 		oldLength := dl.length
-		dl.buffer = append(dl.leftoverBuffer,dl.buffer...)
+		dl.buffer = append(dl.leftoverBuffer, dl.buffer...)
 		dl.length = oldLength + len(dl.leftoverBuffer)
 		//Erasing leftover buffer once used:
 		dl.leftoverBuffer = nil
 	}
 
-	if dl.length !=0 {
+	if dl.length != 0 {
 		//Docker API fills buffer with '\0' until the end even if there is no data at all,
 		//In this case, dl.length == 0 as it shows the amount of actually read data, but len(dl.buffer) will be equal to cap(dl.buffer),
 		// as the buffer will be filled out with '\0'
 		dl.endOfLineIndex = dl.length - 1
-	}else{
+	} else {
 		dl.endOfLineIndex = 0
 	}
 
@@ -194,120 +197,123 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 		//Seek last line end (from the end), ignoring the case when this line end is in the message header
 		//for ; dl.endOfLineIndex >= 0; dl.endOfLineIndex-- {
 		for ; dl.endOfLineIndex >= int(dl.outputMsgStartIndex); dl.endOfLineIndex-- {
-			if  (dl.buffer[dl.endOfLineIndex] == '\n') {
+			if dl.buffer[dl.endOfLineIndex] == '\n' {
 
 				//Skip '\n' if there are headers and '\n' is inside header
-				if dl.outputMsgStartIndex >0  && IsNewLineInMsgHeader(&dl.buffer,dl.endOfLineIndex) {
+				if dl.outputMsgStartIndex > 0 && IsNewLineInMsgHeader(&dl.buffer, dl.endOfLineIndex) {
 					continue
 				}
 
-				if dl.endOfLineIndex != dl.length -1{
+				if dl.endOfLineIndex != dl.length-1 {
 					// Moving everything that is after dl.endOfLineIndex to leftover buffer (2nd case)
 					dl.leftoverBuffer = nil
-					dl.leftoverBuffer = make ([]byte, (dl.length -1) - dl.endOfLineIndex)
+					dl.leftoverBuffer = make([]byte, (dl.length-1)-dl.endOfLineIndex)
 					copy(dl.leftoverBuffer, dl.buffer[dl.endOfLineIndex+1:])
 				}
-				break}
+				break
+			}
 		}
 
 		//Check if line end is not found
 		//if dl.endOfLineIndex == -1 {
-		if dl.endOfLineIndex == int(dl.outputMsgStartIndex -1) {
+		if dl.endOfLineIndex == int(dl.outputMsgStartIndex-1) {
 			//This is 1st case...
 
 			//Read next chunk and append to initial buffer (this is expensive operation)
 			tempBuffer := make([]byte, dl.currentChunkSize)
 
 			//This would be non blocking read, as it is reading of something that is for sure in the io stream
-			tempLength,err := dl.contStream.Read(tempBuffer)
+			tempLength, err := dl.contStream.Read(tempBuffer)
 			if err != nil { //Here there is no special check for 'EOF'. In this case we will have EOF check on the read above (in next iteration).
 				acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
 				return err
 			}
 
-			dl.buffer = append(dl.buffer,tempBuffer[:tempLength]...)
+			dl.buffer = append(dl.buffer, tempBuffer[:tempLength]...)
 			dl.length = dl.length + tempLength
 			if len(dl.leftoverBuffer) > 0 {
 				dl.leftoverBuffer = nil
 			}
 			//Grow chunk size
-			if dl.currentChunkSize*2 < dl.MaxChunkSize{
-				dl.currentChunkSize = dl.currentChunkSize*2
+			if dl.currentChunkSize*2 < dl.MaxChunkSize {
+				dl.currentChunkSize = dl.currentChunkSize * 2
 			}
 
 			return nil
 		}
 	}
 
-
 	//Parsing the buffer and passing data to accumulator
 	//Since read from API can return dl.length==0, and err==nil, we need to additionally check the boundaries
-	if (len(dl.buffer) > 0 && dl.endOfLineIndex > 0 ) {
+	if len(dl.buffer) > 0 && dl.endOfLineIndex > 0 {
 
-		totalLineLength:=0
+		totalLineLength := 0
 		var timeStamp time.Time
-		var field =  make(map[string]interface{})
+		var field = make(map[string]interface{})
 		var tags = map[string]string{}
 
 		/*Short alternative*/
-		for i:= 0; i<= dl.endOfLineIndex; i= i + totalLineLength+1 { // +1 means that we skip '\n'
+		for i := 0; i <= dl.endOfLineIndex; i = i + totalLineLength + 1 { // +1 means that we skip '\n'
 
 			//Checking boundaries:
 			if i+int(dl.outputMsgStartIndex) > dl.endOfLineIndex { //sort of garbage
 				timeStamp = time.Now()
 				field["value"] = fmt.Sprintf("%s\n", dl.buffer[i:dl.endOfLineIndex])
-				dl.acc.AddFields("stream", field, tags,timeStamp)
+				dl.acc.AddFields("stream", field, tags, timeStamp)
 				break
 			}
 
 			totalLineLength = 0
 
 			//Looking for the end of the line (skipping index):
-			for j:=i+int(dl.outputMsgStartIndex); j<= dl.endOfLineIndex; j++{
-			 if dl.buffer[j] == '\n' {
-			 	totalLineLength = j - i
-			 	break}
+			for j := i + int(dl.outputMsgStartIndex); j <= dl.endOfLineIndex; j++ {
+				if dl.buffer[j] == '\n' {
+					totalLineLength = j - i
+					break
+				}
 			}
-			if totalLineLength == 0 {totalLineLength = dl.endOfLineIndex - i}
+			if totalLineLength == 0 {
+				totalLineLength = dl.endOfLineIndex - i
+			}
 
 			//Getting stream type (if header persist)
 			if dl.outputMsgStartIndex > 0 {
 				if dl.buffer[i] == 0x1 {
 					tags["stream"] = "stdout"
-				}else if dl.buffer[i] == 0x2 {
+				} else if dl.buffer[i] == 0x2 {
 					tags["stream"] = "stderr"
-				}else if dl.buffer[i] == 0x0 {
+				} else if dl.buffer[i] == 0x0 {
 					tags["stream"] = "stdin"
 				}
-			}else {
+			} else {
 				tags["stream"] = "interactive"
 			}
 
-			if uint(totalLineLength) < dl.outputMsgStartIndex + dl.dockerTimeStampLength + 1 || ! dl.dockerTimeStamps { //no time stamp
+			if uint(totalLineLength) < dl.outputMsgStartIndex+dl.dockerTimeStampLength+1 || !dl.dockerTimeStamps { //no time stamp
 				timeStamp = time.Now()
 				field["value"] = fmt.Sprintf("%s\n", dl.buffer[i+int(dl.outputMsgStartIndex):i+totalLineLength])
-			}else{
-				timeStamp,err = time.Parse(time.RFC3339Nano,fmt.Sprintf("%s",dl.buffer[i+int(dl.outputMsgStartIndex):i+int(dl.outputMsgStartIndex)+int(dl.dockerTimeStampLength)]))
+			} else {
+				timeStamp, err = time.Parse(time.RFC3339Nano, fmt.Sprintf("%s", dl.buffer[i+int(dl.outputMsgStartIndex):i+int(dl.outputMsgStartIndex)+int(dl.dockerTimeStampLength)]))
 				if err != nil {
-					acc.AddError(fmt.Errorf("Can't parse time stamp from string, container '%s': %v. Raw message string:\n%s\nOutput msg start index: %d", dl.ContID, err, dl.buffer[i:i+totalLineLength],dl.outputMsgStartIndex))
+					acc.AddError(fmt.Errorf("Can't parse time stamp from string, container '%s': %v. Raw message string:\n%s\nOutput msg start index: %d", dl.ContID, err, dl.buffer[i:i+totalLineLength], dl.outputMsgStartIndex))
 					log.Printf("E! [inputs.docker_cnt_logs]\n=========== buffer[:dl.endOfLineIndex] ===========\n%s\n=========== ====== ===========\n", dl.buffer[:dl.endOfLineIndex])
 				}
 				field["value"] = fmt.Sprintf("%s\n", dl.buffer[i+int(dl.outputMsgStartIndex)+int(dl.dockerTimeStampLength)+1:i+totalLineLength])
 			}
-			dl.acc.AddFields("stream", field, tags,timeStamp)
+			dl.acc.AddFields("stream", field, tags, timeStamp)
 
 		}
 	}
 
 	//Control the size of buffer
-	if len (dl.buffer) > dl.MaxChunkSize {
+	if len(dl.buffer) > dl.MaxChunkSize {
 		dl.buffer = nil
-		dl.buffer = make([]byte,dl.currentChunkSize)
+		dl.buffer = make([]byte, dl.currentChunkSize)
 		runtime.GC()
 	}
 
 	//Read from docker API
-	dl.length,err = dl.contStream.Read(dl.buffer) //Can be a case when API returns dl.length==0, and err==nil
+	dl.length, err = dl.contStream.Read(dl.buffer) //Can be a case when API returns dl.length==0, and err==nil
 
 	if err != nil {
 		if err.Error() == "EOF" {
@@ -318,7 +324,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 				dl.contStream = nil
 			}
 
-			if dl.client !=nil {
+			if dl.client != nil {
 				dl.client.Close()
 				dl.client = nil
 			}
@@ -326,21 +332,20 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 			acc.AddError(err)
 			panic(err)
 
-		}else {
+		} else {
 			acc.AddError(fmt.Errorf("Read error from container '%s': %v", dl.ContID, err))
 			return err
 		}
 	}
 
-	if ! dl.msgHeaderExamined {
-		if IsContainHeader(&dl.buffer,dl.length) {
+	if !dl.msgHeaderExamined {
+		if IsContainHeader(&dl.buffer, dl.length) {
 			dl.outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
 		} else {
 			dl.outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
 		}
 		dl.msgHeaderExamined = true
 	}
-
 
 	return nil
 }
@@ -353,7 +358,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 	dl.context = context.Background()
 	if dl.Endpoint == "ENV" {
 		dl.client, err = docker.NewClientWithOpts(docker.FromEnv)
-	}else{
+	} else {
 
 		var cc tlsint.ClientConfig
 		tlsConfig, err := cc.TLSConfig()
@@ -382,17 +387,17 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 
 	if dl.InitialChunkSize == 0 {
 		dl.InitialChunkSize = defaultInitialChunkSize
-	}else{
+	} else {
 		if dl.InitialChunkSize <= dockerLogHeaderSize {
-			dl.InitialChunkSize = 2*dockerLogHeaderSize
+			dl.InitialChunkSize = 2 * dockerLogHeaderSize
 		}
 	}
 
 	if dl.MaxChunkSize == 0 {
 		dl.MaxChunkSize = defaultMaxChunkSize
-	}else{
-		if dl.MaxChunkSize <= dl.InitialChunkSize{
-			dl.MaxChunkSize = 5*dl.InitialChunkSize
+	} else {
+		if dl.MaxChunkSize <= dl.InitialChunkSize {
+			dl.MaxChunkSize = 5 * dl.InitialChunkSize
 		}
 	}
 
@@ -402,9 +407,9 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 	options := types.ContainerLogsOptions{
 		ShowStdout: true,
 		ShowStderr: true,
-		Follow: true,
+		Follow:     true,
 		Timestamps: dl.dockerTimeStamps,
-		Since: fmt.Sprint(int32(time.Now().Unix()))}
+		Since:      fmt.Sprint(int32(time.Now().Unix()))}
 
 	dl.contStream, err = dl.client.ContainerLogs(dl.context, dl.ContID, options)
 	if err != nil {
@@ -413,7 +418,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 
 	dl.buffer = make([]byte, dl.InitialChunkSize)
 	dl.msgHeaderExamined = false
-	dl.quitFlag = make (chan bool)
+	dl.quitFlag = make(chan bool)
 
 	//Starting container cheking go routine
 	go dl.CheckContainerStatus()
@@ -427,20 +432,20 @@ func (dl *DockerCNTLogs) CheckContainerStatus() {
 
 	for {
 		select {
-		case <- dl.quitFlag:
+		case <-dl.quitFlag:
 			return
 		default:
 			response, err = dl.client.ContainerInspect(dl.context, dl.ContID)
-			if (err!=nil) || (response.ContainerJSONBase.State.Status != "running" )  {
+			if (err != nil) || (response.ContainerJSONBase.State.Status != "running") {
 				if err == nil {
-					err = fmt.Errorf("Container '%s' status: %s",dl.ContID,response.ContainerJSONBase.State.Status)
+					err = fmt.Errorf("Container '%s' status: %s", dl.ContID, response.ContainerJSONBase.State.Status)
 				}
 				if dl.contStream != nil {
 					dl.contStream.Close()
 					dl.contStream = nil
 				}
 
-				if dl.client !=nil {
+				if dl.client != nil {
 					dl.client.Close()
 					dl.client = nil
 				}
@@ -449,7 +454,7 @@ func (dl *DockerCNTLogs) CheckContainerStatus() {
 				panic(err) //Crashing telegraf
 			}
 		}
-		time.Sleep(3* time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }
 
@@ -464,12 +469,12 @@ func (dl *DockerCNTLogs) Stop() {
 		dl.contStream = nil
 	}
 
-	if dl.client !=nil {
+	if dl.client != nil {
 		dl.client.Close()
 		dl.client = nil
 	}
 }
 
 func init() {
-	inputs.Add("docker_cnt_logs", func() telegraf.Input { return &DockerCNTLogs{}})
+	inputs.Add("docker_cnt_logs", func() telegraf.Input { return &DockerCNTLogs{} })
 }
