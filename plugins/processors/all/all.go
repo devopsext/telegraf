@@ -9,5 +9,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/processors/regex"
 	_ "github.com/influxdata/telegraf/plugins/processors/rename"
 	_ "github.com/influxdata/telegraf/plugins/processors/strings"
+	_ "github.com/influxdata/telegraf/plugins/processors/stdout" //dve_addons
+	_ "github.com/influxdata/telegraf/plugins/processors/substring"	//dve_addons
 	_ "github.com/influxdata/telegraf/plugins/processors/topk"
 )
