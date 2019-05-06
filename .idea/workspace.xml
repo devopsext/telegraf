@@ -2,23 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/BuildDLVDebian.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/CreateAndPushDebianIamge.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/Dockerfile.debian" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/PodSpec.yml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/collector" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config.conf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config2.conf" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/dlv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/processors/stdout/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/processors/stdout/stdout.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/processors/stdout/stdout_test.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/processors/substring/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/processors/substring/substring.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/processors/substring/substring_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/all/all.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/all/all.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugins/processors/all/all.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/processors/all/all.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -156,7 +140,7 @@
     <session id="2086448036">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="6" />
+          <entry key="project.closed" value="7" />
           <entry key="project.open.time.0" value="2" />
           <entry key="project.open.time.1" value="1" />
           <entry key="project.open.time.12" value="2" />
@@ -166,40 +150,43 @@
           <entry key="project.open.time.2" value="4" />
           <entry key="project.open.time.5" value="2" />
           <entry key="project.open.time.7" value="1" />
+          <entry key="project.open.time.8" value="1" />
           <entry key="project.open.time.9" value="1" />
-          <entry key="project.opened" value="16" />
+          <entry key="project.opened" value="17" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="conf" value="200" />
-          <entry key="go" value="7092" />
-          <entry key="md" value="754" />
-          <entry key="txt" value="400" />
+          <entry key="conf" value="402" />
+          <entry key="dummy" value="7" />
+          <entry key="go" value="8012" />
+          <entry key="md" value="1306" />
+          <entry key="txt" value="425" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Go" value="7092" />
-          <entry key="Markdown" value="754" />
-          <entry key="PLAIN_TEXT" value="600" />
+          <entry key="Go" value="8012" />
+          <entry key="Markdown" value="1301" />
+          <entry key="PLAIN_TEXT" value="834" />
+          <entry key="TOML" value="5" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
-          <entry key="conf" value="5" />
-          <entry key="go" value="40" />
+          <entry key="conf" value="6" />
+          <entry key="go" value="47" />
           <entry key="lock" value="1" />
-          <entry key="md" value="17" />
+          <entry key="md" value="18" />
           <entry key="s" value="1" />
           <entry key="toml" value="1" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Go" value="40" />
-          <entry key="Markdown" value="17" />
-          <entry key="PLAIN_TEXT" value="5" />
+          <entry key="Go" value="47" />
+          <entry key="Markdown" value="18" />
+          <entry key="PLAIN_TEXT" value="6" />
           <entry key="TOML" value="2" />
           <entry key="x86 Plan9 Assembly" value="1" />
         </counts>
@@ -217,7 +204,7 @@
         <entry file="file://$PROJECT_DIR$/plugins/processors/strings/README.md">
           <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
             <state split_layout="SPLIT">
-              <first_editor relative-caret-position="61">
+              <first_editor relative-caret-position="-2">
                 <caret line="46" selection-start-line="46" selection-end-line="46" />
               </first_editor>
               <second_editor />
@@ -225,83 +212,85 @@
           </provider>
         </entry>
       </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/plugins/processors/combine/combine.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="183">
+              <caret line="53" column="14" selection-start-line="53" selection-start-column="14" selection-end-line="53" selection-end-column="14" />
+              <folding>
+                <element signature="e#16#154#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/plugins/processors/strings/strings.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="1627">
+              <caret line="225" column="16" selection-start-line="225" selection-start-column="4" selection-end-line="225" selection-end-column="16" />
+              <folding>
+                <element signature="e#152#546#0" />
+                <element signature="e#603#810#0" />
+                <element signature="n#!!block;n#convertField#0" />
+                <element signature="n#!!block;n#convertMeasurement#0" />
+                <element signature="n#!!block;n#convert#0" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/plugins/processors/stdout/stdout.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="317">
+              <caret line="40" column="5" selection-start-line="30" selection-start-column="4" selection-end-line="40" selection-end-column="5" />
+              <folding>
+                <element signature="e#16#154#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/metric.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="183">
+              <caret line="32" column="4" selection-start-line="32" selection-start-column="4" selection-end-line="32" selection-end-column="4" />
+            </state>
+          </provider>
+        </entry>
+      </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="447">
-              <caret line="302" column="36" selection-start-line="302" selection-start-column="30" selection-end-line="302" selection-end-column="36" />
+            <state relative-caret-position="-292">
+              <caret line="164" column="64" selection-start-line="164" selection-start-column="64" selection-end-line="164" selection-end-column="64" />
               <folding>
                 <element signature="e#25#402#0" expanded="true" />
+                <element signature="n#!!block;n#Gather#0" />
               </folding>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/prometheus/kubernetes.go">
+        <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config.conf">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="176">
-              <caret line="16" column="4" selection-start-line="16" selection-start-column="4" selection-end-line="16" selection-end-column="4" />
+            <state relative-caret-position="383">
+              <caret line="74" column="18" selection-start-line="74" selection-start-column="18" selection-end-line="74" selection-end-column="18" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/kinesis_consumer/kinesis_consumer.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="365">
-              <caret line="23" column="21" selection-start-line="23" selection-start-column="21" selection-end-line="23" selection-end-column="21" />
-              <folding>
-                <element signature="e#26#492#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/vsphere/endpoint.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="420">
-              <caret line="20" column="38" selection-start-line="20" selection-start-column="38" selection-end-line="20" selection-end-column="38" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/README.md">
+        <entry file="file://$PROJECT_DIR$/plugins/processors/combine/README.md">
           <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
             <state split_layout="SPLIT">
-              <first_editor relative-caret-position="209">
-                <caret line="42" column="2" lean-forward="true" selection-start-line="42" selection-start-column="2" selection-end-line="42" selection-end-column="2" />
+              <first_editor relative-caret-position="399">
+                <caret line="19" column="9" lean-forward="true" selection-start-line="19" selection-start-column="9" selection-end-line="19" selection-end-column="9" />
               </first_editor>
               <second_editor />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/vsphere/vsphere.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="176">
-              <caret line="274" column="17" selection-start-line="274" selection-start-column="17" selection-end-line="274" selection-end-column="17" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/processors/substring/substring.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="672">
-              <caret line="35" column="24" selection-start-line="35" selection-start-column="24" selection-end-line="35" selection-end-column="24" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file:///usr/local/Cellar/go/1.11.4/libexec/src/regexp/regexp.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="4872">
-              <caret line="241" column="5" selection-start-line="241" selection-start-column="5" selection-end-line="241" selection-end-column="5" />
             </state>
           </provider>
         </entry>
@@ -371,11 +360,14 @@
         <option value="$PROJECT_DIR$/src/github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" />
         <option value="$PROJECT_DIR$/src/github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs/deb/config.conf" />
         <option value="$PROJECT_DIR$/logger/logger.go" />
-        <option value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config.conf" />
         <option value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config2.conf" />
         <option value="$PROJECT_DIR$/plugins/processors/substring/README.md" />
         <option value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" />
         <option value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/README.md" />
+        <option value="$PROJECT_DIR$/plugins/processors/all/all.go" />
+        <option value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config.conf" />
+        <option value="$PROJECT_DIR$/plugins/processors/combine/README.md" />
+        <option value="$PROJECT_DIR$/plugins/processors/combine/combine.go" />
       </list>
     </option>
   </component>
@@ -394,10 +386,9 @@
     </packageJsonPaths>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="79" />
-    <option name="y" value="45" />
-    <option name="width" value="1713" />
-    <option name="height" value="996" />
+    <option name="y" value="22" />
+    <option name="width" value="1920" />
+    <option name="height" value="1058" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -419,6 +410,7 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
@@ -454,7 +446,8 @@
               <item name="telegraf" type="462c0819:PsiDirectoryNode" />
               <item name="plugins" type="462c0819:PsiDirectoryNode" />
               <item name="inputs" type="462c0819:PsiDirectoryNode" />
-              <item name="dovecot" type="462c0819:PsiDirectoryNode" />
+              <item name="docker_cnt_logs" type="462c0819:PsiDirectoryNode" />
+              <item name="deb" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
@@ -467,28 +460,14 @@
               <item name="telegraf" type="462c0819:PsiDirectoryNode" />
               <item name="plugins" type="462c0819:PsiDirectoryNode" />
               <item name="processors" type="462c0819:PsiDirectoryNode" />
-              <item name="override" type="462c0819:PsiDirectoryNode" />
+              <item name="all" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
               <item name="telegraf" type="462c0819:PsiDirectoryNode" />
               <item name="plugins" type="462c0819:PsiDirectoryNode" />
               <item name="processors" type="462c0819:PsiDirectoryNode" />
-              <item name="printer" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
-              <item name="telegraf" type="462c0819:PsiDirectoryNode" />
-              <item name="plugins" type="462c0819:PsiDirectoryNode" />
-              <item name="processors" type="462c0819:PsiDirectoryNode" />
-              <item name="regex" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
-              <item name="telegraf" type="462c0819:PsiDirectoryNode" />
-              <item name="plugins" type="462c0819:PsiDirectoryNode" />
-              <item name="processors" type="462c0819:PsiDirectoryNode" />
-              <item name="rename" type="462c0819:PsiDirectoryNode" />
+              <item name="combine" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
@@ -506,27 +485,12 @@
             </path>
             <path>
               <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
-              <item name="telegraf" type="462c0819:PsiDirectoryNode" />
-              <item name="plugins" type="462c0819:PsiDirectoryNode" />
-              <item name="processors" type="462c0819:PsiDirectoryNode" />
-              <item name="substring" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
-              <item name="telegraf" type="462c0819:PsiDirectoryNode" />
-              <item name="plugins" type="462c0819:PsiDirectoryNode" />
-              <item name="processors" type="462c0819:PsiDirectoryNode" />
-              <item name="topk" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
               <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
             </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -562,10 +526,10 @@
   </component>
   <component name="RunManager" selected="Go Build.telegraf">
     <configuration name="telegraf" type="GoApplicationRunConfiguration" factoryName="Go Application">
-      <module name="influxdata" />
+      <module name="telegraf" />
       <working_directory value="$PROJECT_DIR$" />
       <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.5' -X main.branch=localMBP -X main.commit=localMBP&quot;" />
-      <parameters value="--config $PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config2.conf" />
+      <parameters value="--config $PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config.conf" />
       <kind value="FILE" />
       <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
       <directory value="$PROJECT_DIR$/" />
@@ -593,21 +557,21 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="79" y="45" width="1713" height="996" extended-state="0" />
+    <frame x="0" y="22" width="1920" height="1058" extended-state="6" />
     <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.14961101" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.18051118" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.36128363" />
-      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49910232" visible="true" weight="0.38827434" />
-      <window_info anchor="bottom" id="Debug" order="3" weight="0.38295165" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49910232" weight="0.44616976" />
+      <window_info active="true" anchor="bottom" id="Debug" order="3" visible="true" weight="0.38198757" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.4985039" weight="0.32743362" />
       <window_info anchor="bottom" id="Database Changes" order="7" show_stripe_button="false" />
-      <window_info anchor="bottom" id="Version Control" order="8" sideWeight="0.49970078" weight="0.32853982" />
+      <window_info anchor="bottom" id="Version Control" order="8" show_stripe_button="false" sideWeight="0.49970078" weight="0.32853982" />
       <window_info anchor="bottom" id="Terminal" order="9" sideWeight="0.764213" weight="0.42256638" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.23578696" side_tool="true" weight="0.3119469" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
@@ -790,11 +754,24 @@
         <watch expression="dl.buffer[i+int(dl.outputMsgStartIndex)+int(dl.dockerTimeStampLength)+1:i+totalLineLength]" language="go" />
         <watch expression="dl.buffer[2787:2787+67]" language="go" />
         <watch expression="dl.buffer[i]" language="go" />
+        <watch expression="*(*&quot;github.com/influxdata/telegraf.ValueType&quot;)(824638857752)" />
+        <watch expression="p" language="go" />
+        <watch expression="metric.Tags()[&quot;process&quot;]" language="go" />
       </configuration>
     </watches-manager>
   </component>
   <component name="debuggerHistoryManager">
     <expressions id="watch">
+      <expression>
+        <expression-string>p</expression-string>
+        <language-id>go</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>metric.Tags()[&quot;process&quot;]</expression-string>
+        <language-id>go</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
       <expression>
         <expression-string>dl.buffer[i]</expression-string>
         <language-id>go</language-id>
@@ -835,11 +812,6 @@
         <language-id>go</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
-      <expression>
-        <expression-string>dl.buffer[8:39]</expression-string>
-        <language-id>go</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
     </expressions>
     <expressions id="setValue">
       <expression>
@@ -850,41 +822,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file:///usr/local/Cellar/go/1.11.4/libexec/src/log/example_test.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="315">
-          <caret line="15" column="18" selection-start-line="15" selection-start-column="18" selection-end-line="15" selection-end-column="58" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/cmd/telegraf/telegraf.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1869">
-          <caret line="114" selection-start-line="114" selection-end-line="115" selection-end-column="50" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/Cellar/go/1.11.4/libexec/src/runtime/proc.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4095">
-          <caret line="200" selection-start-line="200" selection-end-line="200" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/Cellar/go/1.11.4/libexec/src/encoding/binary/binary.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2184">
-          <caret line="109" column="17" selection-start-line="109" selection-start-column="17" selection-end-line="109" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/logger/logger.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="168">
-          <caret line="16" column="24" selection-start-line="16" selection-start-column="24" selection-end-line="16" selection-end-column="24" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/local/Cellar/go/1.11.4/libexec/src/log/log.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="987">
@@ -993,13 +930,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config.conf">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1302">
-          <caret line="62" column="32" selection-start-line="62" selection-start-column="32" selection-end-line="62" selection-end-column="32" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config2.conf">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="399">
@@ -1094,9 +1024,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/processors/strings/strings.go">
-      <provider selected="true" editor-type-id="text-editor" />
-    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/processors/regex/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
@@ -1109,33 +1036,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="1365">
           <caret line="70" column="47" selection-start-line="70" selection-start-column="39" selection-end-line="70" selection-end-column="47" />
-          <folding>
-            <element signature="e#15#123#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/Cellar/go/1.11.4/libexec/src/regexp/regexp.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="4872">
-          <caret line="241" column="5" selection-start-line="241" selection-start-column="5" selection-end-line="241" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/processors/strings/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="61">
-            <caret line="46" selection-start-line="46" selection-end-line="46" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/prometheus/kubernetes.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="176">
-          <caret line="16" column="4" selection-start-line="16" selection-start-column="4" selection-end-line="16" selection-end-column="4" />
         </state>
       </provider>
     </entry>
@@ -1153,33 +1053,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="76">
           <caret line="97" column="10" lean-forward="true" selection-start-line="97" selection-start-column="10" selection-end-line="97" selection-end-column="10" />
-          <folding>
-            <element signature="e#176#361#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/kinesis_consumer/kinesis_consumer.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="365">
-          <caret line="23" column="21" selection-start-line="23" selection-start-column="21" selection-end-line="23" selection-end-column="21" />
-          <folding>
-            <element signature="e#26#492#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/vsphere/vsphere.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="176">
-          <caret line="274" column="17" selection-start-line="274" selection-start-column="17" selection-end-line="274" selection-end-column="17" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/vsphere/endpoint.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="420">
-          <caret line="20" column="38" selection-start-line="20" selection-start-column="38" selection-end-line="20" selection-end-column="38" />
         </state>
       </provider>
     </entry>
@@ -1193,30 +1066,147 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go">
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/prometheus/kubernetes.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="447">
-          <caret line="302" column="36" selection-start-line="302" selection-start-column="30" selection-end-line="302" selection-end-column="36" />
-          <folding>
-            <element signature="e#25#402#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="336">
+          <caret line="16" column="4" selection-start-line="16" selection-start-column="4" selection-end-line="16" selection-end-column="4" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/processors/substring/substring.go">
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/kinesis_consumer/kinesis_consumer.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="672">
-          <caret line="35" column="24" selection-start-line="35" selection-start-column="24" selection-end-line="35" selection-end-column="24" />
+        <state relative-caret-position="105">
+          <caret line="23" column="21" selection-start-line="23" selection-start-column="21" selection-end-line="23" selection-end-column="21" />
+          <folding>
+            <element signature="e#26#492#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
-          <first_editor relative-caret-position="209">
-            <caret line="42" column="2" lean-forward="true" selection-start-line="42" selection-start-column="2" selection-end-line="42" selection-end-column="2" />
+          <first_editor relative-caret-position="1008">
+            <caret line="48" column="20" selection-start-line="48" selection-start-column="20" selection-end-line="48" selection-end-column="20" />
           </first_editor>
           <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/vsphere/vsphere.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5523">
+          <caret line="274" column="17" selection-start-line="274" selection-start-column="17" selection-end-line="274" selection-end-column="17" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/vsphere/endpoint.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="420">
+          <caret line="20" column="38" selection-start-line="20" selection-start-column="38" selection-end-line="20" selection-end-column="38" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/processors/substring/substring.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="812">
+          <caret line="56" column="13" lean-forward="true" selection-start-line="56" selection-start-column="13" selection-end-line="56" selection-end-column="13" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/Cellar/go/1.11.4/libexec/src/regexp/regexp.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="877">
+          <caret line="241" column="5" selection-start-line="241" selection-start-column="5" selection-end-line="241" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/processors/all/all.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="336">
+          <caret line="16" lean-forward="true" selection-start-line="16" selection-end-line="16" />
+          <folding>
+            <element signature="e#13#736#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/metric.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="183">
+          <caret line="32" column="4" selection-start-line="32" selection-start-column="4" selection-end-line="32" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/processors/stdout/stdout.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="317">
+          <caret line="40" column="5" selection-start-line="30" selection-start-column="4" selection-end-line="40" selection-end-column="5" />
+          <folding>
+            <element signature="e#16#154#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/processors/strings/strings.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1627">
+          <caret line="225" column="16" selection-start-line="225" selection-start-column="4" selection-end-line="225" selection-end-column="16" />
+          <folding>
+            <element signature="e#152#546#0" />
+            <element signature="e#603#810#0" />
+            <element signature="n#!!block;n#convertField#0" />
+            <element signature="n#!!block;n#convertMeasurement#0" />
+            <element signature="n#!!block;n#convert#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-292">
+          <caret line="164" column="64" selection-start-line="164" selection-start-column="64" selection-end-line="164" selection-end-column="64" />
+          <folding>
+            <element signature="e#25#402#0" expanded="true" />
+            <element signature="n#!!block;n#Gather#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/processors/strings/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="-2">
+            <caret line="46" selection-start-line="46" selection-end-line="46" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb/config.conf">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="383">
+          <caret line="74" column="18" selection-start-line="74" selection-start-column="18" selection-end-line="74" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/processors/combine/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="399">
+            <caret line="19" column="9" lean-forward="true" selection-start-line="19" selection-start-column="9" selection-end-line="19" selection-end-column="9" />
+          </first_editor>
+          <second_editor />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/processors/combine/combine.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="183">
+          <caret line="53" column="14" selection-start-line="53" selection-start-column="14" selection-end-line="53" selection-end-column="14" />
+          <folding>
+            <element signature="e#16#154#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>

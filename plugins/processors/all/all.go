@@ -11,5 +11,6 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/processors/strings"
 	_ "github.com/influxdata/telegraf/plugins/processors/stdout" //dve_addons
 	_ "github.com/influxdata/telegraf/plugins/processors/substring"	//dve_addons
+	_ "github.com/influxdata/telegraf/plugins/processors/combine"	//dve_addons
 	_ "github.com/influxdata/telegraf/plugins/processors/topk"
 )
