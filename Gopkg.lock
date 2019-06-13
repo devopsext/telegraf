@@ -560,6 +560,14 @@
   version = "v1.6.2"
 
 [[projects]]
+  digest = "1:09aa5dd1332b93c96bde671bafb053249dc813febf7d5ca84e8f382ba255d67d"
+  name = "github.com/gorilla/websocket"
+  packages = ["."]
+  pruneopts = ""
+  revision = "66b9c49e59c6c48f0ffce28c2d8b8a5678502c6d"
+  version = "v1.4.0"
+
+[[projects]]
   branch = "master"
   digest = "1:60b7bc5e043a11213472ae05252527287d20e0a6ccc18f6ae67fad88e41004de"
   name = "github.com/hailocab/go-hostpool"
@@ -966,6 +974,14 @@
   ]
   pruneopts = ""
   revision = "ae68e2d4c00fed4943b5f6698d504a5fe083da8a"
+
+[[projects]]
+  branch = "master"
+  digest = "1:25fc50e9f8eb96f7b66744c8119822240373e3f741fa07f2d25ebc9446b173ce"
+  name = "github.com/rancher/go-rancher"
+  packages = ["v2"]
+  pruneopts = ""
+  revision = "222ed122ed79d4facfa1bfbb24772530e0f9f900"
 
 [[projects]]
   branch = "master"
@@ -1594,6 +1610,7 @@
     "github.com/prometheus/client_golang/prometheus/promhttp",
     "github.com/prometheus/client_model/go",
     "github.com/prometheus/common/expfmt",
+    "github.com/rancher/go-rancher/v2",
     "github.com/satori/go.uuid",
     "github.com/shirou/gopsutil/cpu",
     "github.com/shirou/gopsutil/disk",

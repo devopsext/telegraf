@@ -281,3 +281,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/ghodss/yaml"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/rancher/go-rancher"
