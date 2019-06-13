@@ -30,6 +30,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/dns_query"
 	_ "github.com/influxdata/telegraf/plugins/inputs/docker"
 	_ "github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" //dve_addons
+	_ "github.com/influxdata/telegraf/plugins/inputs/rancher_1_x" //dve_addons
 	_ "github.com/influxdata/telegraf/plugins/inputs/dovecot"
 	_ "github.com/influxdata/telegraf/plugins/inputs/elasticsearch"
 	_ "github.com/influxdata/telegraf/plugins/inputs/exec"

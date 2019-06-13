@@ -6,3 +6,4 @@
 plugins/inputs/docker_cnt_logs/deb/*
 plugins/inputs/docker_cnt_logs/Dockerfile.*
 plugins/inputs/docker_cnt_logs/*.sh
+plugins/inputs/rancher_1_x/*.conf
