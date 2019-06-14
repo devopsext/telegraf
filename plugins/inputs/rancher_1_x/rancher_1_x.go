@@ -60,36 +60,67 @@ func (r *Rancher1X) buildDataDict() (error) {
 	var environments *rancher.ProjectCollection
 	var err error
 
-	environments,err = r.rancherClient.Project.List(nil)
-	if err !=nil {
-		log.Printf("E! [inputs.rancher_1_x] Can't get environments list...")
-		return err
+	var marker = 0
+	var limit = 0
+
+	opts = rancher.ListOpts{Filters: map[string]interface{}{"limit": limit, "all":"true"}}
+	for true {
+
+		environments,err = r.rancherClient.Project.List(&opts)
+		if err !=nil {
+			log.Printf("E! [inputs.rancher_1_x] Can't get environments list...")
+			return err
+		}
+
+		for _, env := range(environments.Data) {
+			r.envDict[env.Id] = map[string]string{"name":env.Name}
+		}
+
+		if environments.Collection.Pagination == nil || environments.Collection.Pagination.Partial == false {
+			break
+		}else{
+			marker = marker + limit
+			opts.Filters["marker"]= fmt.Sprintf("m%d",marker)
+		}
+
 	}
 
-	for _, env := range(environments.Data) {
-		r.envDict[env.Id] = map[string]string{"name":env.Name}
+
+
+	marker = 0
+	limit = 500
+	opts = rancher.ListOpts{Filters: map[string]interface{}{"limit": limit,"all":"true"}}
+
+	for true {
+		stacks,err := r.rancherClient.Stack.List(&opts)
+		if err !=nil {
+			log.Printf("E! [inputs.rancher_1_x] Can't get stacks list...")
+			return err
+		}
+
+		for _, stack := range(stacks.Data) {
+
+			elem := make(map[string]interface{})
+			elem["name"] = stack.Name
+			elem["envId"] = stack.AccountId
+			elem["serviceIds"] = stack.ServiceIds
+			//r.stackDict[stack.Id] = map[string]interface{"name":stack.Name, "envId":stack.AccountId, "serviceIds":stack.ServiceIds}
+			r.stackDict[stack.Id] = elem
+		}
+
+		if stacks.Collection.Pagination == nil || stacks.Collection.Pagination.Partial == false {
+			break
+		}else{
+			marker = marker + limit
+			opts.Filters["marker"]= fmt.Sprintf("m%d",marker)
+		}
+
 	}
 
-	stacks,err := r.rancherClient.Stack.List(nil)
-	if err !=nil {
-		log.Printf("E! [inputs.rancher_1_x] Can't get stacks list...")
-		return err
-	}
 
-	for _, stack := range(stacks.Data) {
-
-		elem := make(map[string]interface{})
-		elem["name"] = stack.Name
-		elem["envId"] = stack.AccountId
-		elem["serviceIds"] = stack.ServiceIds
-		//r.stackDict[stack.Id] = map[string]interface{"name":stack.Name, "envId":stack.AccountId, "serviceIds":stack.ServiceIds}
-		r.stackDict[stack.Id] = elem
-	}
-
-	var marker = 500
-	var limit = 500
-	opts = rancher.ListOpts{Filters: map[string]interface{}{
-		"limit": limit}}
+	marker = 0
+	limit = 500
+	opts = rancher.ListOpts{Filters: map[string]interface{}{"limit": limit,"all":"true"}}
 
 	for true {
 		services, err := r.rancherClient.Service.List(&opts)
@@ -102,6 +133,7 @@ func (r *Rancher1X) buildDataDict() (error) {
 			elem := make(map[string]interface{})
 			elem["name"] = service.Name
 			elem["stackId"] = service.StackId
+			elem["state"] = service.State
 
 			r.serviceDict[service.Id] = elem
 
@@ -243,10 +275,6 @@ func (r *Rancher1X) Start(acc telegraf.Accumulator) error {
 		r.svcEventsFilter.Filters["eventType_like"] = r.SvcEventTypesIn
 	}
 
-	//if len (r.SvcEventTypesEx) > 0 {
-	//	r.svcEventsFilter.Filters["eventType_notlike"] = r.SvcEventTypesEx
-	//}
-	//fmt.Printf("%s",acc.maker.Config.Interval)
 
 	r.previousRun = time.Now().UTC()
 	r.location = r.previousRun.Location()

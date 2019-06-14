@@ -2,8 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gopkg.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Gopkg.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/rancher_1_x/rancher_1_x.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/rancher_1_x/rancher_1_x.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -160,14 +159,14 @@
           <entry key="conf" value="488" />
           <entry key="dummy" value="7" />
           <entry key="gitignore" value="19" />
-          <entry key="go" value="11655" />
+          <entry key="go" value="11707" />
           <entry key="md" value="1442" />
           <entry key="txt" value="550" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Go" value="11655" />
+          <entry key="Go" value="11707" />
           <entry key="Markdown" value="1437" />
           <entry key="PLAIN_TEXT" value="1064" />
           <entry key="TOML" value="5" />
@@ -205,10 +204,12 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/rancher_1_x/rancher_1_x.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="147">
-              <caret line="7" column="36" selection-start-line="7" selection-start-column="36" selection-end-line="7" selection-end-column="36" />
+            <state relative-caret-position="463">
+              <caret line="135" column="41" selection-start-line="135" selection-start-column="41" selection-end-line="135" selection-end-column="41" />
               <folding>
+                <element signature="e#25#402#0" expanded="true" />
                 <element signature="e#803#1611#1" />
+                <element signature="e#2247#2664#0" />
               </folding>
             </state>
           </provider>
@@ -277,8 +278,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/rancher_1_x/config.conf">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="440">
-              <caret line="44" column="9" selection-start-line="44" selection-start-column="9" selection-end-line="44" selection-end-column="9" />
+            <state relative-caret-position="257">
+              <caret line="33" column="56" selection-start-line="33" selection-start-column="16" selection-end-line="33" selection-end-column="56" />
             </state>
           </provider>
         </entry>
@@ -388,8 +389,8 @@
         <option value="$PROJECT_DIR$/plugins/inputs/all/all.go" />
         <option value="$PROJECT_DIR$/plugins/inputs/rancher_1_x/config.conf" />
         <option value="$PROJECT_DIR$/.gitignore" />
-        <option value="$PROJECT_DIR$/plugins/inputs/rancher_1_x/rancher_1_x.go" />
         <option value="$PROJECT_DIR$/plugins/inputs/rancher_1_x/README.md" />
+        <option value="$PROJECT_DIR$/plugins/inputs/rancher_1_x/rancher_1_x.go" />
       </list>
     </option>
   </component>
@@ -405,10 +406,11 @@
       <path value="$PROJECT_DIR$/vendor/github.com/apache/thrift/package.json" />
     </packageJsonPaths>
   </component>
-  <component name="ProjectFrameBounds" extendedState="6">
-    <option name="y" value="22" />
-    <option name="width" value="1440" />
-    <option name="height" value="845" />
+  <component name="ProjectFrameBounds">
+    <option name="x" value="-1830" />
+    <option name="y" value="32" />
+    <option name="width" value="1819" />
+    <option name="height" value="1050" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -550,10 +552,10 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="0" y="22" width="1440" height="878" extended-state="6" />
+    <frame x="-1830" y="32" width="1819" height="1050" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.25035766" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.19696116" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
@@ -565,7 +567,7 @@
       <window_info anchor="bottom" id="TODO" order="6" sideWeight="0.4977918" weight="0.32672232" />
       <window_info anchor="bottom" id="Database Changes" order="7" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="8" show_stripe_button="false" sideWeight="0.49970078" weight="0.32853982" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="9" sideWeight="0.76176643" visible="true" weight="0.27226463" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="9" sideWeight="0.76176643" visible="true" weight="0.22338204" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.16095294" side_tool="true" weight="0.38117108" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -1153,13 +1155,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/rancher_1_x/config.conf">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="440">
-          <caret line="44" column="9" selection-start-line="44" selection-start-column="9" selection-end-line="44" selection-end-column="9" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="168">
@@ -1184,12 +1179,21 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/rancher_1_x/config.conf">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="257">
+          <caret line="33" column="56" selection-start-line="33" selection-start-column="16" selection-end-line="33" selection-end-column="56" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/rancher_1_x/rancher_1_x.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="147">
-          <caret line="7" column="36" selection-start-line="7" selection-start-column="36" selection-end-line="7" selection-end-column="36" />
+        <state relative-caret-position="463">
+          <caret line="135" column="41" selection-start-line="135" selection-start-column="41" selection-end-line="135" selection-end-column="41" />
           <folding>
+            <element signature="e#25#402#0" expanded="true" />
             <element signature="e#803#1611#1" />
+            <element signature="e#2247#2664#0" />
           </folding>
         </state>
       </provider>
