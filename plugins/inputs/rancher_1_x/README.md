@@ -9,7 +9,7 @@
   
   # Interval to gather data from API.
   # the longer the interval the fewer request is made towards rancher API.
-  interval = "30s"
+  interval = "60s"
   
   # Rancher API Endpoint
   endpoint = "http://rancher.test.env"
@@ -22,6 +22,10 @@
 
   # Rancher API timeout in seconds. Default value - 5
   api_timeout_sec = 5 
+
+  # Initial offset - for the first collection.
+  # Standard syntax supported (should be equal to interval)
+  offset = "60s"
 
   # Service event types to be included into statistics.
   # 'like' syntax supported - "%.trigger%" 

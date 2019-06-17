@@ -19,11 +19,11 @@ type Rancher1X struct {
 	SvcEventTypesIn	[] string `toml:"service_events_types_include"`
 //	SvcEventTypesEx	[] string `toml:"service_events_types_exclude"`
 	rancherClient	*rancher.RancherClient
-
 	envDict			map[string]map[string]string
 	stackDict		map[string]map[string]interface{}
 	serviceDict		map[string]map[string]interface{}
 	svcEventsFilter *rancher.ListOpts
+	InitialOffset	string `toml:"offset"`
 	previousRun		time.Time
 	location		*time.Location
 	acc           	telegraf.Accumulator
@@ -167,14 +167,18 @@ func (r *Rancher1X) Gather(acc telegraf.Accumulator) error {
 	var events *rancher.ServiceLogCollection
 
 	//Preparing timestamps for filter
-	r.svcEventsFilter.Filters["endTime_gte"] = r.previousRun.Format(time.RFC3339) //Get all closed events since the previous run
+	previousRun := r.previousRun
+	r.svcEventsFilter.Filters["endTime_gte"] = previousRun.Format(time.RFC3339) //Get all closed events since the previous run
 	r.previousRun = time.Now().UTC() //update previous run timstamp
+	log.Printf("I! [inputs.rancher_1_x] Scan events with timeframe: %s-%s", previousRun.Format(time.RFC3339),r.previousRun.Format(time.RFC3339))
 
 	events, err = r.rancherClient.ServiceLog.List(r.svcEventsFilter)
 	if err !=nil {
 		log.Printf("E! [inputs.rancher_1_x] Can't get the service log events...")
 		return err
 	}
+
+	log.Printf("I! [inputs.rancher_1_x] Events gathered: %d", len (events.Data))
 
 	for _, event := range (events.Data) {
 
@@ -275,8 +279,12 @@ func (r *Rancher1X) Start(acc telegraf.Accumulator) error {
 		r.svcEventsFilter.Filters["eventType_like"] = r.SvcEventTypesIn
 	}
 
+	offsetDuration,err := time.ParseDuration(r.InitialOffset)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Can't parse duration from '%s'",r.InitialOffset))
+	}
 
-	r.previousRun = time.Now().UTC()
+	r.previousRun = time.Now().UTC().Add(-offsetDuration)
 	r.location = r.previousRun.Location()
 
 	return nil
