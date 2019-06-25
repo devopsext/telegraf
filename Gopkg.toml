@@ -245,3 +245,35 @@
 [[override]]
   name = "github.com/vishvananda/netlink"
   revision = "b2de5d10e38ecce8607e6b438b6d174f389a004e"
+
+  [[constraint]]
+  branch = "master"
+  name = "github.com/rancher/go-rancher"
+
+[[constraint]]
+  name = "k8s.io/client-go"
+  version = "v11.0.0"
+
+[[constraint]]
+  name = "k8s.io/api"
+  revision = "40a48860b5abbba9aa891b02b32da429b08d96a0"
+
+[[constraint]]
+  name = "k8s.io/apimachinery"
+  revision = "d7deff9243b165ee192f5551710ea4285dcfd615"
+
+[[constraint]]
+  name = "k8s.io/klog"
+  revision = "8e90cee79f823779174776412c13478955131846"
+
+[[constraint]]
+  name = "k8s.io/kube-openapi"
+  revision = "b3a7cee44a305be0a69e1b9ac03018307287e1b0"
+
+[[constraint]]
+  name = "k8s.io/utils"
+  revision = "c2654d5206da6b7b6ace12841e8f359bb89b443c"
+
+[[constraint]]
+  name = "sigs.k8s.io/yaml"
+  revision = "fd68e9863619f6ec2fdd8625fe1f02e7c877e480"
