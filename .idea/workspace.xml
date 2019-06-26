@@ -3,9 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gopkg.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Gopkg.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gopkg.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Gopkg.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/all/all.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/all/all.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/k8s_events_listener/config.conf" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/k8s_events_listener/config.conf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/k8s_events_listener/k8s_events_listener.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/k8s_events_listener/k8s_events_listener.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -159,20 +158,20 @@
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="conf" value="960" />
+          <entry key="conf" value="961" />
           <entry key="dummy" value="7" />
           <entry key="gitignore" value="62" />
-          <entry key="go" value="16011" />
+          <entry key="go" value="17337" />
           <entry key="md" value="1455" />
           <entry key="toml" value="2" />
-          <entry key="txt" value="714" />
+          <entry key="txt" value="716" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Go" value="16011" />
+          <entry key="Go" value="17337" />
           <entry key="Markdown" value="1450" />
-          <entry key="PLAIN_TEXT" value="1743" />
+          <entry key="PLAIN_TEXT" value="1746" />
           <entry key="TOML" value="7" />
         </counts>
       </usages-collector>
@@ -180,7 +179,7 @@
         <counts>
           <entry key="conf" value="9" />
           <entry key="gitignore" value="2" />
-          <entry key="go" value="98" />
+          <entry key="go" value="101" />
           <entry key="lock" value="1" />
           <entry key="md" value="25" />
           <entry key="s" value="2" />
@@ -189,7 +188,7 @@
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Go" value="98" />
+          <entry key="Go" value="101" />
           <entry key="Markdown" value="25" />
           <entry key="PLAIN_TEXT" value="11" />
           <entry key="TOML" value="3" />
@@ -214,14 +213,49 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/k8s_events_listener/k8s_events_listener.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1353">
-              <caret line="283" selection-start-line="283" selection-end-line="283" />
+            <state relative-caret-position="386">
+              <caret line="282" column="90" selection-start-line="282" selection-start-column="90" selection-end-line="282" selection-end-column="90" />
               <folding>
                 <element signature="e#29#630#0" expanded="true" />
+                <element signature="n#!!block;n#Gather#0" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/plugins/inputs/k8s_events_listener/utils.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="411">
+              <caret line="47" column="60" selection-start-line="47" selection-start-column="60" selection-end-line="47" selection-end-column="60" />
+              <folding>
+                <element signature="e#29#398#0" expanded="true" />
+                <element signature="n#!!block;n#getDeploymentState#0" />
+                <element signature="n#!!block;n#getDeploymentStatusConditionByType#0" />
+                <element signature="n#!!block;n#getDeploymentStateTs#0" />
+                <element signature="n#!!block;n#isDeploymentEventNoisy#0" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/vendor/k8s.io/apimachinery/pkg/watch/watch.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="245">
+              <caret line="36" column="4" selection-start-line="36" selection-start-column="4" selection-end-line="36" selection-end-column="4" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/vendor/k8s.io/apimachinery/pkg/apis/meta/v1/types.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-119">
+              <caret line="333" column="5" selection-start-line="333" selection-start-column="5" selection-end-line="333" selection-end-column="5" />
             </state>
           </provider>
         </entry>
@@ -245,40 +279,10 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/processors/rename/README.md">
-          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-            <state split_layout="SPLIT">
-              <first_editor relative-caret-position="-44" />
-              <second_editor />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/internal/models/running_input.go">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="51">
               <caret line="85" selection-start-line="85" selection-end-line="85" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/processors/strings/README.md">
-          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-            <state split_layout="SPLIT">
-              <first_editor relative-caret-position="-1276" />
-              <second_editor />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/processors/combine/README.md">
-          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-            <state split_layout="SPLIT">
-              <first_editor />
-              <second_editor />
             </state>
           </provider>
         </entry>
@@ -295,13 +299,20 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/k8s_events_listener/config.conf">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="273">
-              <caret line="39" selection-start-line="39" selection-end-line="39" />
+            <state relative-caret-position="224">
+              <caret line="28" column="15" selection-start-line="28" selection-start-column="15" selection-end-line="28" selection-end-column="15" />
             </state>
           </provider>
         </entry>
       </file>
     </leaf>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
@@ -390,6 +401,7 @@
         <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/plugins/inputs/k8s_events_listener/config.conf" />
         <option value="$PROJECT_DIR$/plugins/inputs/k8s_events_listener/k8s_events_listener.go" />
+        <option value="$PROJECT_DIR$/plugins/inputs/k8s_events_listener/utils.go" />
       </list>
     </option>
   </component>
@@ -408,10 +420,10 @@
     </packageJsonPaths>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="-24" />
-    <option name="y" value="22" />
+    <option name="x" value="-10" />
+    <option name="y" value="29" />
     <option name="width" value="1920" />
-    <option name="height" value="1058" />
+    <option name="height" value="1043" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -456,6 +468,13 @@
               <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
               <item name="telegraf" type="462c0819:PsiDirectoryNode" />
               <item name="plugins" type="462c0819:PsiDirectoryNode" />
+              <item name="inputs" type="462c0819:PsiDirectoryNode" />
+              <item name="k8s_events_listener" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
+              <item name="telegraf" type="462c0819:PsiDirectoryNode" />
+              <item name="plugins" type="462c0819:PsiDirectoryNode" />
               <item name="processors" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
@@ -479,6 +498,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="SearchEverywhereHistoryKey" value="&#9;FILE&#9;file:///usr/local/Cellar/go/1.11.4/libexec/src/bytes/bytes.go" />
     <property name="configurable.Global.GOPATH.is.expanded" value="true" />
     <property name="configurable.Module.GOPATH.is.expanded" value="true" />
@@ -567,7 +587,8 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="-24" y="22" width="1920" height="1058" extended-state="0" />
+    <frame x="-10" y="29" width="1920" height="1043" extended-state="0" />
+    <editor active="true" />
     <layout>
       <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.16719915" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
@@ -576,14 +597,14 @@
       <window_info anchor="bottom" id="Message" order="1" />
       <window_info anchor="bottom" id="Find" order="2" weight="0.36050516" />
       <window_info anchor="bottom" id="Run" order="3" sideWeight="0.49910232" weight="0.4707379" />
-      <window_info active="true" anchor="bottom" id="Debug" order="4" sideWeight="0.8390471" visible="true" weight="0.48240167" />
+      <window_info active="true" anchor="bottom" id="Debug" order="4" sideWeight="0.8390471" visible="true" weight="0.22923239" />
       <window_info anchor="bottom" id="Cvs" order="5" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="6" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="7" sideWeight="0.4977918" weight="0.32505175" />
       <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="9" show_stripe_button="false" sideWeight="0.49970078" weight="0.32853982" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.16095294" side_tool="true" weight="0.38117108" />
-      <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.76176643" weight="0.48964804" />
+      <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.76176643" weight="0.39751554" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -771,6 +792,9 @@
         <watch expression="deployment.Status.Replicas" language="go" />
         <watch expression="deployment.UID" language="go" />
         <watch expression="deplEvents[&quot;2f3757e7-7bbf-11e9-9342-0050568a9a8e&quot;]" language="go" />
+        <watch expression="deplEvents[&quot;381badff-35ea-11e9-b4a8-0050568a9a8e&quot;]" language="go" />
+        <watch expression="prevEventEntry[&quot;generation&quot;]" language="go" />
+        <watch expression="prevEventEntry[&quot;state&quot;]" language="go" />
       </configuration>
     </watches-manager>
   </component>
@@ -788,6 +812,26 @@
       </expression>
     </expressions>
     <expressions id="watch">
+      <expression>
+        <expression-string>prevEventEntry[&quot;state&quot;]</expression-string>
+        <language-id>go</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>prevEventEntry[&quot;generation&quot;]</expression-string>
+        <language-id>go</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>deplEvents[&quot;381badff-35ea-11e9-b4a8-0050568a9a8e&quot;]</expression-string>
+        <language-id>go</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
+      <expression>
+        <expression-string>deplEvents[string(deployment.UID)]</expression-string>
+        <language-id>go</language-id>
+        <evaluation-mode>EXPRESSION</evaluation-mode>
+      </expression>
       <expression>
         <expression-string>deplEvents[&quot;2f3757e7-7bbf-11e9-9342-0050568a9a8e&quot;]</expression-string>
         <language-id>go</language-id>
@@ -818,26 +862,6 @@
         <language-id>go</language-id>
         <evaluation-mode>EXPRESSION</evaluation-mode>
       </expression>
-      <expression>
-        <expression-string>deployment.Spec.Repolicas</expression-string>
-        <language-id>go</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>deployment.Status.ObservedGeneration</expression-string>
-        <language-id>go</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>deployment.Generation</expression-string>
-        <language-id>go</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
-      <expression>
-        <expression-string>deplEvents[&quot;1d624154-9452-11e9-9342-0050568a9a8e&quot;][&quot;spec&quot;]</expression-string>
-        <language-id>go</language-id>
-        <evaluation-mode>EXPRESSION</evaluation-mode>
-      </expression>
     </expressions>
     <expressions id="setValue">
       <expression>
@@ -848,13 +872,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/../../rancher/go-rancher/v2/common.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="242">
-          <caret line="34" column="20" selection-start-line="34" selection-start-column="20" selection-end-line="34" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/vendor/github.com/prometheus/common/log/log.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="462">
@@ -1029,18 +1046,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/vendor/k8s.io/apimachinery/pkg/apis/meta/v1/types.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-379">
-          <caret line="40" column="5" selection-start-line="40" selection-start-column="5" selection-end-line="40" selection-end-column="5" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/vendor/k8s.io/apimachinery/pkg/watch/watch.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-513" />
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/socket_listener/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
@@ -1145,13 +1150,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/k8s_events_listener/config.conf">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="273">
-          <caret line="39" selection-start-line="39" selection-end-line="39" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/vendor/k8s.io/api/apps/v1/types.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="444">
@@ -1180,12 +1178,48 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/vendor/k8s.io/apimachinery/pkg/apis/meta/v1/types.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-119">
+          <caret line="333" column="5" selection-start-line="333" selection-start-column="5" selection-end-line="333" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/vendor/k8s.io/apimachinery/pkg/watch/watch.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="245">
+          <caret line="36" column="4" selection-start-line="36" selection-start-column="4" selection-end-line="36" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/k8s_events_listener/config.conf">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="224">
+          <caret line="28" column="15" selection-start-line="28" selection-start-column="15" selection-end-line="28" selection-end-column="15" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/k8s_events_listener/k8s_events_listener.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1353">
-          <caret line="283" selection-start-line="283" selection-end-line="283" />
+        <state relative-caret-position="386">
+          <caret line="282" column="90" selection-start-line="282" selection-start-column="90" selection-end-line="282" selection-end-column="90" />
           <folding>
             <element signature="e#29#630#0" expanded="true" />
+            <element signature="n#!!block;n#Gather#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/k8s_events_listener/utils.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="411">
+          <caret line="47" column="60" selection-start-line="47" selection-start-column="60" selection-end-line="47" selection-end-column="60" />
+          <folding>
+            <element signature="e#29#398#0" expanded="true" />
+            <element signature="n#!!block;n#getDeploymentState#0" />
+            <element signature="n#!!block;n#getDeploymentStatusConditionByType#0" />
+            <element signature="n#!!block;n#getDeploymentStateTs#0" />
+            <element signature="n#!!block;n#isDeploymentEventNoisy#0" />
           </folding>
         </state>
       </provider>
