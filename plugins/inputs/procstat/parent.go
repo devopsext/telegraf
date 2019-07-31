@@ -79,6 +79,13 @@ func (pg *ParentFinder) Pattern(pattern string) ([]PID, error) {
 	return pids, nil
 }
 
+//Added by IP
+//Pattern matches on the process name
+func (pg *ParentFinder) RawArgs(rawArgs []string) ([]PID, error) {
+	var pids []PID
+	return pids, nil
+}
+
 //Uid will return all pids for the given user
 func (pg *ParentFinder) Uid(user string) ([]PID, error) {
 	var dst []PID

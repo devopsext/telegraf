@@ -106,7 +106,6 @@ func (k8sEL *k8sEventsListener) deploymentEventsListener(watch k8sWatch.Interfac
 			lock.Unlock()}
 		}()
 
-
 	//for event := range watch.ResultChan() {
 	for {
 
@@ -189,6 +188,7 @@ func (k8sEL *k8sEventsListener) deploymentEventsListener(watch k8sWatch.Interfac
 							inputName,
 							deplEvents[string(deployment.UID)]["state"],
 							err)
+						ts = time.Now().UTC()
 					}
 					deplEvents[string(deployment.UID)]["state.ts"] = ts.UTC()
 

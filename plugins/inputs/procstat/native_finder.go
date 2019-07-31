@@ -55,3 +55,9 @@ func (pg *NativeFinder) PidFile(path string) ([]PID, error) {
 	return pids, nil
 
 }
+
+//Added by IP
+func (pg *NativeFinder) RawArgs(rawArgs []string) ([]PID, error) {
+	var pids []PID
+	return pids, nil
+}

@@ -42,6 +42,10 @@ func (pg *Pgrep) Pattern(pattern string) ([]PID, error) {
 	args := []string{pattern}
 	return find(pg.path, args)
 }
+//Added by IP
+func (pg *Pgrep) RawArgs(rawArgs []string) ([]PID, error) {
+	return find(pg.path, rawArgs)
+}
 
 func (pg *Pgrep) Uid(user string) ([]PID, error) {
 	args := []string{"-u", user}

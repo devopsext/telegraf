@@ -20,14 +20,22 @@ Processes can be selected for monitoring using one of several methods:
 [[inputs.procstat]]
   ## PID file to monitor process
   pid_file = "/var/run/nginx.pid"
+  
   ## executable name (ie, pgrep <exe>)
   # exe = "nginx"
+  
   ## pattern as argument for pgrep (ie, pgrep -f <pattern>)
   # pattern = "nginx"
+  
+  ## raw args for pgrep (ie, pgrep arg1, arg2...) # Added by IP
+  # raw_args = ["-a","--inverse","-P 1"]
+  
   ## user as argument for pgrep (ie, pgrep -u <user>)
   # user = "nginx"
+  
   ## Systemd unit name
   # systemd_unit = "nginx.service"
+  
   ## CGroup name or path
   # cgroup = "systemd/system.slice/nginx.service"
 
@@ -46,10 +54,11 @@ Processes can be selected for monitoring using one of several methods:
   ## of series, use judiciously.
   # pid_tag = false
 
-  ## Method to use when finding process IDs.  Can be one of 'pgrep', or
-  ## 'native'.  The pgrep finder calls the pgrep executable in the PATH while
-  ## the native finder performs the search directly in a manor dependent on the
-  ## platform.  Default is 'pgrep'
+  ## Method to use when finding process IDs.  Can be one of:
+  ## 'pgrep'- The pgrep finder calls the pgrep executable in the PATH while 
+  ## 'native' - The native finder performs the search directly in a manor dependent on the platform.
+  ## 'parent' - search by means of gopsutil based on the name of the parent process, regex is supported.
+  ## Default is 'pgrep'
   # pid_finder = "pgrep"
 ```
 

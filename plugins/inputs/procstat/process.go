@@ -28,6 +28,8 @@ type Process interface {
 type PIDFinder interface {
 	PidFile(path string) ([]PID, error)
 	Pattern(pattern string) ([]PID, error)
+	//Added by IP
+	RawArgs(rawArgs []string) ([]PID, error)
 	Uid(user string) ([]PID, error)
 	FullPattern(path string) ([]PID, error)
 }

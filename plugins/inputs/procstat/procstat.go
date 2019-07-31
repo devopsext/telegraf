@@ -26,6 +26,7 @@ type Procstat struct {
 	PidFile     string `toml:"pid_file"`
 	Exe         string
 	Pattern     string
+	RawArgs		[]string `toml:"raw_args"` //Added by IP
 	Prefix      string
 	ProcessName string
 	User        string
@@ -321,6 +322,10 @@ func (p *Procstat) findPids(acc telegraf.Accumulator) ([]PID, map[string]string,
 	} else if p.Pattern != "" {
 		pids, err = f.FullPattern(p.Pattern)
 		tags = map[string]string{"pattern": p.Pattern}
+	} else if len(p.RawArgs) != 0 {
+		pids, err = f.RawArgs(p.RawArgs)
+		tags = map[string]string{"pattern": p.Pattern}
+
 	} else if p.User != "" {
 		pids, err = f.Uid(p.User)
 		tags = map[string]string{"user": p.User}
