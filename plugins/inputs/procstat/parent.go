@@ -1,21 +1,117 @@
 package procstat
 
 import (
-	"regexp"
-
+	"errors"
+	"fmt"
+	"github.com/dlclark/regexp2"
+	gops "github.com/mitchellh/go-ps"
 	"github.com/shirou/gopsutil/process"
+	"log"
+	"strconv"
+	"strings"
+	//"log"
+
+	//"log"
 )
 
 //ParentFinder uses gopsutil to find processes
 type ParentFinder struct {
+	regexPattern *regexp2.Regexp
+	parsedAdData map[int]map[string]interface{}
 }
 
 //NewParentFinder ...
 func NewParentFinder() (PIDFinder, error) {
-	return &ParentFinder{}, nil
+	var err error
+	//Checking if regex is valid
+	if self.Pattern != "" && len(self.AddData) > 0 {
+		return nil, errors.New("settings ambiguity: 'pattern' & 'add_data' are mutually exclusive")
+	}else if self.Pattern == "" && len(self.AddData) == 0 {
+		return nil, errors.New("'pattern' or 'add_data' should be specified for 'parent' finder")
+	}
+
+	parentFinder := ParentFinder{}
+
+	if self.Pattern != "" {
+		parentFinder.regexPattern = regexp2.MustCompile(self.Pattern,regexp2.None)
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(self.AddData) > 0 {
+		parentFinder.parsedAdData = map[int]map[string]interface{}{}
+		for _,item := range(self.AddData) {
+			s := strings.Split(item, ";")
+			elemCount := len (s)
+			if len (s) ==0 {
+				return nil, errors.New(fmt.Sprintf("Can't parse 'add_data' element '%s'",item))
+			} else{
+				pids := []PID{}
+				pidInfo := map[PID]string{}
+				pid,err := strconv.Atoi(s[0])
+
+				if err != nil {
+					//Try to find s[0] among executable
+					regexPattern := regexp2.MustCompile(s[0], regexp2.None)
+					procs,err := gops.Processes()
+					if err!=nil {
+						return nil, errors.New("Can't get process list")
+					}
+					for _, proc := range procs {
+						matched,err := regexPattern.MatchString(proc.Executable())
+						if err!=nil {
+							return nil, errors.New(fmt.Sprintf("Error during matching executable name against regex, reason %v",err))
+						}
+						if  matched {
+							pids = append(pids,PID(proc.Pid()))
+							pidInfo[PID(proc.Pid())] = proc.Executable()
+						}else{
+							log.Printf("D! [inputs.procstat] process : '%d,%s', not matched against regex '%s'",proc.Pid(),proc.Executable(),s[0])
+						}
+
+					}
+					//return nil, errors.New(fmt.Sprintf("Can't converse '%s' to int, 'add_data' element '%s'", s[0], item))
+				}else{
+
+				 pids=append(pids,PID(pid))
+				}
+
+				for _,pid := range pids{
+					parentFinder.parsedAdData[int(pid)] = map[string]interface{}{}
+					//Default values
+					parentFinder.parsedAdData[int(pid)]["inclusion"] = true
+					parentFinder.parsedAdData[int(pid)]["inversion"] = false
+					for i := 1; i< elemCount; i++ {
+						if s[i] == "inclusive"  {
+							parentFinder.parsedAdData[int(pid)]["inclusion"] = true
+						}else if  s[i] == "exclusive"  {
+							parentFinder.parsedAdData[int(pid)]["inclusion"] = false
+						}else if  s[i] == "inverse"  {
+							parentFinder.parsedAdData[int(pid)]["inversion"] = true
+						}
+
+					}
+					parentFinder.parsedAdData[int(pid)]["executable"] = pidInfo[pid]
+				}
+
+			}
+
+
+		}
+
+	}
+
+	log.Printf("D! [inputs.procstat] Built filter list based on add_data:")
+	for pid,info := range parentFinder.parsedAdData{
+		log.Printf("D! [inputs.procstat] pid: %d, binary: %s, inclusion: %t, inversion: %t",
+			pid,info["executable"].(string),info["inclusion"].(bool),info["inversion"].(bool))
+	}
+	return &parentFinder, nil
 }
 
-func getChildPids(p *process.Process) ([]PID, error) {
+func (pf *ParentFinder) getChildPids(p *process.Process) ([]PID, error) {
 
 	var pids []PID
 
@@ -27,7 +123,7 @@ func getChildPids(p *process.Process) ([]PID, error) {
 	for _, child := range children {
 		pids = append(pids, PID(child.Pid))
 
-		childPids, err := getChildPids(child)
+		childPids, err := pf.getChildPids(child)
 		if err == nil {
 
 			for _, pid := range childPids {
@@ -38,13 +134,11 @@ func getChildPids(p *process.Process) ([]PID, error) {
 	return pids, nil
 }
 
-func getByParent(cmdline string) ([]PID, error) {
+//Pattern matches on the parent process name
+func (pf *ParentFinder) FullPattern(pattern string) ([]PID, error) {
 
 	var pids []PID
-	regxPattern, err := regexp.Compile(cmdline)
-	if err != nil {
-		return pids, err
-	}
+	var err error
 
 	procs, err := process.Processes()
 	if err != nil {
@@ -54,9 +148,20 @@ func getByParent(cmdline string) ([]PID, error) {
 	for _, proc := range procs {
 
 		line, err := proc.Cmdline()
-		if err == nil && regxPattern.MatchString(line) {
+		if err != nil {
+			//log.Printf("E! [inputs.procstat] Can't get cmdline for process with PID '%d', skipping. Reason: %v\n",proc.Pid,err,line)
+			continue
+		}
 
-			childPids, err := getChildPids(proc)
+		matched,err := pf.regexPattern.MatchString(line)
+		if err != nil {
+			log.Printf("E! [inputs.procstat] Can't check regex match of cmdline '%s', skipping this process (PID - '%d'). Reason: %v\n",line,proc.Pid,err)
+			continue
+		}
+
+		if matched {
+
+			childPids, err := pf.getChildPids(proc)
 			if err == nil {
 				for _, pid := range childPids {
 					pids = append(pids, pid)
@@ -67,40 +172,96 @@ func getByParent(cmdline string) ([]PID, error) {
 	return pids, nil
 }
 
-//PidFile returns the pid from the pid file given.
-func (pg *ParentFinder) PidFile(path string) ([]PID, error) {
-	var pids []PID
-	return pids, nil
-}
-
-//Pattern matches on the process name
-func (pg *ParentFinder) Pattern(pattern string) ([]PID, error) {
-	var pids []PID
-	return pids, nil
-}
-
 //Added by IP
-//Pattern matches on the process name
-func (pg *ParentFinder) RawArgs(rawArgs []string) ([]PID, error) {
+func (pf *ParentFinder) GetChildren(parentMap *map[PID][]PID,pidsMap *map[PID]PID,parent PID) /*(pids []PID)*/{
+
+	if children, ok := (*parentMap)[parent]; ok {
+		//pids = append(pids,children...)
+		for _,child := range children {
+			(*pidsMap)[child] = child
+			pf.GetChildren(parentMap,pidsMap,child)
+			//pids = append(pids,pf.GetChildren(parentMap,pidsMap,child)...)
+		}
+	}
+
+	//return pids
+}
+//Pattern matches on the parent groups settings
+func (pf *ParentFinder) AddData(add_data []string) ([]PID, error) {
 	var pids []PID
+	pidsMap := map[PID]PID{}
+	excludedPidsMap := map[PID]PID{}
+	parentMap := map[PID][]PID{}
+
+	procs,err := gops.Processes()
+	if err!=nil {
+		return pids, err
+	}
+
+	//Build parents list
+	for _, proc := range procs {
+		parentMap[PID(proc.PPid())] = append (parentMap[PID(proc.PPid())],PID(proc.Pid()))
+	}
+
+	if err !=nil{
+		return pids, err
+	}
+
+	for _, proc := range procs {
+		pid := proc.Pid()
+		if _, ok := pidsMap[PID(pid)]; ok { continue } //pid already added
+		if _, ex_ok := excludedPidsMap[PID(pid)]; ex_ok { continue } //pid already added
+
+		if _, ok := pf.parsedAdData[pid]; ok { //Check the process itself
+
+			//Add parrent to appropriate map
+
+			if pf.parsedAdData[pid]["inversion"].(bool) {
+
+				if pf.parsedAdData[pid]["inclusion"].(bool) {
+					excludedPidsMap[PID(pid)] = PID(pid)
+				} else {pidsMap[PID(pid)] = PID(pid)}
+
+				//Get children (recursively)
+				pf.GetChildren(&parentMap, &excludedPidsMap, PID(pid))
+
+			} else {
+
+				if pf.parsedAdData[pid]["inclusion"].(bool) {
+					pidsMap[PID(pid)] = PID(pid)
+				}else {excludedPidsMap[PID(pid)] = PID(pid)}
+
+				//Get children (recursively)
+				pf.GetChildren(&parentMap,&pidsMap,PID(pid))
+			}
+
+		}
+
+
+		//pids = append(pids, PID(pid))
+	}
+	for _,val := range pidsMap {
+		pids = append(pids,val)
+	}
 	return pids, nil
 }
 
 //Uid will return all pids for the given user
-func (pg *ParentFinder) Uid(user string) ([]PID, error) {
+func (pf *ParentFinder) Uid(user string) ([]PID, error) {
 	var dst []PID
 	return dst, nil
 }
 
-//Pattern matches on the parent process name
-func (pg *ParentFinder) FullPattern(pattern string) ([]PID, error) {
 
+
+//PidFile returns the pid from the pid file given.
+func (pf *ParentFinder) PidFile(path string) ([]PID, error) {
 	var pids []PID
+	return pids, nil
+}
 
-	pids, err := getByParent(pattern)
-	if err != nil {
-		return pids, err
-	}
-
-	return pids, err
+//Pattern matches on the process name
+func (pf *ParentFinder) Pattern(pattern string) ([]PID, error) {
+	var pids []PID
+	return pids, nil
 }

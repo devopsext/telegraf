@@ -279,6 +279,17 @@
   revision = "6c6132ff69f0f6c088739067407b5d32c52e1d0f"
 
 [[projects]]
+  digest = "1:202c3324947f2dd58750aa9b3c2420f74fa577f57dcb6a387c888311ee1c96ff"
+  name = "github.com/dlclark/regexp2"
+  packages = [
+    ".",
+    "syntax",
+  ]
+  pruneopts = ""
+  revision = "dcdbc3f2ab3984e49f0c83f00839cdfa0333b592"
+  version = "v1.1.8"
+
+[[projects]]
   digest = "1:522eff2a1f014a64fb403db60fc0110653e4dc5b59779894d208e697b0708ddc"
   name = "github.com/docker/distribution"
   packages = [
@@ -779,6 +790,15 @@
   revision = "3864e76763d94a6df2f9960b16a20a33da9f9a66"
 
 [[projects]]
+  branch = "procstat_input_support"
+  digest = "1:ae08fdd70715b82bdd6120af27712dec64315641bb097c571f6b7532b5bb2aa9"
+  name = "github.com/mitchellh/go-ps"
+  packages = ["."]
+  pruneopts = ""
+  revision = "e05d8c16993fcf1cbc236c917cff5a6f916b7b47"
+  source = "gitlab.com/devopsext/source/github.com/mitchellh/go-ps.git"
+
+[[projects]]
   branch = "master"
   digest = "1:f43ed2c836208c14f45158fd01577c985688a4d11cf9fd475a939819fef3b321"
   name = "github.com/mitchellh/mapstructure"
@@ -1027,7 +1047,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:02715a2fb4b9279af36651a59a51dd4164eb689bd6785874811899f43eeb2a54"
+  digest = "1:2226ffdae873216a5bc8a0bab7a51ac670b27a4aed852007d77600f809aa04e3"
   name = "github.com/shirou/gopsutil"
   packages = [
     "cpu",
@@ -1040,8 +1060,8 @@
     "process",
   ]
   pruneopts = ""
-  revision = "8048a2e9c5773235122027dd585cf821b2af1249"
-  version = "v2.18.07"
+  revision = "d80c43f9c984a48783daf22f4bd9278006ae483a"
+  version = "v2.19.7"
 
 [[projects]]
   branch = "master"
@@ -1744,6 +1764,7 @@
     "github.com/couchbase/go-couchbase",
     "github.com/denisenkom/go-mssqldb",
     "github.com/dgrijalva/jwt-go",
+    "github.com/dlclark/regexp2",
     "github.com/docker/docker/api/types",
     "github.com/docker/docker/api/types/container",
     "github.com/docker/docker/api/types/filters",
@@ -1780,6 +1801,7 @@
     "github.com/kballard/go-shellquote",
     "github.com/matttproud/golang_protobuf_extensions/pbutil",
     "github.com/miekg/dns",
+    "github.com/mitchellh/go-ps",
     "github.com/multiplay/go-ts3",
     "github.com/nats-io/gnatsd/server",
     "github.com/nats-io/go-nats",

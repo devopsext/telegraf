@@ -244,6 +244,7 @@ func (c *CloudWatch) WriteToCloudWatch(datums []*cloudwatch.MetricDatum) error {
 
 	_, err := c.svc.PutMetricData(params)
 
+
 	if err != nil {
 		log.Printf("E! CloudWatch: Unable to write to CloudWatch : %+v \n", err.Error())
 	}

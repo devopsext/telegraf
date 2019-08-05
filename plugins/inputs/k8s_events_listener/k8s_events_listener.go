@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// DockerCNTLogs object
+// k8sEventsListener object
 type k8sEventsListener struct {
 	acc            telegraf.Accumulator
 	Mode           string `toml:"mode"` //In-cluster or Out-cluster
@@ -106,7 +106,6 @@ func (k8sEL *k8sEventsListener) deploymentEventsListener(watch k8sWatch.Interfac
 			lock.Unlock()}
 		}()
 
-	//for event := range watch.ResultChan() {
 	for {
 
 		select {
@@ -180,7 +179,7 @@ func (k8sEL *k8sEventsListener) deploymentEventsListener(watch k8sWatch.Interfac
 
 					deplEvents[string(deployment.UID)]["state"] = getDeploymentState(deployment)
 					//Unknown, as it can be progressing of previously triggered deployment (that is either in error or normal)
-					//Also can be a deployment that is stabke state (nothing is hapenning)
+					//Also can be a deployment that is stable state (nothing is hapenning)
 					deplEvents[string(deployment.UID)]["state.Code"] = ""
 					ts, err := getDeploymentStateTs(deployment, deplEvents[string(deployment.UID)]["state"].(string))
 					if err != nil {
@@ -200,7 +199,7 @@ func (k8sEL *k8sEventsListener) deploymentEventsListener(watch k8sWatch.Interfac
 				//	1.Deletion of deployment (special case)
 				//	2.Noise events that describe intermediate steps in creation/upgrade process
 				//	3.Upgrade of deployment started (new deployments are handled in previous clause)
-				//	4.Upgrade of deployment/Creating of new deployment ended (succesfully)
+				//	4.Upgrade of deployment/Creating of new deployment ended (successfully)
 
 				currentState := getDeploymentState(deployment)
 

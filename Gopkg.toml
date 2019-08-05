@@ -148,7 +148,12 @@
 
 [[constraint]]
   name = "github.com/shirou/gopsutil"
-  version = "2.18.07"
+  version = "v2.19.7" #Adgusted to be inline with telegtraf 1.11.3 (v2.18.12)
+
+[[constraint]]
+  name = "github.com/mitchellh/go-ps"
+  branch = "procstat_input_support"
+  source = "gitlab.com/devopsext/source/github.com/mitchellh/go-ps.git"
 
 [[constraint]]
   name = "github.com/Shopify/sarama"

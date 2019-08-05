@@ -18,28 +18,28 @@ Processes can be selected for monitoring using one of several methods:
 ```toml
 # Monitor process cpu and memory usage
 [[inputs.procstat]]
-  ## PID file to monitor process
-  pid_file = "/var/run/nginx.pid"
+  ## PID file to monitor process. Valid for pid_finders: pgrep, native
+  pid_file = "/var/run/nginx.pid" 
   
-  ## executable name (ie, pgrep <exe>)
+  ## executable name (ie, pgrep <exe>). Valid for pid_finders: pgrep, native
   # exe = "nginx"
   
-  ## pattern as argument for pgrep (ie, pgrep -f <pattern>)
+  ## pattern as argument for pgrep (ie, pgrep -f <pattern>). Valid for pid_finders: pgrep, native, parent
   # pattern = "nginx"
   
-  ## raw args for pgrep (ie, pgrep arg1, arg2...) # Added by IP
+  ## raw args for pgrep (ie, pgrep arg1, arg2...). Valid for pid_finders: pgrep
   # raw_args = ["-a","--inverse","-P 1"]
   
-  ## user as argument for pgrep (ie, pgrep -u <user>)
+  ## user as argument for pgrep (ie, pgrep -u <user>). Valid for pid_finders: pgrep, native
   # user = "nginx"
   
-  ## Systemd unit name
+  ## Systemd unit name. Valid for pid_finders: pgrep
   # systemd_unit = "nginx.service"
   
-  ## CGroup name or path
+  ## CGroup name or path. Valid for pid_finders: pgrep
   # cgroup = "systemd/system.slice/nginx.service"
 
-  ## Windows service name
+  ## Windows service name. Valid for pid_finders: native
   # win_service = ""
 
   ## override for process_name

@@ -43,7 +43,7 @@ func (pg *Pgrep) Pattern(pattern string) ([]PID, error) {
 	return find(pg.path, args)
 }
 //Added by IP
-func (pg *Pgrep) RawArgs(rawArgs []string) ([]PID, error) {
+func (pg *Pgrep) AddData(rawArgs []string) ([]PID, error) {
 	return find(pg.path, rawArgs)
 }
 
