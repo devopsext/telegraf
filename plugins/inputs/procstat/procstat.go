@@ -162,6 +162,12 @@ func (p *Procstat) Gather(acc telegraf.Accumulator) error {
 			}
 			if p.ProcessName != "" {
 				proc.Tags()["process_name"] = p.ProcessName
+			}else {
+				name,err := proc.Name()
+				if err == nil {
+					proc.Tags()["process_name"] = name
+				}
+
 			}
 
 			//Enrichment:
