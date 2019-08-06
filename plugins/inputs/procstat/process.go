@@ -42,6 +42,7 @@ type Proc struct {
 
 func NewProc(pid PID) (Process, error) {
 	process, err := process.NewProcess(int32(pid))
+
 	if err != nil {
 		return nil, err
 	}

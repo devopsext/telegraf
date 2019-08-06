@@ -3,22 +3,25 @@ package procstat
 import (
 	"bytes"
 	"fmt"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/inputs"
 	"github.com/shirou/gopsutil/process"
-
 )
 
 var (
 	defaultPIDFinder = NewPgrep
 	defaultProcess   = NewProc
-	self *Procstat
+
+	// execCommand is so tests can mock out exec.Command usage.
+	execCommand = exec.Command
 )
 
 type PID int32
@@ -34,14 +37,16 @@ type Procstat struct {
 	SystemdUnit 	string		`toml:"systemd_unit"`
 	CGroup      	string		`toml:"cgroup"`
 	Prefix      	string		`toml:"prefix"`
+	preparedPrefix	string
 	LimitMetrics	bool		`toml:"limit_metrics"`
 	PidTag      	bool		`toml:"pid_tag"`
 	WinService  	string		`toml:"win_service"`
 
 	finder PIDFinder
+	finderTags		map[string]string
 	acc telegraf.Accumulator
 
-	createPIDFinder func() (PIDFinder, error)
+	createPIDFinder func(*Procstat) (PIDFinder, error)
 	procs           map[PID]Process
 	createProcess   func(PID) (Process, error)
 }
@@ -104,18 +109,96 @@ var sampleConfig = `
   # pid_finder = "pgrep"
 `
 
-func (_ *Procstat) SampleConfig() string {
+
+
+func (p *Procstat) SampleConfig() string {
 	return sampleConfig
 }
 
-func (_ *Procstat) Description() string {
+func (p *Procstat) Description() string {
 	return "Monitor process cpu and memory usage"
 }
 
 func (p *Procstat) Gather(acc telegraf.Accumulator) error {
 
-	if p.createPIDFinder == nil {
-		switch p.PidFinder {
+	var err error
+	fields := map[string]interface{}{}
+
+	//Get actual pids via pid finder + some tags that actual for specific pid finder
+	pids, err := p.findPids(acc)
+	if err != nil {
+		acc.AddError(fmt.Errorf("E! Error: procstat getting process, exe: [%s] pidfile: [%s] pattern: [%s] add_data: [%s] user: [%s] %s",
+			p.Exe, p.PidFile, p.Pattern, p.AddData, p.User, err.Error()))
+		return  err
+	}
+	//adds a metric with info of overall pid count
+	acc.AddFields("procstat_lookup",
+				map[string]interface{}{"pid_count":len(pids)},
+				map[string]string{"pid_finder": p.PidFinder})
+
+	procs := make(map[PID]Process, len(p.procs))
+
+	for _, pid := range pids {
+		proc, ok := p.procs[pid]
+		if ok {
+			procs[pid] = proc
+		}else
+		{
+			proc, err = p.createProcess(pid)
+			if err != nil {
+				// No problem; process may have ended after we found it
+				continue
+			}
+			procs[pid] = proc
+
+			// Add initial tags (additiional tags that is setup when findPids is called)
+			for k, v := range p.finderTags {
+				proc.Tags()[k] = v
+			}
+
+			// Add tags
+			if p.PidTag {
+				proc.Tags()["pid"] = strconv.Itoa(int(pid))
+			}
+			if p.ProcessName != "" {
+				proc.Tags()["process_name"] = p.ProcessName
+			}
+
+			//Enrichment:
+			usr,err := proc.Username()
+			if err == nil {
+				proc.Tags()["user"] = usr
+			}
+			line,err := proc.Cmdline()
+			if err == nil {
+				proc.Tags()["process_cmdline"] = line
+			}
+
+		}
+
+		//proc - process info (either that was found in previous list or a new one)
+		//pid - current process pid
+		if ! p.LimitMetrics {
+			p.addMetrics(proc, p.preparedPrefix,fields, acc)
+		}else {
+			p.addLimitedMetrics(proc, p.preparedPrefix,fields, acc)
+		}
+
+		//Add metrics
+		acc.AddFields("procstat", fields, proc.Tags())
+
+	}
+	//Update procs list
+	p.procs = procs
+
+	return nil
+}
+
+func (p *Procstat) Start(acc telegraf.Accumulator) error{
+	var err error
+	p.acc = acc
+
+	switch p.PidFinder {
 		case "native":
 			p.createPIDFinder = NewNativeFinder
 		case "pgrep":
@@ -125,80 +208,49 @@ func (p *Procstat) Gather(acc telegraf.Accumulator) error {
 		default:
 			p.createPIDFinder = defaultPIDFinder
 		}
-	}
 
-	if p.createProcess == nil {
-		p.createProcess = defaultProcess
-	}
+	p.createProcess = defaultProcess
 
-	if p.acc == nil {
-		p.acc = acc
-	}
-
-
-
-
-	procs, err := p.updateProcesses(acc, p.procs)
-	if err != nil {
-		acc.AddError(fmt.Errorf("E! Error: procstat getting process, exe: [%s] pidfile: [%s] pattern: [%s] add_data: [%s] user: [%s] %s",
-			p.Exe, p.PidFile, p.Pattern, p.AddData, p.User, err.Error()))
-	}
-	p.procs = procs
-
-	//This is very time consuming staff
-	//Should be optimized bazed on flags
-	prefix :=""
 	if p.Prefix != "" {
-		prefix = p.Prefix + "_"
+		p.preparedPrefix = p.Prefix + "_"
 	}
-	if ! p.LimitMetrics {
-		for _, proc := range p.procs {
-			p.addMetrics(proc, prefix, acc)
-		}
-	}else {
-		for _, proc := range p.procs {
-			p.addLimitedMetrics(proc, prefix, acc)
-		}
+
+	p.finder, err = p.createPIDFinder(p)
+	if err != nil {
+		return  err
+	}
+
+	//Building pid finder tags
+	if p.PidFile != "" {
+		p.finderTags = map[string]string{"pidfile": p.PidFile}
+	} else if p.Exe != "" {
+		p.finderTags = map[string]string{"exe": p.Exe}
+	} else if p.Pattern != "" {
+		p.finderTags = map[string]string{"pattern": p.Pattern}
+	} else if len(p.AddData) != 0 {
+		p.finderTags = map[string]string{"add_data":  strings.Join(p.AddData,",")}
+	} else if p.User != "" {
+		p.finderTags = map[string]string{"user": p.User}
+	} else if p.SystemdUnit != "" {
+		p.finderTags = map[string]string{"systemd_unit": p.SystemdUnit}
+	} else if p.CGroup != "" {
+		p.finderTags = map[string]string{"cgroup": p.CGroup}
+	} else if p.WinService != "" {
+		p.finderTags = map[string]string{"win_service": p.WinService}
+	} else {
+		return errors.New(fmt.Sprintf("Either exe, pid_file, user, pattern, add_data, systemd_unit, cgroup, or win_service must be specified"))
 	}
 
 
 	return nil
 }
 
+func (p *Procstat) Stop() {
+	return
+}
+
 // Add metrics a single Process
-func (p *Procstat) addMetrics(proc Process,prefix string, acc telegraf.Accumulator) {
-
-
-	fields := map[string]interface{}{}
-
-	//If process_cmdline tag is not already set, set to actual name
-	if _, lineInTags := proc.Tags()["process_cmdline"]; !lineInTags {
-		line, err := proc.Cmdline()
-		if err == nil {
-			proc.Tags()["process_cmdline"] = line
-		}
-	}
-
-	//If process_name tag is not already set, set to actual name
-	if _, nameInTags := proc.Tags()["process_name"]; !nameInTags {
-		name, err := proc.Name()
-		if err == nil {
-			proc.Tags()["process_name"] = name
-		}
-	}
-
-	//If user tag is not already set, set to actual name
-	if _, ok := proc.Tags()["user"]; !ok {
-		user, err := proc.Username()
-		if err == nil {
-			proc.Tags()["user"] = user
-		}
-	}
-
-	//If pid is not present as a tag, include it as a field.
-	if _, pidInTags := proc.Tags()["pid"]; !pidInTags {
-		fields["pid"] = int32(proc.PID())
-	}
+func (p *Procstat) addMetrics(proc Process,prefix string, fields map[string]interface{},acc telegraf.Accumulator) {
 
 	numThreads, err := proc.NumThreads()
 	if err == nil {
@@ -293,84 +345,11 @@ func (p *Procstat) addMetrics(proc Process,prefix string, acc telegraf.Accumulat
 		}
 	}
 
-	acc.AddFields("procstat", fields, proc.Tags())
+	//acc.AddFields("procstat", fields, proc.Tags())
 }
 
 // Add metrics a single Process
-func (p *Procstat) addLimitedMetrics(proc Process,prefix string, acc telegraf.Accumulator) {
-
-
-	fields := map[string]interface{}{}
-
-	//If process_cmdline tag is not already set, set to actual name
-	if _, lineInTags := proc.Tags()["process_cmdline"]; !lineInTags {
-		line, err := proc.Cmdline()
-		if err == nil {
-			proc.Tags()["process_cmdline"] = line
-		}
-	}
-
-	//If process_name tag is not already set, set to actual name
-	if _, nameInTags := proc.Tags()["process_name"]; !nameInTags {
-		name, err := proc.Name()
-		if err == nil {
-			proc.Tags()["process_name"] = name
-		}
-	}
-
-	//If user tag is not already set, set to actual name
-	if _, ok := proc.Tags()["user"]; !ok {
-		user, err := proc.Username()
-		if err == nil {
-			proc.Tags()["user"] = user
-		}
-	}
-
-	//If pid is not present as a tag, include it as a field.
-	if _, pidInTags := proc.Tags()["pid"]; !pidInTags {
-		fields["pid"] = int32(proc.PID())
-	}
-	/*
-	numThreads, err := proc.NumThreads()
-	if err == nil {
-		fields[prefix+"num_threads"] = numThreads
-	}*/
-	/*
-	fds, err := proc.NumFDs()
-	if err == nil {
-		fields[prefix+"num_fds"] = fds
-	}
-	*/
-	/*
-	ctx, err := proc.NumCtxSwitches()
-	if err == nil {
-		fields[prefix+"voluntary_context_switches"] = ctx.Voluntary
-		fields[prefix+"involuntary_context_switches"] = ctx.Involuntary
-	}*/
-	/*
-	io, err := proc.IOCounters()
-	if err == nil {
-		fields[prefix+"read_count"] = io.ReadCount
-		fields[prefix+"write_count"] = io.WriteCount
-		fields[prefix+"read_bytes"] = io.ReadBytes
-		fields[prefix+"write_bytes"] = io.WriteBytes
-	}
-	*/
-	/*
-	cpu_time, err := proc.Times()
-	if err == nil {
-		fields[prefix+"cpu_time_user"] = cpu_time.User
-		fields[prefix+"cpu_time_system"] = cpu_time.System
-		fields[prefix+"cpu_time_idle"] = cpu_time.Idle
-		fields[prefix+"cpu_time_nice"] = cpu_time.Nice
-		fields[prefix+"cpu_time_iowait"] = cpu_time.Iowait
-		fields[prefix+"cpu_time_irq"] = cpu_time.Irq
-		fields[prefix+"cpu_time_soft_irq"] = cpu_time.Softirq
-		fields[prefix+"cpu_time_steal"] = cpu_time.Steal
-		//fields[prefix+"cpu_time_stolen"] = cpu_time.Stolen //(not supported since gopsutil v2.18.12
-		fields[prefix+"cpu_time_guest"] = cpu_time.Guest
-		fields[prefix+"cpu_time_guest_nice"] = cpu_time.GuestNice
-	}*/
+func (p *Procstat) addLimitedMetrics(proc Process,prefix string, fields map[string]interface{},acc telegraf.Accumulator) {
 
 	cpu_perc, err := proc.Percent(time.Duration(0))
 	if err == nil {
@@ -386,51 +365,11 @@ func (p *Procstat) addLimitedMetrics(proc Process,prefix string, acc telegraf.Ac
 		fields[prefix+"memory_stack"] = mem.Stack
 		fields[prefix+"memory_locked"] = mem.Locked
 	}
-	/*
-	rlims, err := proc.RlimitUsage(true)
-	if err == nil {
-		for _, rlim := range rlims {
-			var name string
-			switch rlim.Resource {
-			case process.RLIMIT_CPU:
-				name = "cpu_time"
-			case process.RLIMIT_DATA:
-				name = "memory_data"
-			case process.RLIMIT_STACK:
-				name = "memory_stack"
-			case process.RLIMIT_RSS:
-				name = "memory_rss"
-			case process.RLIMIT_NOFILE:
-				name = "num_fds"
-			case process.RLIMIT_MEMLOCK:
-				name = "memory_locked"
-			case process.RLIMIT_AS:
-				name = "memory_vms"
-			case process.RLIMIT_LOCKS:
-				name = "file_locks"
-			case process.RLIMIT_SIGPENDING:
-				name = "signals_pending"
-			case process.RLIMIT_NICE:
-				name = "nice_priority"
-			case process.RLIMIT_RTPRIO:
-				name = "realtime_priority"
-			default:
-				continue
-			}
 
-			fields[prefix+"rlimit_"+name+"_soft"] = rlim.Soft
-			fields[prefix+"rlimit_"+name+"_hard"] = rlim.Hard
-			if name != "file_locks" { // gopsutil doesn't currently track the used file locks count
-				fields[prefix+name] = rlim.Used
-			}
-		}
-	}
-	*/
-
-	acc.AddFields("procstat", fields, proc.Tags())
+	//acc.AddFields("procstat", fields, proc.Tags())
 }
 
-
+/*
 // Update monitored Processes
 func (p *Procstat) updateProcesses(acc telegraf.Accumulator, prevInfo map[PID]Process) (map[PID]Process, error) {
 	pids, tags, err := p.findPids(acc)
@@ -470,6 +409,7 @@ func (p *Procstat) updateProcesses(acc telegraf.Accumulator, prevInfo map[PID]Pr
 }
 
 // Create and return PIDGatherer lazily
+
 func (p *Procstat) getPIDFinder() (PIDFinder, error) {
 	if p.finder == nil {
 		f, err := p.createPIDFinder()
@@ -480,63 +420,51 @@ func (p *Procstat) getPIDFinder() (PIDFinder, error) {
 	}
 	return p.finder, nil
 }
-
+*/
 // Get matching PIDs and their initial tags
-func (p *Procstat) findPids(acc telegraf.Accumulator) ([]PID, map[string]string, error) {
+func (p *Procstat) findPids(acc telegraf.Accumulator) ([]PID, error) {
 	var pids []PID
-	tags := make(map[string]string)
 	var err error
 
-	f, err := p.getPIDFinder()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	if p.PidFile != "" {
-		pids, err = f.PidFile(p.PidFile)
-		tags = map[string]string{"pidfile": p.PidFile}
+		pids, err = p.finder.PidFile(p.PidFile)
+		//tags = map[string]string{"pidfile": p.PidFile}
 	} else if p.Exe != "" {
-		pids, err = f.Pattern(p.Exe)
-		tags = map[string]string{"exe": p.Exe}
+		pids, err = p.finder.Pattern(p.Exe)
+		//tags = map[string]string{"exe": p.Exe}
 	} else if p.Pattern != "" {
-		pids, err = f.FullPattern(p.Pattern)
-		tags = map[string]string{"pattern": p.Pattern}
+		pids, err = p.finder.FullPattern(p.Pattern)
+		//tags = map[string]string{"pattern": p.Pattern}
 	} else if len(p.AddData) != 0 {
-		pids, err = f.AddData(p.AddData)
-		tags = map[string]string{"pattern": ""}
-
+		pids, err = p.finder.AddData(p.AddData)
+		//tags = map[string]string{"add_data":  strings.Join(p.AddData,",")}
 	} else if p.User != "" {
-		pids, err = f.Uid(p.User)
-		tags = map[string]string{"user": p.User}
+		pids, err = p.finder.Uid(p.User)
+		//tags = map[string]string{"user": p.User}
 	} else if p.SystemdUnit != "" {
 		pids, err = p.systemdUnitPIDs()
-		tags = map[string]string{"systemd_unit": p.SystemdUnit}
+		//tags = map[string]string{"systemd_unit": p.SystemdUnit}
 	} else if p.CGroup != "" {
 		pids, err = p.cgroupPIDs()
-		tags = map[string]string{"cgroup": p.CGroup}
+		//tags = map[string]string{"cgroup": p.CGroup}
 	} else if p.WinService != "" {
 		pids, err = p.winServicePIDs()
-		tags = map[string]string{"win_service": p.WinService}
+		//tags = map[string]string{"win_service": p.WinService}
 	} else {
 		err = fmt.Errorf("Either exe, pid_file, user, pattern, systemd_unit, cgroup, or win_service must be specified")
 	}
 
-	rTags := make(map[string]string)
-	for k, v := range tags {
-		rTags[k] = v
-	}
 
+	/* moved to Gather function
 	//adds a metric with info on the pgrep query
 	fields := make(map[string]interface{})
 	tags["pid_finder"] = p.PidFinder
 	fields["pid_count"] = len(pids)
 	acc.AddFields("procstat_lookup", fields, tags)
+	*/
 
-	return pids, rTags, err
+	return pids, err
 }
-
-// execCommand is so tests can mock out exec.Command usage.
-var execCommand = exec.Command
 
 func (p *Procstat) systemdUnitPIDs() ([]PID, error) {
 	var pids []PID
@@ -605,8 +533,5 @@ func (p *Procstat) winServicePIDs() ([]PID, error) {
 }
 
 func init() {
-	self = &Procstat{}
-	inputs.Add("procstat", func() telegraf.Input {
-		return self
-	})
+	inputs.Add("procstat", func() telegraf.Input {return &Procstat{}})
 }

@@ -9,40 +9,37 @@ import (
 	"log"
 	"strconv"
 	"strings"
-	//"log"
-
-	//"log"
 )
 
-//ParentFinder uses gopsutil to find processes
+//ParentFinder uses gops to find processes
 type ParentFinder struct {
 	regexPattern *regexp2.Regexp
 	parsedAdData map[int]map[string]interface{}
 }
 
 //NewParentFinder ...
-func NewParentFinder() (PIDFinder, error) {
+func NewParentFinder(procstat *Procstat) (PIDFinder, error) {
 	var err error
 	//Checking if regex is valid
-	if self.Pattern != "" && len(self.AddData) > 0 {
+	if procstat.Pattern != "" && len(procstat.AddData) > 0 {
 		return nil, errors.New("settings ambiguity: 'pattern' & 'add_data' are mutually exclusive")
-	}else if self.Pattern == "" && len(self.AddData) == 0 {
+	}else if procstat.Pattern == "" && len(procstat.AddData) == 0 {
 		return nil, errors.New("'pattern' or 'add_data' should be specified for 'parent' finder")
 	}
 
 	parentFinder := ParentFinder{}
 
-	if self.Pattern != "" {
-		parentFinder.regexPattern = regexp2.MustCompile(self.Pattern,regexp2.None)
+	if procstat.Pattern != "" {
+		parentFinder.regexPattern = regexp2.MustCompile(procstat.Pattern,regexp2.None)
 
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	if len(self.AddData) > 0 {
+	if len(procstat.AddData) > 0 {
 		parentFinder.parsedAdData = map[int]map[string]interface{}{}
-		for _,item := range(self.AddData) {
+		for _,item := range(procstat.AddData) {
 			s := strings.Split(item, ";")
 			elemCount := len (s)
 			if len (s) ==0 {
@@ -173,18 +170,15 @@ func (pf *ParentFinder) FullPattern(pattern string) ([]PID, error) {
 }
 
 //Added by IP
-func (pf *ParentFinder) GetChildren(parentMap *map[PID][]PID,pidsMap *map[PID]PID,parent PID) /*(pids []PID)*/{
+func (pf *ParentFinder) GetChildren(parentMap *map[PID][]PID,pidsMap *map[PID]PID,parent PID) {
 
 	if children, ok := (*parentMap)[parent]; ok {
 		//pids = append(pids,children...)
 		for _,child := range children {
 			(*pidsMap)[child] = child
 			pf.GetChildren(parentMap,pidsMap,child)
-			//pids = append(pids,pf.GetChildren(parentMap,pidsMap,child)...)
 		}
 	}
-
-	//return pids
 }
 //Pattern matches on the parent groups settings
 func (pf *ParentFinder) AddData(add_data []string) ([]PID, error) {
@@ -202,47 +196,52 @@ func (pf *ParentFinder) AddData(add_data []string) ([]PID, error) {
 	for _, proc := range procs {
 		parentMap[PID(proc.PPid())] = append (parentMap[PID(proc.PPid())],PID(proc.Pid()))
 	}
+	log.Printf("D! [inputs.procstat] Parent list len: %d",len(parentMap))
 
 	if err !=nil{
 		return pids, err
 	}
+	//Build included and excluded pids based on filters:
+	for pid,filter := range pf.parsedAdData {
+		if filter["inversion"].(bool) {
+
+			if filter["inclusion"].(bool) {
+				excludedPidsMap[PID(pid)] = PID(pid)
+			} else {pidsMap[PID(pid)] = PID(pid)}
+
+			//Get children (recursively)
+			pf.GetChildren(&parentMap, &excludedPidsMap, PID(pid))
+
+		} else {
+
+			if filter["inclusion"].(bool) {
+				pidsMap[PID(pid)] = PID(pid)
+			}else {excludedPidsMap[PID(pid)] = PID(pid)}
+
+			//Get children (recursively)
+			pf.GetChildren(&parentMap,&pidsMap,PID(pid))
+		}
+	}
+	pidsMapLen := len (pidsMap)
+	excludedPidsMapLen := len (excludedPidsMap)
+	log.Printf("D! [inputs.procstat] Included pids map len: %d",pidsMapLen)
+	log.Printf("D! [inputs.procstat] Excluded pids map len: %d",excludedPidsMapLen)
 
 	for _, proc := range procs {
 		pid := proc.Pid()
-		if _, ok := pidsMap[PID(pid)]; ok { continue } //pid already added
-		if _, ex_ok := excludedPidsMap[PID(pid)]; ex_ok { continue } //pid already added
+		//Check for pid inclusion
 
-		if _, ok := pf.parsedAdData[pid]; ok { //Check the process itself
-
-			//Add parrent to appropriate map
-
-			if pf.parsedAdData[pid]["inversion"].(bool) {
-
-				if pf.parsedAdData[pid]["inclusion"].(bool) {
-					excludedPidsMap[PID(pid)] = PID(pid)
-				} else {pidsMap[PID(pid)] = PID(pid)}
-
-				//Get children (recursively)
-				pf.GetChildren(&parentMap, &excludedPidsMap, PID(pid))
-
-			} else {
-
-				if pf.parsedAdData[pid]["inclusion"].(bool) {
-					pidsMap[PID(pid)] = PID(pid)
-				}else {excludedPidsMap[PID(pid)] = PID(pid)}
-
-				//Get children (recursively)
-				pf.GetChildren(&parentMap,&pidsMap,PID(pid))
-			}
-
+		if pidsMapLen !=0 { // list is not empty, check...
+			if _, ok := pidsMap[PID(pid)]; !ok { continue } // Pid is NOT in included list, should be filtered
 		}
 
+		if excludedPidsMapLen !=0 { // list is not empty, check...
+			if _, ex_ok := excludedPidsMap[PID(pid)]; ex_ok { continue } //Pid is IN excluded list, should be filtered
+		}
 
-		//pids = append(pids, PID(pid))
+		pids = append(pids, PID(pid))
 	}
-	for _,val := range pidsMap {
-		pids = append(pids,val)
-	}
+
 	return pids, nil
 }
 
@@ -251,8 +250,6 @@ func (pf *ParentFinder) Uid(user string) ([]PID, error) {
 	var dst []PID
 	return dst, nil
 }
-
-
 
 //PidFile returns the pid from the pid file given.
 func (pf *ParentFinder) PidFile(path string) ([]PID, error) {

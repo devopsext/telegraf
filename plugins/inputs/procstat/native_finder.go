@@ -14,7 +14,7 @@ type NativeFinder struct {
 }
 
 //NewNativeFinder ...
-func NewNativeFinder() (PIDFinder, error) {
+func NewNativeFinder(_ *Procstat) (PIDFinder, error) {
 	return &NativeFinder{}, nil
 }
 
