@@ -5,6 +5,7 @@ import (
 	"github.com/dlclark/regexp2"
 	"github.com/shirou/gopsutil/process"
 	"io/ioutil"
+	"log"
 	"strconv"
 	"strings"
 	"errors"
@@ -37,6 +38,7 @@ func NewNativeFinder(procstat *Procstat) (PIDFinder, error) {
 
 		if procstat.Exe == ".*" {
 			nativeFinder.regexExeFullMatch = true
+			log.Printf("D! [inputs.procstat] native finder regex exe full match = true")
 		}
 	}
 
@@ -50,6 +52,7 @@ func NewNativeFinder(procstat *Procstat) (PIDFinder, error) {
 
 		if procstat.Pattern == ".*" {
 			nativeFinder.regexPatternFullMatch = true
+			log.Printf("D! [inputs.procstat] native finder regex pattern full match = true")
 		}
 	}
 

@@ -2,9 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -163,7 +161,7 @@
           <entry key="conf" value="1418" />
           <entry key="dummy" value="7" />
           <entry key="gitignore" value="62" />
-          <entry key="go" value="26797" />
+          <entry key="go" value="26849" />
           <entry key="md" value="1850" />
           <entry key="sh" value="83" />
           <entry key="toml" value="109" />
@@ -172,7 +170,7 @@
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Go" value="26797" />
+          <entry key="Go" value="26849" />
           <entry key="Markdown" value="1833" />
           <entry key="PLAIN_TEXT" value="2510" />
           <entry key="TOML" value="126" />
@@ -252,8 +250,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="263">
-              <caret line="43" selection-start-line="43" selection-end-line="43" />
+            <state relative-caret-position="-135">
+              <caret line="45" column="31" lean-forward="true" selection-start-line="45" selection-start-column="31" selection-end-line="45" selection-end-column="31" />
               <folding>
                 <element signature="e#18#109#0" expanded="true" />
               </folding>
@@ -264,8 +262,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="219">
-              <caret line="57" column="71" lean-forward="true" selection-start-line="57" selection-start-column="71" selection-end-line="57" selection-end-column="71" />
+            <state relative-caret-position="682">
+              <caret line="69" column="29" lean-forward="true" selection-start-line="69" selection-start-column="29" selection-end-line="69" selection-end-column="29" />
               <folding>
                 <element signature="e#38#133#0" expanded="true" />
               </folding>
@@ -294,8 +292,8 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/parent.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="464">
-              <caret line="156" column="9" selection-start-line="153" selection-start-column="8" selection-end-line="156" selection-end-column="9" />
+            <state relative-caret-position="158">
+              <caret line="226" column="75" lean-forward="true" selection-start-line="226" selection-start-column="4" selection-end-line="226" selection-end-column="75" />
               <folding>
                 <element signature="e#18#219#0" expanded="true" />
                 <element signature="n#!!block;n#getChildPids#0" />
@@ -433,9 +431,9 @@
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/parent.go" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/procstat.go" />
-        <option value="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go" />
+        <option value="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" />
       </list>
     </option>
   </component>
@@ -509,6 +507,14 @@
               <item name="plugins" type="462c0819:PsiDirectoryNode" />
               <item name="inputs" type="462c0819:PsiDirectoryNode" />
               <item name="procstat" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
+              <item name="telegraf" type="462c0819:PsiDirectoryNode" />
+              <item name="plugins" type="462c0819:PsiDirectoryNode" />
+              <item name="inputs" type="462c0819:PsiDirectoryNode" />
+              <item name="procstat" type="462c0819:PsiDirectoryNode" />
+              <item name="dev" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
@@ -653,14 +659,14 @@
       <window_info anchor="bottom" id="Message" order="1" />
       <window_info anchor="bottom" id="Find" order="2" weight="0.36024845" />
       <window_info anchor="bottom" id="Run" order="3" sideWeight="0.49910232" weight="0.4707379" />
-      <window_info active="true" anchor="bottom" id="Debug" order="4" sideWeight="0.8390471" visible="true" weight="0.4606625" />
+      <window_info anchor="bottom" id="Debug" order="4" sideWeight="0.8390471" weight="0.4606625" />
       <window_info anchor="bottom" id="Cvs" order="5" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="6" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="7" sideWeight="0.4977918" weight="0.32505175" />
       <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="9" show_stripe_button="false" sideWeight="0.49970078" weight="0.32853982" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.16095294" side_tool="true" weight="0.38117108" />
-      <window_info anchor="bottom" id="Terminal" order="11" sideWeight="0.76176643" weight="0.29192546" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="11" sideWeight="0.76176643" visible="true" weight="0.42857143" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -855,7 +861,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go</url>
-          <line>24</line>
+          <line>25</line>
           <properties />
           <option name="timeStamp" value="148" />
         </line-breakpoint>
@@ -1328,13 +1334,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="357">
-          <caret line="25" column="44" selection-start-line="25" selection-start-column="44" selection-end-line="25" selection-end-column="44" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/disk/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
@@ -1363,33 +1362,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/parent.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="464">
-          <caret line="156" column="9" selection-start-line="153" selection-start-column="8" selection-end-line="156" selection-end-column="9" />
-          <folding>
-            <element signature="e#18#219#0" expanded="true" />
-            <element signature="n#!!block;n#getChildPids#0" />
-            <element signature="n#!!block;n#GetChildren#0" />
-            <element signature="n#!!block;n#Uid#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="252">
           <caret line="12" column="11" selection-start-line="12" selection-start-column="11" selection-end-line="12" selection-end-column="11" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="263">
-          <caret line="43" selection-start-line="43" selection-end-line="43" />
-          <folding>
-            <element signature="e#18#109#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1410,10 +1386,40 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/parent.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="158">
+          <caret line="226" column="75" lean-forward="true" selection-start-line="226" selection-start-column="4" selection-end-line="226" selection-end-column="75" />
+          <folding>
+            <element signature="e#18#219#0" expanded="true" />
+            <element signature="n#!!block;n#getChildPids#0" />
+            <element signature="n#!!block;n#GetChildren#0" />
+            <element signature="n#!!block;n#Uid#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="357">
+          <caret line="25" column="44" selection-start-line="25" selection-start-column="44" selection-end-line="25" selection-end-column="44" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-135">
+          <caret line="45" column="31" lean-forward="true" selection-start-line="45" selection-start-column="31" selection-end-line="45" selection-end-column="31" />
+          <folding>
+            <element signature="e#18#109#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="219">
-          <caret line="57" column="71" lean-forward="true" selection-start-line="57" selection-start-column="71" selection-end-line="57" selection-end-column="71" />
+        <state relative-caret-position="682">
+          <caret line="69" column="29" lean-forward="true" selection-start-line="69" selection-start-column="29" selection-end-line="69" selection-end-column="29" />
           <folding>
             <element signature="e#38#133#0" expanded="true" />
           </folding>
