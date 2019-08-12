@@ -148,7 +148,7 @@
 
 [[constraint]]
   name = "github.com/shirou/gopsutil"
-  version = "v2.19.7" #Adgusted to be inline with telegtraf 1.11.3 (v2.18.12)
+  version = "2.18.07"
 
 [[constraint]]
   name = "github.com/mitchellh/go-ps"

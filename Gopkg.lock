@@ -279,15 +279,15 @@
   revision = "6c6132ff69f0f6c088739067407b5d32c52e1d0f"
 
 [[projects]]
-  digest = "1:202c3324947f2dd58750aa9b3c2420f74fa577f57dcb6a387c888311ee1c96ff"
+  digest = "1:15436889cceb3375beeb1c710cb22f68129a4a98ab08476445ce5383e985afad"
   name = "github.com/dlclark/regexp2"
   packages = [
     ".",
     "syntax",
   ]
   pruneopts = ""
-  revision = "dcdbc3f2ab3984e49f0c83f00839cdfa0333b592"
-  version = "v1.1.8"
+  revision = "92c702aa5812963ef9193a9624191932d44073d7"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:522eff2a1f014a64fb403db60fc0110653e4dc5b59779894d208e697b0708ddc"
@@ -1047,7 +1047,7 @@
   version = "v1.2.0"
 
 [[projects]]
-  digest = "1:2226ffdae873216a5bc8a0bab7a51ac670b27a4aed852007d77600f809aa04e3"
+  digest = "1:02715a2fb4b9279af36651a59a51dd4164eb689bd6785874811899f43eeb2a54"
   name = "github.com/shirou/gopsutil"
   packages = [
     "cpu",
@@ -1060,8 +1060,8 @@
     "process",
   ]
   pruneopts = ""
-  revision = "d80c43f9c984a48783daf22f4bd9278006ae483a"
-  version = "v2.19.7"
+  revision = "8048a2e9c5773235122027dd585cf821b2af1249"
+  version = "v2.18.07"
 
 [[projects]]
   branch = "master"

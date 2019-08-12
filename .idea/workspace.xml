@@ -2,7 +2,10 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/markdown-exported-files.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gopkg.lock" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gopkg.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Gopkg.toml" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -139,7 +142,7 @@
     <session id="2086448036">
       <usages-collector id="statistics.lifecycle.project">
         <counts>
-          <entry key="project.closed" value="12" />
+          <entry key="project.closed" value="13" />
           <entry key="project.open.time.0" value="2" />
           <entry key="project.open.time.1" value="2" />
           <entry key="project.open.time.10" value="1" />
@@ -147,13 +150,14 @@
           <entry key="project.open.time.13" value="1" />
           <entry key="project.open.time.14" value="1" />
           <entry key="project.open.time.15" value="1" />
+          <entry key="project.open.time.18" value="1" />
           <entry key="project.open.time.2" value="6" />
           <entry key="project.open.time.4" value="2" />
-          <entry key="project.open.time.5" value="2" />
+          <entry key="project.open.time.5" value="3" />
           <entry key="project.open.time.7" value="1" />
           <entry key="project.open.time.8" value="2" />
           <entry key="project.open.time.9" value="1" />
-          <entry key="project.opened" value="24" />
+          <entry key="project.opened" value="26" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
@@ -162,9 +166,10 @@
           <entry key="dummy" value="7" />
           <entry key="gitignore" value="62" />
           <entry key="go" value="26849" />
+          <entry key="lock" value="2" />
           <entry key="md" value="1850" />
           <entry key="sh" value="83" />
-          <entry key="toml" value="109" />
+          <entry key="toml" value="121" />
           <entry key="txt" value="940" />
         </counts>
       </usages-collector>
@@ -173,28 +178,30 @@
           <entry key="Go" value="26849" />
           <entry key="Markdown" value="1833" />
           <entry key="PLAIN_TEXT" value="2510" />
-          <entry key="TOML" value="126" />
+          <entry key="TOML" value="140" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.open">
         <counts>
+          <entry key="Godeps" value="1" />
           <entry key="collector" value="1" />
           <entry key="conf" value="17" />
           <entry key="gitignore" value="3" />
-          <entry key="go" value="159" />
-          <entry key="lock" value="5" />
-          <entry key="md" value="49" />
+          <entry key="go" value="165" />
+          <entry key="lock" value="8" />
+          <entry key="md" value="52" />
           <entry key="s" value="2" />
-          <entry key="sh" value="1" />
-          <entry key="toml" value="5" />
+          <entry key="sh" value="2" />
+          <entry key="toml" value="6" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
-          <entry key="Go" value="159" />
-          <entry key="Markdown" value="49" />
-          <entry key="PLAIN_TEXT" value="22" />
-          <entry key="TOML" value="10" />
+          <entry key="Bash" value="1" />
+          <entry key="Go" value="165" />
+          <entry key="Markdown" value="52" />
+          <entry key="PLAIN_TEXT" value="23" />
+          <entry key="TOML" value="14" />
           <entry key="x86 Plan9 Assembly" value="2" />
         </counts>
       </usages-collector>
@@ -204,45 +211,44 @@
         </counts>
       </usages-collector>
     </session>
+    <session id="-2133873318">
+      <usages-collector id="statistics.lifecycle.project">
+        <counts>
+          <entry key="project.closed" value="2" />
+          <entry key="project.open.time.0" value="1" />
+          <entry key="project.open.time.4" value="1" />
+          <entry key="project.open.time.8" value="1" />
+          <entry key="project.opened" value="3" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.extensions.open">
+        <counts>
+          <entry key="go" value="1" />
+        </counts>
+      </usages-collector>
+      <usages-collector id="statistics.file.types.open">
+        <counts>
+          <entry key="Go" value="1" />
+        </counts>
+      </usages-collector>
+    </session>
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/procstat.go">
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/plugins/inputs/disk/disk.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="148">
-              <caret line="223" selection-start-line="223" selection-end-line="223" />
-              <folding>
-                <element signature="e#18#256#0" expanded="true" />
-                <element signature="n#!!block;n#addMetrics#0" />
-                <element signature="e#7306#8269#0" />
-                <element signature="n#!!block;n#addLimitedMetrics#0" />
-                <element signature="n#!!block;n#updateProcesses#0" />
-                <element signature="n#!!block;n#systemdUnitPIDs#0" />
-                <element signature="n#!!block;n#cgroupPIDs#0" />
-                <element signature="n#!!block;n#winServicePIDs#0" />
-              </folding>
+            <state relative-caret-position="133">
+              <caret line="7" column="23" selection-start-line="7" selection-start-column="22" selection-end-line="7" selection-end-column="23" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/disk/README.md">
-          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-            <state split_layout="SPLIT">
-              <first_editor relative-caret-position="-416">
-                <caret line="27" column="14" selection-start-line="27" selection-start-column="10" selection-end-line="27" selection-end-column="14" />
-              </first_editor>
-              <second_editor />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go">
+        <entry file="file://$PROJECT_DIR$/Gopkg.lock">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="357">
-              <caret line="25" column="44" selection-start-line="25" selection-start-column="44" selection-end-line="25" selection-end-column="44" />
+            <state relative-caret-position="19950">
+              <caret line="1050" column="32" selection-start-line="1050" selection-start-column="28" selection-end-line="1050" selection-end-column="32" />
             </state>
           </provider>
         </entry>
@@ -250,78 +256,64 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-135">
-              <caret line="45" column="31" lean-forward="true" selection-start-line="45" selection-start-column="31" selection-end-line="45" selection-end-column="31" />
-              <folding>
-                <element signature="e#18#109#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file pinned="false" current-in-tab="true">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="682">
-              <caret line="69" column="29" lean-forward="true" selection-start-line="69" selection-start-column="29" selection-end-line="69" selection-end-column="29" />
-              <folding>
-                <element signature="e#38#133#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="304">
+              <caret line="25" selection-start-line="25" selection-end-line="25" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/vendor/github.com/mitchellh/go-ps/process.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="212">
-              <caret line="25" column="4" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="4" />
+        <entry file="file://$PROJECT_DIR$/plugins/inputs/system/README.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;MarkdownPreviewEditor]">
+            <state split_layout="SPLIT">
+              <first_editor />
+              <second_editor>
+                <markdownNavigatorState />
+              </second_editor>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf">
+        <entry file="file://$PROJECT_DIR$/plugins/inputs/system/ps.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="252">
-              <caret line="12" column="11" selection-start-line="12" selection-start-column="11" selection-end-line="12" selection-end-column="11" />
+            <state relative-caret-position="247">
+              <caret line="13" column="36" selection-start-line="13" selection-start-column="36" selection-end-line="13" selection-end-column="36" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/parent.go">
+        <entry file="file://$PROJECT_DIR$/Gopkg.toml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="158">
-              <caret line="226" column="75" lean-forward="true" selection-start-line="226" selection-start-column="4" selection-end-line="226" selection-end-column="75" />
-              <folding>
-                <element signature="e#18#219#0" expanded="true" />
-                <element signature="n#!!block;n#getChildPids#0" />
-                <element signature="n#!!block;n#GetChildren#0" />
-                <element signature="n#!!block;n#Uid#0" />
-              </folding>
+            <state relative-caret-position="190">
+              <caret line="10" column="19" selection-start-line="10" selection-start-column="19" selection-end-line="10" selection-end-column="19" />
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/dev/buildDebian.sh">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="84">
-              <caret line="4" column="18" selection-start-line="4" selection-start-column="18" selection-end-line="4" selection-end-column="18" />
+        <entry file="file://$PROJECT_DIR$/vendor/github.com/influxdata/go-syslog/syslog.go">
+          <provider selected="true" editor-type-id="text-editor" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/docs/LICENSE_OF_DEPENDENCIES.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;MarkdownPreviewEditor]">
+            <state split_layout="SPLIT">
+              <first_editor />
+              <second_editor>
+                <markdownNavigatorState />
+              </second_editor>
             </state>
           </provider>
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/process.go">
+        <entry file="file://$PROJECT_DIR$/plugins/inputs/system/mock_PS.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="651">
-              <caret line="31" column="4" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="4" />
-              <folding>
-                <element signature="e#18#116#0" expanded="true" />
-                <element signature="n#!!block;n#NewProc#0" />
-              </folding>
+            <state relative-caret-position="133">
+              <caret line="7" column="4" selection-start-line="7" selection-start-column="4" selection-end-line="7" selection-end-column="4" />
             </state>
           </provider>
         </entry>
@@ -337,12 +329,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>Starting Telegraf</find>
-      <find>logger</find>
-      <find>ro</find>
-      <find>ag</find>
-      <find>log.New</find>
-      <find>newTelegrafWriter</find>
       <find>message too long</find>
       <find>Error writing to output</find>
       <find>tsKey</find>
@@ -367,6 +353,12 @@
       <find>p.binary</find>
       <find>prefix</find>
       <find>self</find>
+      <find>github.com/influxdata/go-syslog/</find>
+      <find>^2.</find>
+      <find>go-sys</find>
+      <find>gops</find>
+      <find>sysl</find>
+      <find>error getting disk usage info:</find>
     </findStrings>
     <dirStrings>
       <dir>$PROJECT_DIR$</dir>
@@ -425,7 +417,6 @@
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/README.md" />
         <option value="$PROJECT_DIR$/plugins/inputs/k8s_events_listener/k8s_events_listener.go" />
         <option value="$PROJECT_DIR$/plugins/outputs/cloudwatch/cloudwatch.go" />
-        <option value="$PROJECT_DIR$/Gopkg.toml" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/dev/buildDebian.sh" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/process.go" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go" />
@@ -434,6 +425,8 @@
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go" />
         <option value="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" />
+        <option value="$PROJECT_DIR$/Gopkg.lock" />
+        <option value="$PROJECT_DIR$/Gopkg.toml" />
       </list>
     </option>
   </component>
@@ -453,10 +446,10 @@
     </packageJsonPaths>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="16" />
-    <option name="y" value="22" />
-    <option name="width" value="1920" />
-    <option name="height" value="1058" />
+    <option name="x" value="68" />
+    <option name="y" value="58" />
+    <option name="width" value="1722" />
+    <option name="height" value="990" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -478,17 +471,13 @@
       <foldersAlwaysOnTop value="true" />
     </navigator>
     <panes>
+      <pane id="Scope" />
       <pane id="ProjectPane">
         <subPane>
           <expand>
             <path>
               <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
               <item name="telegraf" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
-              <item name="telegraf" type="462c0819:PsiDirectoryNode" />
-              <item name="build" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
@@ -516,20 +505,10 @@
               <item name="procstat" type="462c0819:PsiDirectoryNode" />
               <item name="dev" type="462c0819:PsiDirectoryNode" />
             </path>
-            <path>
-              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
-              <item name="telegraf" type="462c0819:PsiDirectoryNode" />
-              <item name="vendor" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="telegraf" type="b2602c69:ProjectViewProjectNode" />
-              <item name="External Libraries" type="cb654da1:ExternalLibrariesNode" />
-            </path>
           </expand>
           <select />
         </subPane>
       </pane>
-      <pane id="Scope" />
     </panes>
   </component>
   <component name="PropertiesComponent">
@@ -545,7 +524,7 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
-    <property name="settings.editor.selected.configurable" value="go.sdk" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -649,24 +628,23 @@
     </todo-panel>
   </component>
   <component name="ToolWindowManager">
-    <frame x="16" y="22" width="1920" height="1058" extended-state="0" />
-    <editor active="true" />
+    <frame x="68" y="58" width="1722" height="990" extended-state="0" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.1826411" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.21011905" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Inspection Results" order="0" weight="0.32919255" />
       <window_info anchor="bottom" id="Message" order="1" />
-      <window_info anchor="bottom" id="Find" order="2" weight="0.36024845" />
+      <window_info anchor="bottom" id="Find" order="2" weight="0.36008677" />
       <window_info anchor="bottom" id="Run" order="3" sideWeight="0.49910232" weight="0.4707379" />
-      <window_info anchor="bottom" id="Debug" order="4" sideWeight="0.8390471" weight="0.4606625" />
+      <window_info anchor="bottom" id="Debug" order="4" sideWeight="0.8390471" weight="0.40200445" />
       <window_info anchor="bottom" id="Cvs" order="5" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="6" weight="0.4" />
       <window_info anchor="bottom" id="TODO" order="7" sideWeight="0.4977918" weight="0.32505175" />
       <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="9" show_stripe_button="false" sideWeight="0.49970078" weight="0.32853982" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.16095294" side_tool="true" weight="0.38117108" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="11" sideWeight="0.76176643" visible="true" weight="0.42857143" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="11" sideWeight="0.76176643" visible="true" weight="0.39532295" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -844,25 +822,21 @@
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/plugins/outputs/cloudwatch/cloudwatch.go</url>
           <line>229</line>
-          <properties />
           <option name="timeStamp" value="100" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/plugins/outputs/cloudwatch/cloudwatch.go</url>
           <line>228</line>
-          <properties />
           <option name="timeStamp" value="101" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/plugins/outputs/cloudwatch/cloudwatch.go</url>
           <line>292</line>
-          <properties />
           <option name="timeStamp" value="102" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
           <url>file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go</url>
           <line>25</line>
-          <properties />
           <option name="timeStamp" value="148" />
         </line-breakpoint>
       </breakpoints>
@@ -991,96 +965,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/swap/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor />
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/system/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="399">
-            <caret line="19" column="8" lean-forward="true" selection-start-line="19" selection-start-column="8" selection-end-line="19" selection-end-column="8" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/net/NET_README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="-344">
-            <caret line="19" column="25" selection-start-line="19" selection-start-column="4" selection-end-line="19" selection-end-column="25" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/mem/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="309">
-            <caret line="30" column="2" selection-start-line="30" selection-start-column="2" selection-end-line="52" selection-end-column="30" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/linux_sysctl_fs/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor />
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/kernel_vmstat/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="-3935" />
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/kernel/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="790">
-            <caret line="71" lean-forward="true" selection-start-line="71" selection-end-line="71" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file:///usr/local/go/src/os/exec/exec.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="230">
-          <caret line="491" column="14" selection-start-line="491" selection-start-column="14" selection-end-line="491" selection-end-column="14" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/../../../temp/main.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="270">
-          <caret line="130" selection-start-line="130" selection-end-line="130" />
-          <folding>
-            <element signature="n#!!block;n#buildDataDict#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder_windows.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1510">
-          <folding>
-            <element signature="e#18#135#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/procstat_test.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-7384" />
@@ -1126,38 +1010,13 @@
         </state>
       </provider>
     </entry>
-    <entry file="file:///usr/local/go/src/regexp/regexp.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="182">
-          <caret line="439" column="18" selection-start-line="439" selection-start-column="18" selection-end-line="439" selection-end-column="18" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="110">
-            <caret line="20" column="56" selection-start-line="20" selection-start-column="56" selection-end-line="20" selection-end-column="56" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/outputs/discard/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor />
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file:///usr/local/go/src/regexp/regexp.go" />
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/README.md" />
+    <entry file="file://$PROJECT_DIR$/plugins/outputs/discard/README.md" />
     <entry file="file://$PROJECT_DIR$/vendor/github.com/aws/aws-sdk-go/service/cloudwatch/api.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="294">
           <caret line="14" lean-forward="true" selection-start-line="14" selection-end-line="14" />
-          <folding>
-            <element signature="e#90#329#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1180,14 +1039,7 @@
     <entry file="file://$PROJECT_DIR$/plugins/inputs/cloudwatch/telegraf.conf">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/outputs/cloudwatch/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="-372" />
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/outputs/cloudwatch/README.md" />
     <entry file="file://$PROJECT_DIR$/vendor/github.com/mitchellh/go-ps/process_unix_test.go">
       <provider selected="true" editor-type-id="text-editor" />
     </entry>
@@ -1196,14 +1048,7 @@
         <state relative-caret-position="-2118" />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/vendor/github.com/mitchellh/go-ps/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="-393" />
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file://$PROJECT_DIR$/vendor/github.com/mitchellh/go-ps/README.md" />
     <entry file="file://$PROJECT_DIR$/vendor/github.com/shirou/gopsutil/process/process_posix.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="199">
@@ -1225,20 +1070,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/Gopkg.lock">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="148">
-          <caret line="797" column="54" selection-start-line="797" selection-start-column="14" selection-end-line="797" selection-end-column="54" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/Gopkg.toml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="439">
-          <caret line="155" column="2" selection-start-line="155" selection-start-column="2" selection-end-line="155" selection-end-column="2" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/vendor/github.com/mitchellh/go-ps/process_darwin.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="504">
@@ -1250,9 +1081,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="200">
           <caret line="99" column="20" selection-start-line="99" selection-start-column="20" selection-end-line="99" selection-end-column="20" />
-          <folding>
-            <element signature="e#37#77#0" expanded="true" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1263,13 +1091,7 @@
         </state>
       </provider>
     </entry>
-    <entry file="file:///usr/local/go/src/runtime/panic.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="250">
-          <caret line="680" selection-start-line="680" selection-end-line="680" />
-        </state>
-      </provider>
-    </entry>
+    <entry file="file:///usr/local/go/src/runtime/panic.go" />
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="105">
@@ -1281,16 +1103,6 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="483">
           <caret line="23" selection-start-line="23" selection-end-line="23" selection-end-column="51" />
-          <folding>
-            <element signature="e#529#1538#0" />
-            <element signature="e#1926#3533#1" />
-            <element signature="n#!!block;n#Gather#0" />
-            <element signature="n#!!block;n#gatherSwarmInfo#0" />
-            <element signature="n#!!block;n#gatherInfo#0" />
-            <element signature="n#!!block;n#gatherContainer#0" />
-            <element signature="n#!!block;n#parseContainerStats#0" />
-            <element signature="n#!!block;n#gatherBlockIOMetrics#0" />
-          </folding>
         </state>
       </provider>
     </entry>
@@ -1315,49 +1127,42 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="670">
           <caret line="478" column="81" selection-start-line="478" selection-start-column="57" selection-end-line="478" selection-end-column="81" />
-          <folding>
-            <element signature="e#25#402#0" expanded="true" />
-            <element signature="e#1242#2486#1" />
-            <element signature="n#!!block;n#IsContainHeader#0" />
-            <element signature="n#!!block;n#IsNewLineInMsgHeader#0" />
-            <element signature="n#!!block;n#Gather#0" />
-            <element signature="n#!!block;n#Start#0" />
-            <element signature="n#!!block;n#CheckContainerStatus#0" />
-          </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/dev/buildDebian.sh">
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/disk/README.md" />
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/procstat.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="84">
-          <caret line="4" column="18" selection-start-line="4" selection-start-column="18" selection-end-line="4" selection-end-column="18" />
+        <state relative-caret-position="180">
+          <caret line="361" column="32" selection-start-line="361" selection-start-column="23" selection-end-line="361" selection-end-column="32" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/disk/README.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="-416">
-            <caret line="27" column="14" selection-start-line="27" selection-start-column="10" selection-end-line="27" selection-end-column="14" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/process.go">
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="651">
-          <caret line="31" column="4" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="4" />
-          <folding>
-            <element signature="e#18#116#0" expanded="true" />
-            <element signature="n#!!block;n#NewProc#0" />
-          </folding>
+        <state relative-caret-position="357">
+          <caret line="25" column="44" selection-start-line="25" selection-start-column="44" selection-end-line="25" selection-end-column="44" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1008">
+          <caret line="52" selection-start-line="52" selection-end-line="52" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/cpu/README.md" />
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/cpu/cpu.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="2394">
+          <caret line="122" column="25" selection-start-line="122" selection-start-column="22" selection-end-line="122" selection-end-column="25" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/vendor/github.com/mitchellh/go-ps/process.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="212">
+        <state relative-caret-position="525">
           <caret line="25" column="4" selection-start-line="25" selection-start-column="4" selection-end-line="25" selection-end-column="4" />
         </state>
       </provider>
@@ -1369,60 +1174,93 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/procstat.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="148">
-          <caret line="223" selection-start-line="223" selection-end-line="223" />
-          <folding>
-            <element signature="e#18#256#0" expanded="true" />
-            <element signature="n#!!block;n#addMetrics#0" />
-            <element signature="e#7306#8269#0" />
-            <element signature="n#!!block;n#addLimitedMetrics#0" />
-            <element signature="n#!!block;n#updateProcesses#0" />
-            <element signature="n#!!block;n#systemdUnitPIDs#0" />
-            <element signature="n#!!block;n#cgroupPIDs#0" />
-            <element signature="n#!!block;n#winServicePIDs#0" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/parent.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="158">
-          <caret line="226" column="75" lean-forward="true" selection-start-line="226" selection-start-column="4" selection-end-line="226" selection-end-column="75" />
-          <folding>
-            <element signature="e#18#219#0" expanded="true" />
-            <element signature="n#!!block;n#getChildPids#0" />
-            <element signature="n#!!block;n#GetChildren#0" />
-            <element signature="n#!!block;n#Uid#0" />
-          </folding>
+        <state relative-caret-position="3927">
+          <caret line="226" column="75" selection-start-line="226" selection-start-column="4" selection-end-line="226" selection-end-column="75" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go">
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/process.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="357">
-          <caret line="25" column="44" selection-start-line="25" selection-start-column="44" selection-end-line="25" selection-end-column="44" />
+        <state relative-caret-position="525">
+          <caret line="31" column="4" selection-start-line="31" selection-start-column="4" selection-end-line="31" selection-end-column="4" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file:///usr/local/go/src/path/filepath/path.go" />
+    <entry file="file://$PROJECT_DIR$/Godeps">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/dev/buildDebian.sh">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="84">
+          <caret line="4" column="18" selection-start-line="4" selection-start-column="18" selection-end-line="4" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/disk/disk.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="133">
+          <caret line="7" column="23" selection-start-line="7" selection-start-column="22" selection-end-line="7" selection-end-column="23" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Gopkg.lock">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="19950">
+          <caret line="1050" column="32" selection-start-line="1050" selection-start-column="28" selection-end-line="1050" selection-end-column="32" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-135">
-          <caret line="45" column="31" lean-forward="true" selection-start-line="45" selection-start-column="31" selection-end-line="45" selection-end-column="31" />
-          <folding>
-            <element signature="e#18#109#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="304">
+          <caret line="25" selection-start-line="25" selection-end-line="25" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go">
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/system/README.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;MarkdownPreviewEditor]">
+        <state split_layout="SPLIT">
+          <first_editor />
+          <second_editor>
+            <markdownNavigatorState />
+          </second_editor>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/system/ps.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="682">
-          <caret line="69" column="29" lean-forward="true" selection-start-line="69" selection-start-column="29" selection-end-line="69" selection-end-column="29" />
-          <folding>
-            <element signature="e#38#133#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="247">
+          <caret line="13" column="36" selection-start-line="13" selection-start-column="36" selection-end-line="13" selection-end-column="36" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/Gopkg.toml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="190">
+          <caret line="10" column="19" selection-start-line="10" selection-start-column="19" selection-end-line="10" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/vendor/github.com/influxdata/go-syslog/syslog.go">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$PROJECT_DIR$/docs/LICENSE_OF_DEPENDENCIES.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;MarkdownPreviewEditor]">
+        <state split_layout="SPLIT">
+          <first_editor />
+          <second_editor>
+            <markdownNavigatorState />
+          </second_editor>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/plugins/inputs/system/mock_PS.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="133">
+          <caret line="7" column="4" selection-start-line="7" selection-start-column="4" selection-end-line="7" selection-end-column="4" />
         </state>
       </provider>
     </entry>
