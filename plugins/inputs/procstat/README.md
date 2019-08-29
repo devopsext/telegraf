@@ -49,6 +49,12 @@ Processes can be selected for monitoring using one of several methods:
   ## Field name prefix
   # prefix = ""
 
+  ## Limit metrics. Allow to gather only very basic metrics for process. Default values is false.
+  # limit_metrics = true
+  
+  ## If set to 'true', every gather interval, for every PID in scope, the cmdline & name tags will be updated (this produce additional CPU load).
+  # update_process_tags = false
+
   ## Add PID as a tag instead of a field; useful to differentiate between
   ## processes whose tags are otherwise the same.  Can create a large number
   ## of series, use judiciously.

@@ -180,6 +180,7 @@ func (pf *ParentFinder) GetChildren(parentMap *map[PID][]PID,pidsMap *map[PID]PI
 		}
 	}
 }
+
 //Pattern matches on the parent groups settings
 func (pf *ParentFinder) AddData(add_data []string) ([]PID, error) {
 	var pids []PID

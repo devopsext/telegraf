@@ -14,6 +14,7 @@ import (
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/inputs"
 	"github.com/shirou/gopsutil/process"
+	gops "github.com/mitchellh/go-ps"
 )
 
 var (
@@ -39,6 +40,7 @@ type Procstat struct {
 	Prefix      	string		`toml:"prefix"`
 	preparedPrefix	string
 	LimitMetrics	bool		`toml:"limit_metrics"`
+	UpdateProcessTags bool		`toml:"update_process_tags"`
 	PidTag      	bool		`toml:"pid_tag"`
 	WinService  	string		`toml:"win_service"`
 
@@ -95,6 +97,9 @@ var sampleConfig = `
 
   ## Limit metrics. Allow to gather only very basic metrics for process. Default values is false.
   # limit_metrics = true
+  
+  ## If set to 'true', every gather interval, for every PID in scope, the cmdline & name tags will be updated (this produce additional CPU load).
+  # update_process_tags = false
 
   ## Add PID as a tag instead of a field; useful to differentiate between
   ## processes whose tags are otherwise the same.  Can create a large number
@@ -142,6 +147,23 @@ func (p *Procstat) Gather(acc telegraf.Accumulator) error {
 		proc, ok := p.procs[pid]
 		if ok {
 			procs[pid] = proc
+
+			if p.UpdateProcessTags {
+				//Update proc tags, if  smth. changed
+				gopsProcess,err := gops.FindProcess(int(pid))
+				name := gopsProcess.Executable()
+				if err == nil && proc.Tags()["process_name"] != name {
+					//Updating name
+					proc.Tags()["process_name"] = name
+
+					//Updating cmd_line
+					line,err := proc.Cmdline()
+					if err == nil {
+						proc.Tags()["process_cmdline"] = line
+					}
+				}
+			}
+
 		}else
 		{
 			proc, err = p.createProcess(pid)
