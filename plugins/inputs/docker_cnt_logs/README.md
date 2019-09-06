@@ -1,4 +1,4 @@
-# Docker container logs Input Plugin
+# Docker container logs Input plugin
 
 The docker_cnt_logs plugin uses docker API to stream logs from container.
 To be able to use it, docker socket should be provided for runtime,
@@ -13,7 +13,7 @@ API version vs Docker version compatibility matrix: https://docs.docker.com/deve
 
 Primary features:
  - stream logs with a kind of back pressure, that realised through periodically pools the API. This allow 
- to handle cases when containers start streaming lots of output, without major CPU untilization.
+ to handle cases when containers start streaming lots of output, without major CPU utilization.
  - offset is supported, that allows to stream logs from the particular point in time
 even if telegraf crashed.
  - very well fitted and tested as a side-car container that stream logs from pod's containers in k8s and under rancher 1.6.x
@@ -21,7 +21,7 @@ even if telegraf crashed.
 
 ### Configuration:
 
-```
+```toml
 [[inputs.docker_cnt_logs]]  
   # Interval to gather data from docker sock.
   # the longer the interval the fewer request is made towards docker API (less CPU utilization on dockerd).
@@ -64,7 +64,7 @@ even if telegraf crashed.
   offset_storage_path = "/var/run/collector_offset"
 
   # Shutdown telegraf if all log streaming containers stopped/killed, default - false
-  # This option make sens when telegraf started especially for streaming logs
+  # This option make sense when telegraf started especially for streaming logs
   # in a form of sidecar container in k8s. In case primary container exited,
   # side-car should be terminated also.
   # shutdown_when_eof = false

@@ -44,9 +44,11 @@ type DockerCNTLogs struct {
 	client        		*docker.Client
 	wg            		sync.WaitGroup
 	checkerQuitFlag     chan bool
+	checkerLock			*sync.Mutex
 	offsetQuitFlag		chan bool
 	logReader			map[string]*logReader //Log reader data...
 	offsetFlushInterval	time.Duration
+
 }
 
 type logReader struct {
@@ -67,8 +69,9 @@ type logReader struct {
 	endOfLineIndex        int
 	tags				  map[string]string
 	quitFlag              chan bool
-	eofReceived			  int32
+	eofReceived			  bool
 	currentOffset		  int64
+	lock				  *sync.Mutex
 
 }
 
@@ -184,7 +187,12 @@ func isContainsHeader(str *[]byte, length int) bool {
 		return false
 	}
 
-	log.Printf("D! [inputs.docker_cnt_logs] Raw string for detecting headers:\n%s\n", str)
+	strLength := len(*str)
+	if strLength > 100 {
+		strLength = 100
+	}
+
+	log.Printf("D! [inputs.docker_cnt_logs] Raw string for detecting headers (first 100 symbols):\n%s...\n", (*str)[:strLength-1])
 	log.Printf("D! [inputs.docker_cnt_logs] First 4 bytes: '%v,%v,%v,%v', string representation: '%s'", (*str)[0], (*str)[1], (*str)[2], (*str)[3], (*str)[0:4])
 	log.Printf("D! [inputs.docker_cnt_logs] Big endian value: %d", binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]))
 
@@ -495,7 +503,7 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 	dl.wg.Add(1)
 	defer dl.wg.Done()
 
-
+	eofReceived := false
 	for {
 		select {
 		case <-lr.quitFlag:
@@ -512,7 +520,7 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 
 			if err != nil {
 				if err.Error() == "EOF" { //Special case, need to flush data and exit
-					atomic.AddInt32(&lr.eofReceived,1)
+					eofReceived = true
 				} else {
 					acc.AddError(fmt.Errorf("Read error from container '%s': %v", lr.contID, err))
 					return err
@@ -634,14 +642,14 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 					//Getting stream type (if header persist)
 					if lr.outputMsgStartIndex > 0 {
 						if lr.buffer[i] == 0x1 {
-							tags["stream_type"] = "stdout"
+							tags["stream"] = "stdout"
 						} else if lr.buffer[i] == 0x2 {
-							tags["stream_type"] = "stderr"
+							tags["stream"] = "stderr"
 						} else if lr.buffer[i] == 0x0 {
-							tags["stream_type"] = "stdin"
+							tags["stream"] = "stdin"
 						}
 					} else {
-						tags["stream_type"] = "tty"
+						tags["stream_type"] = "interactive"
 					}
 
 					if uint(totalLineLength) < lr.outputMsgStartIndex+lr.dockerTimeStampLength+1 || !lr.dockerTimeStamps { //no time stamp
@@ -671,10 +679,17 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 				runtime.GC()
 			}
 
-			if atomic.LoadInt32(&lr.eofReceived) > 0 {
+			if eofReceived {
 				log.Printf("E! [inputs.docker_cnt_logs] container '%s': log stream closed, 'EOF' received.",lr.contID)
-				close(lr.quitFlag)
-				lr.quitFlag = nil
+
+				lr.lock.Lock()
+					if lr.quitFlag != nil {
+						close(lr.quitFlag)
+						lr.quitFlag = nil
+					}
+					lr.eofReceived = eofReceived
+				lr.lock.Unlock()
+
 				return nil
 			}
 
@@ -851,6 +866,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 
 		//Init channel to manage go routine
 		logReader.quitFlag = make(chan bool)
+		logReader.lock = &sync.Mutex{}
 
 		//Store
 		dl.logReader[container["id"].(string)] = &logReader
@@ -863,6 +879,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 
 	//Start checker
 	dl.checkerQuitFlag = make(chan bool)
+	dl.checkerLock = &sync.Mutex{}
 	go dl.checkStreamersStatus()
 
 	//Start offset flusher
@@ -899,16 +916,24 @@ func (dl *DockerCNTLogs) checkStreamersStatus() {
 		default:
 			closed :=0
 			for _,logReader := range dl.logReader {
-				if atomic.LoadInt32(&logReader.eofReceived) > 0{
-					closed++
-				}
+
+				logReader.lock.Lock()
+				 if logReader.eofReceived{
+					 closed++
+				 }
+				logReader.lock.Unlock()
 			}
 			if closed == len(dl.logReader) && dl.ShutDownWhenEOF {
+
 				log.Printf("E! [inputs.docker_cnt_logs] all target containers are stopped/killed!\n" +
 					"Telegraf shutdown is requested...")
-				close(dl.checkerQuitFlag)
-				dl.checkerQuitFlag = nil
-				dl.shutdownTelegraf()
+
+				dl.checkerLock.Lock()
+					close(dl.checkerQuitFlag)
+					dl.checkerQuitFlag = nil
+					dl.shutdownTelegraf()
+				dl.checkerLock.Unlock()
+
 				return
 			}
 		}
@@ -943,20 +968,24 @@ func (dl *DockerCNTLogs) Stop() {
 	log.Printf("D! [inputs.docker_cnt_logs] Shutting down stream checker...")
 
 	//Stop check streamers status
-	if dl.checkerQuitFlag !=nil{
-		dl.checkerQuitFlag<- true
-	}
+	dl.checkerLock.Lock()
+		if dl.checkerQuitFlag !=nil{
+			dl.checkerQuitFlag<- true
+		}
+	dl.checkerLock.Unlock()
 
 	//Stop log streaming
 	log.Printf("D! [inputs.docker_cnt_logs] Shutting down log streamers...")
 	for _,logReader := range dl.logReader {
+		logReader.lock.Lock()
 		if logReader.quitFlag !=nil{
 			logReader.quitFlag<- true
 		}
+		logReader.lock.Unlock()
 	}
 
 	//Stop offset flushing
-	time.Sleep(dl.offsetFlushInterval)
+	time.Sleep(dl.offsetFlushInterval) //This sleep needed to guarantee that offest will be flushed
 	if dl.offsetQuitFlag !=nil{
 		dl.offsetQuitFlag<- true
 	}
