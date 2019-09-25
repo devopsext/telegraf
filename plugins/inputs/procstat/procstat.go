@@ -5,16 +5,18 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	"log"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/inputs"
-	"github.com/shirou/gopsutil/process"
 	gops "github.com/mitchellh/go-ps"
+	"github.com/shirou/gopsutil/process"
 )
 
 var (
@@ -23,6 +25,8 @@ var (
 
 	// execCommand is so tests can mock out exec.Command usage.
 	execCommand = exec.Command
+
+	defaultRetryLimit = 5
 )
 
 type PID int32
@@ -40,6 +44,8 @@ type Procstat struct {
 	Prefix      	string		`toml:"prefix"`
 	preparedPrefix	string
 	LimitMetrics	bool		`toml:"limit_metrics"`
+	RetryLimit		int			`toml:"retry_limit"`
+	EmitIncorrectCPUValues bool `toml:"emit_incorrect_cpu_values"`
 	UpdateProcessTags bool		`toml:"update_process_tags"`
 	PidTag      	bool		`toml:"pid_tag"`
 	WinService  	string		`toml:"win_service"`
@@ -51,6 +57,11 @@ type Procstat struct {
 	createPIDFinder func(*Procstat) (PIDFinder, error)
 	procs           map[PID]Process
 	createProcess   func(PID) (Process, error)
+
+	initialized		bool
+	numCPU			int
+	maxCPUUtilization float64
+
 }
 
 var sampleConfig = `
@@ -97,6 +108,25 @@ var sampleConfig = `
 
   ## Limit metrics. Allow to gather only very basic metrics for process. Default values is false.
   # limit_metrics = true
+
+  ## Count of retries, while reading procstat data. In case of very high fork rate, some new processes can be forked exactly 
+  ## at the time when the input gather the statistics. Since 'github.com/shirou/gopsutil' library used, for CPU utilization it needs to be
+  ## called twice (minimum) for every new PID. Also it is observed, that for newly forked PIDs the CPU usage sometimes 
+  ## reported as CPU usage of previous PID in the pooling list, so additional check for uniqueness of CPU utilization is added.
+  ## In case the CPU utilization figure is not unique in the set of current PID pool, then retry called. If retry_limit exceed
+  ## but the value is still incorrect, the error printed into the log and either:
+  ## 1. Metric for the PID emitted (if 'emit_incorrect_cpu_values = true') with special tags 'dpl_info' & or 'unrl_cpu_info':  
+  ## - 'dpl_info' holds info about duplicated values
+  ## - 'unrl_cpu_info' holds info about unrealistic duplicated values
+  ## OR
+  ## 2. Metric for the PID is dropped (if 'emit_incorrect_cpu_values = false' ) and metric 'procstat_dropped' added instead.
+  ##
+  # retry_limit = 5 (default value)
+
+  ## Either drop or emit metrics with incorrect CPU utilization value.
+  ## Emitting can be useful for debugging.
+  # emit_incorrect_cpu_values = false (default)
+
   
   ## If set to 'true', every gather interval, for every PID in scope, the cmdline & name tags will be updated (this produce additional CPU load).
   # update_process_tags = false
@@ -114,8 +144,6 @@ var sampleConfig = `
   # pid_finder = "pgrep"
 `
 
-
-
 func (p *Procstat) SampleConfig() string {
 	return sampleConfig
 }
@@ -124,9 +152,74 @@ func (p *Procstat) Description() string {
 	return "Monitor process cpu and memory usage"
 }
 
+func (p *Procstat) initialize(acc telegraf.Accumulator) error{
+
+	if p.initialized {return nil}
+
+	var err error
+	p.acc = acc
+
+	switch p.PidFinder {
+	case "native":
+		p.createPIDFinder = NewNativeFinder
+	case "pgrep":
+		p.createPIDFinder = NewPgrep
+	case "parent":
+		p.createPIDFinder = NewParentFinder
+	default:
+		p.createPIDFinder = defaultPIDFinder
+	}
+
+	p.createProcess = defaultProcess
+
+	if p.Prefix != "" {
+		p.preparedPrefix = p.Prefix + "_"
+	}
+
+	p.finder, err = p.createPIDFinder(p)
+	if err != nil {
+		return  err
+	}
+
+	//Building pid finder tags
+	if p.PidFile != "" {
+		p.finderTags = map[string]string{"pidfile": p.PidFile}
+	} else if p.Exe != "" {
+		p.finderTags = map[string]string{"exe": p.Exe}
+	} else if p.Pattern != "" {
+		p.finderTags = map[string]string{"pattern": p.Pattern}
+	} else if len(p.AddData) != 0 {
+		p.finderTags = map[string]string{"add_data":  strings.Join(p.AddData,",")}
+	} else if p.User != "" {
+		p.finderTags = map[string]string{"user": p.User}
+	} else if p.SystemdUnit != "" {
+		p.finderTags = map[string]string{"systemd_unit": p.SystemdUnit}
+	} else if p.CGroup != "" {
+		p.finderTags = map[string]string{"cgroup": p.CGroup}
+	} else if p.WinService != "" {
+		p.finderTags = map[string]string{"win_service": p.WinService}
+	} else {
+		return errors.New(fmt.Sprintf("Either exe, pid_file, user, pattern, add_data, systemd_unit, cgroup, or win_service must be specified"))
+	}
+
+	if p.RetryLimit == 0 {
+		p.RetryLimit = defaultRetryLimit
+	}
+
+	p.numCPU = runtime.NumCPU()
+	p.maxCPUUtilization = float64(p.numCPU * 100) //Max cpu utilization = 100% (full utilization of 1 CPU) * CPU count.
+
+	p.initialized = true
+	return nil
+}
+
 func (p *Procstat) Gather(acc telegraf.Accumulator) error {
 
 	var err error
+	metrics := map[float64]map[string]interface{}{}
+
+	p.initialize(acc)
+
 	fields := map[string]interface{}{}
 
 	//Get actual pids via pid finder + some tags that actual for specific pid finder
@@ -206,75 +299,83 @@ func (p *Procstat) Gather(acc telegraf.Accumulator) error {
 
 		//proc - process info (either that was found in previous list or a new one)
 		//pid - current process pid
-		if ! p.LimitMetrics {
-			p.addMetrics(proc, p.preparedPrefix,fields, acc)
-		}else {
-			p.addLimitedMetrics(proc, p.preparedPrefix,fields, acc)
+		cpuUsageDetectedCorrectly := false
+		for i:=0; i< p.RetryLimit; i++ {
+			//Read metrics for the first time
+			if ! p.LimitMetrics {
+				p.addMetrics(proc, p.preparedPrefix,fields, acc)
+			}else {
+				p.addLimitedMetrics(proc, p.preparedPrefix,fields, acc)
+			}
+
+			//Check cpu consistency with max retry limit:
+			if val,hasCPU := fields[p.preparedPrefix+"cpu_usage"]; hasCPU && val.(float64) > 0 {
+				if procInfo, ok := metrics[fields[p.preparedPrefix+"cpu_usage"].(float64)]; ok || //Duplicates found
+				   fields[p.preparedPrefix+"cpu_usage"].(float64) > p.maxCPUUtilization { // Or go-ps util report unrealistic CPU utilization
+
+					//Printing out error only in case that retries didn't fix the incorrect value
+					if i == p.RetryLimit-1 {
+
+						if fields[p.preparedPrefix+"cpu_usage"].(float64) < p.maxCPUUtilization {
+							proc.Tags()["dpl_info"] = fmt.Sprintf("retry: %d, duplicate value:"+
+								"new: pid: %d, name: %s, CPU: %f "+
+								"old: pid: %d, name: %s!",
+								i,
+								pid, proc.Tags()["process_name"], fields[p.preparedPrefix+"cpu_usage"].(float64),
+								procInfo["pid"].(PID), procInfo["name"].(string))
+
+							log.Printf("E! ==>retry: %d, duplicate value:\n "+
+								"new: pid: %d, name: %s, CPU: %f\n "+
+								"old: pid: %d, name: %s\n! <==",
+								i,
+								pid, proc.Tags()["process_name"], fields[p.preparedPrefix+"cpu_usage"].(float64),
+								procInfo["pid"].(PID), procInfo["name"].(string))
+
+						}else{
+							proc.Tags()["unrl_cpu_info"] = fmt.Sprintf("retry: %d, unrealistic CPU utilization: "+
+								"pid: %d, name: %s, CPU: %f, max CPU utilization: %f",
+								i,
+								pid, proc.Tags()["process_name"], fields[p.preparedPrefix+"cpu_usage"].(float64),p.maxCPUUtilization)
+
+							log.Printf("E! ==>retry: %d, unrealistic CPU utilization: "+
+								"pid: %d, name: %s, CPU: %f, max CPU utilization: %f\n",
+								i,
+								pid, proc.Tags()["process_name"], fields[p.preparedPrefix+"cpu_usage"].(float64),p.maxCPUUtilization)
+						}
+
+					}
+
+					//Sleep before next retry
+					time.Sleep(100*time.Millisecond)
+
+
+				}else{ //No errors
+						metrics[fields[p.preparedPrefix+"cpu_usage"].(float64)] = map[string]interface{}{
+							"pid":pid,
+							"name":proc.Tags()["process_name"]}
+						cpuUsageDetectedCorrectly = true
+						break
+					}
+
+			}else{ //No data about CPU found
+				cpuUsageDetectedCorrectly = true
+				break
+
+			}
 		}
 
 		//Add metrics
-		acc.AddFields("procstat", fields, proc.Tags())
-
+		if  cpuUsageDetectedCorrectly || p.EmitIncorrectCPUValues {
+			acc.AddFields("procstat", fields, proc.Tags())
+		}else{
+			acc.AddFields("procstat_dropped",fields, proc.Tags())
+		}
 	}
 	//Update procs list
 	p.procs = procs
 
-	return nil
-}
-
-func (p *Procstat) Start(acc telegraf.Accumulator) error{
-	var err error
-	p.acc = acc
-
-	switch p.PidFinder {
-		case "native":
-			p.createPIDFinder = NewNativeFinder
-		case "pgrep":
-			p.createPIDFinder = NewPgrep
-		case "parent":
-			p.createPIDFinder = NewParentFinder
-		default:
-			p.createPIDFinder = defaultPIDFinder
-		}
-
-	p.createProcess = defaultProcess
-
-	if p.Prefix != "" {
-		p.preparedPrefix = p.Prefix + "_"
-	}
-
-	p.finder, err = p.createPIDFinder(p)
-	if err != nil {
-		return  err
-	}
-
-	//Building pid finder tags
-	if p.PidFile != "" {
-		p.finderTags = map[string]string{"pidfile": p.PidFile}
-	} else if p.Exe != "" {
-		p.finderTags = map[string]string{"exe": p.Exe}
-	} else if p.Pattern != "" {
-		p.finderTags = map[string]string{"pattern": p.Pattern}
-	} else if len(p.AddData) != 0 {
-		p.finderTags = map[string]string{"add_data":  strings.Join(p.AddData,",")}
-	} else if p.User != "" {
-		p.finderTags = map[string]string{"user": p.User}
-	} else if p.SystemdUnit != "" {
-		p.finderTags = map[string]string{"systemd_unit": p.SystemdUnit}
-	} else if p.CGroup != "" {
-		p.finderTags = map[string]string{"cgroup": p.CGroup}
-	} else if p.WinService != "" {
-		p.finderTags = map[string]string{"win_service": p.WinService}
-	} else {
-		return errors.New(fmt.Sprintf("Either exe, pid_file, user, pattern, add_data, systemd_unit, cgroup, or win_service must be specified"))
-	}
-
 
 	return nil
-}
-
-func (p *Procstat) Stop() {
-	return
 }
 
 // Add metrics a single Process
@@ -397,58 +498,6 @@ func (p *Procstat) addLimitedMetrics(proc Process,prefix string, fields map[stri
 	//acc.AddFields("procstat", fields, proc.Tags())
 }
 
-/*
-// Update monitored Processes
-func (p *Procstat) updateProcesses(acc telegraf.Accumulator, prevInfo map[PID]Process) (map[PID]Process, error) {
-	pids, tags, err := p.findPids(acc)
-	if err != nil {
-		return nil, err
-	}
-
-	procs := make(map[PID]Process, len(prevInfo))
-
-	for _, pid := range pids {
-		info, ok := prevInfo[pid]
-		if ok {
-			procs[pid] = info
-		} else {
-			proc, err := p.createProcess(pid)
-			if err != nil {
-				// No problem; process may have ended after we found it
-				continue
-			}
-			procs[pid] = proc
-
-			// Add initial tags
-			for k, v := range tags {
-				proc.Tags()[k] = v
-			}
-
-			// Add pid tag if needed
-			if p.PidTag {
-				proc.Tags()["pid"] = strconv.Itoa(int(pid))
-			}
-			if p.ProcessName != "" {
-				proc.Tags()["process_name"] = p.ProcessName
-			}
-		}
-	}
-	return procs, nil
-}
-
-// Create and return PIDGatherer lazily
-
-func (p *Procstat) getPIDFinder() (PIDFinder, error) {
-	if p.finder == nil {
-		f, err := p.createPIDFinder()
-		if err != nil {
-			return nil, err
-		}
-		p.finder = f
-	}
-	return p.finder, nil
-}
-*/
 // Get matching PIDs and their initial tags
 func (p *Procstat) findPids(acc telegraf.Accumulator) ([]PID, error) {
 	var pids []PID

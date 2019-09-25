@@ -52,6 +52,24 @@ Processes can be selected for monitoring using one of several methods:
   ## Limit metrics. Allow to gather only very basic metrics for process. Default values is false.
   # limit_metrics = true
   
+  ## Count of retries, while reading procstat data. In case of very high fork rate, some new processes can be forked exactly 
+  ## at the time when the input gather the statistics. Since 'github.com/shirou/gopsutil' library used, for CPU utilization it needs to be
+  ## called twice (minimum) for every new PID. Also it is observed, that for newly forked PIDs the CPU usage sometimes 
+  ## reported as CPU usage of previous PID in the pooling list, so additional check for uniqueness of CPU utilization is added.
+  ## In case the CPU utilization figure is not unique in the set of current PID pool, then retry called. If retry_limit exceed
+  ## but the value is still incorrect, the error printed into the log and either:
+  ## 1. Metric for the PID emitted (if 'emit_incorrect_cpu_values = true') with special tags 'dpl_info' & or 'unrl_cpu_info':  
+  ##  - 'dpl_info' holds info about duplicated values
+  ##  - 'unrl_cpu_info' holds info about unrealistic duplicated values
+  ## OR
+  ## 2. Metric for the PID is dropped (if 'emit_incorrect_cpu_values = false' ) and metric 'procstat_dropped' added instead.
+  ##
+  # retry_limit = 5 (default value)
+    
+  ## Either drop or emit metrics with incorrect CPU utilization value.
+  ## Emitting can be useful for debugging.
+  # emit_incorrect_cpu_values = false (default)
+  
   ## If set to 'true', every gather interval, for every PID in scope, the cmdline & name tags will be updated (this produce additional CPU load).
   # update_process_tags = false
 
