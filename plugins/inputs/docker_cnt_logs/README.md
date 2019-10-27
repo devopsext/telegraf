@@ -23,16 +23,16 @@ even if telegraf crashed.
 
 ```toml
 [[inputs.docker_cnt_logs]]  
-  # Interval to gather data from docker sock.
-  # the longer the interval the fewer request is made towards docker API (less CPU utilization on dockerd).
-  # On the other hand, this increase the delay between producing logs and delivering it. Reasonable trade off
-  # should be chosen
+  ## Interval to gather data from docker sock.
+  ## the longer the interval the fewer request is made towards docker API (less CPU utilization on dockerd).
+  ## On the other hand, this increase the delay between producing logs and delivering it. Reasonable trade off
+  ## should be chosen
   interval = "2000ms"
   
-  # Docker Endpoint
-  #  To use unix, set endpoint = "unix:///var/run/docker.sock" (/var/run/docker.sock is default mount path)
-  #  To use TCP, set endpoint = "tcp://[ip]:[port]"
-  #  To use environment variables (ie, docker-machine), set endpoint = "ENV"
+  ## Docker Endpoint
+  ##  To use unix, set endpoint = "unix:///var/run/docker.sock" (/var/run/docker.sock is default mount path)
+  ##  To use TCP, set endpoint = "tcp://[ip]:[port]"
+  ##  To use environment variables (ie, docker-machine), set endpoint = "ENV"
   endpoint = "unix:///var/run/docker.sock"
 
   ## Optional TLS Config
@@ -43,54 +43,52 @@ even if telegraf crashed.
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
 
-  #############################################################################
-  # Log streaming settings
+  ## Log streaming settings
+  ## Set initial chunk size (length of []byte buffer to read from docker socket)
+  ## If not set, default value of 'defaultInitialChunkSize = 1000' will be used
+  # initial_chunk_size = 1000 # 1K symbols
 
-  # Set initial chunk size (length of []byte buffer to read from docker socket)
-  # If not set, default value of 'defaultInitialChunkSize = 10000' will be used
-  initial_chunk_size = 10000 # 10K symbols
+  ## Set max chunk size (length of []byte buffer to read from docker socket)
+  ## If not set, default value of 'defaultMaxChunkSize = 5000' will be used
+  ## buffer can grow in capacity adjusting to volume of data received from docker sock
+  # max_chunk_size = 5000 # 5K symbols
 
-  # Set max chunk size (length of []byte buffer to read from docker socket)
-  # If not set, default value of 'defaultMaxChunkSize = 50000' will be used
-  # buffer can grow in capacity adjusting to volume of data received from docker sock
-  max_chunk_size = 50000 # 50K symbols
-
-  # Offset flush interval. How often the offset pointer (see below) in the
-  # log stream is flashed to file.Offset pointer represents the unix time stamp
-  # for last message read from log stream (default - 3 sec)
+  ## Offset flush interval. How often the offset pointer (see below) in the
+  ## log stream is flashed to file.Offset pointer represents the unix time stamp
+  ## for last message read from log stream (default - 3 sec)
   # offset_flush = "3s"
 
-  # Offset storage path (mandatory)
+  ## Offset storage path (mandatory)
   offset_storage_path = "/var/run/collector_offset"
 
-  # Shutdown telegraf if all log streaming containers stopped/killed, default - false
-  # This option make sense when telegraf started especially for streaming logs
-  # in a form of sidecar container in k8s. In case primary container exited,
-  # side-car should be terminated also.
+  ## Shutdown telegraf if all log streaming containers stopped/killed, default - false
+  ## This option make sense when telegraf started especially for streaming logs
+  ## in a form of sidecar container in k8s. In case primary container exited,
+  ## side-car should be terminated also.
   # shutdown_when_eof = false
 
-  #Settings per container (specify as many sections as needed)
+  ## Settings per container (specify as many sections as needed)
   [[inputs.docker_cnt_logs.container]]
-    # Set container id (long or short from), or container name
-    # to stream logs from, this attribute is mandatory
+    ## Set container id (long or short from), or container name
+    ## to stream logs from, this attribute is mandatory
     id = "dc23d3ea534b3a6ec3934ae21e2dd4955fdbf61106b32fa19b831a6040a7feef"
 
-    # Override common settings
-    # input interval (specified or inherited from agent section)
-    interval = "500ms"
+    ## Override common settings
+    ## input interval (specified or inherited from agent section)
+    # interval = "500ms"
 
-    # Initial chunk size
-    initial_chunk_size = 20000 # 20K symbols
+    ## Initial chunk size
+    initial_chunk_size = 2000 # 2K symbols
 
-    # Max chunk size
-    max_chunk_size = 60000 # 60K symbols
+    ## Max chunk size
+    max_chunk_size = 6000 # 6K symbols
 
     #Set additional tags that will be tagged to the stream from the current container:
     tags = [
         "tag1=value1",
         "tag2=value2"
     ]
-  #Another container to stream logs from  
+  ##Another container to stream logs from  
   [[inputs.docker_cnt_logs.container]]
     id = "009d82030745c9994e2f5c2280571e8b9f95681793a8f7073210759c74c1ea36"
     interval = "600ms" 	
@@ -102,4 +100,4 @@ even if telegraf crashed.
 	- value (string), the message itself
   - tags:
     - conatainer_id
-    - stream_type `stdin`,`stdout`,`tty`
+    - stream_type `stdin`,`stdout`,`interfactive`
