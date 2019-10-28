@@ -2,8 +2,6 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/README.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -230,7 +228,7 @@
         <counts>
           <entry key="conf" value="5" />
           <entry key="debian" value="1" />
-          <entry key="go" value="105" />
+          <entry key="go" value="106" />
           <entry key="md" value="18" />
           <entry key="s" value="2" />
           <entry key="sh" value="5" />
@@ -240,7 +238,7 @@
       <usages-collector id="statistics.file.types.open">
         <counts>
           <entry key="Bash" value="5" />
-          <entry key="Go" value="105" />
+          <entry key="Go" value="106" />
           <entry key="Markdown" value="18" />
           <entry key="PLAIN_TEXT" value="6" />
           <entry key="TOML" value="1" />
@@ -251,7 +249,7 @@
         <counts>
           <entry key="conf" value="1517" />
           <entry key="debian" value="11" />
-          <entry key="go" value="14600" />
+          <entry key="go" value="14741" />
           <entry key="md" value="1432" />
           <entry key="sh" value="52" />
           <entry key="txt" value="861" />
@@ -260,7 +258,7 @@
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Bash" value="52" />
-          <entry key="Go" value="14600" />
+          <entry key="Go" value="14741" />
           <entry key="Markdown" value="1428" />
           <entry key="PLAIN_TEXT" value="2389" />
           <entry key="TOML" value="4" />
@@ -275,18 +273,6 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/process.go">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1218">
-              <caret line="64" selection-start-line="64" selection-end-line="64" />
-              <folding>
-                <element signature="e#18#116#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/procstat/procstat.go">
           <provider selected="true" editor-type-id="text-editor">
@@ -321,12 +307,22 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-79">
-              <caret line="792" selection-start-line="792" selection-end-line="794" selection-end-column="13" />
+            <state relative-caret-position="-614">
+              <caret line="730" column="23" lean-forward="true" selection-start-line="730" selection-start-column="23" selection-end-line="730" selection-end-column="23" />
               <folding>
-                <element signature="e#25#442#0" expanded="true" />
-                <element signature="e#2204#5132#1" />
+                <element signature="e#25#444#0" expanded="true" />
+                <element signature="n#!!block;n#Start#0" />
+                <element signature="n#!!block;n#shutdownTelegraf#0" />
               </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file:///usr/local/go/src/io/ioutil/ioutil.go">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="148">
+              <caret line="78" column="5" selection-start-line="78" selection-start-column="5" selection-end-line="78" selection-end-column="5" />
             </state>
           </provider>
         </entry>
@@ -403,7 +399,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>quitFlag</find>
       <find>isContainsHeader</find>
       <find>close(</find>
       <find>Flag</find>
@@ -433,6 +428,7 @@
       <find>TargetContainers</find>
       <find>InitialChunkSize</find>
       <find>stream_type</find>
+      <find>dl.offsetQuitFlag</find>
     </findStrings>
     <replaceStrings>
       <replace>lr</replace>
@@ -530,9 +526,10 @@
     </packageJsonPaths>
   </component>
   <component name="ProjectFrameBounds" extendedState="6">
+    <option name="x" value="78" />
     <option name="y" value="23" />
-    <option name="width" value="1440" />
-    <option name="height" value="877" />
+    <option name="width" value="1831" />
+    <option name="height" value="1057" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -717,7 +714,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Build.procstat">
+  <component name="RunManager" selected="Go Build.docker_cnt_logs">
     <configuration name="cloudwatch" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="telegraf" />
       <working_directory value="$PROJECT_DIR$/" />
@@ -818,7 +815,7 @@
       <window_info anchor="bottom" id="Database Changes" order="8" show_stripe_button="false" />
       <window_info anchor="bottom" id="Version Control" order="9" show_stripe_button="false" sideWeight="0.49970078" weight="0.32853982" />
       <window_info anchor="bottom" id="Event Log" order="10" sideWeight="0.16095294" side_tool="true" weight="0.38117108" />
-      <window_info active="true" anchor="bottom" id="Terminal" order="11" sideWeight="0.76176643" visible="true" weight="0.25477707" />
+      <window_info active="true" anchor="bottom" id="Terminal" order="11" sideWeight="0.76176643" visible="true" weight="0.44840765" />
       <window_info anchor="bottom" id="Docker" order="12" show_stripe_button="false" />
       <window_info anchor="right" id="Commander" internal_type="SLIDING" order="0" type="SLIDING" weight="0.4" />
       <window_info anchor="right" id="Ant Build" order="1" weight="0.25" />
@@ -1229,13 +1226,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file:///usr/local/go/src/os/stat.go">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="189">
-          <caret line="9" column="54" selection-start-line="9" selection-start-column="45" selection-end-line="9" selection-end-column="54" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file:///usr/local/go/src/os/types.go">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="-827">
@@ -1586,13 +1576,21 @@
         </state>
       </provider>
     </entry>
+    <entry file="file:///usr/local/go/src/io/ioutil/ioutil.go">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="148">
+          <caret line="78" column="5" selection-start-line="78" selection-start-column="5" selection-end-line="78" selection-end-column="5" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-79">
-          <caret line="792" selection-start-line="792" selection-end-line="794" selection-end-column="13" />
+        <state relative-caret-position="-614">
+          <caret line="730" column="23" lean-forward="true" selection-start-line="730" selection-start-column="23" selection-end-line="730" selection-end-column="23" />
           <folding>
-            <element signature="e#25#442#0" expanded="true" />
-            <element signature="e#2204#5132#1" />
+            <element signature="e#25#444#0" expanded="true" />
+            <element signature="n#!!block;n#Start#0" />
+            <element signature="n#!!block;n#shutdownTelegraf#0" />
           </folding>
         </state>
       </provider>

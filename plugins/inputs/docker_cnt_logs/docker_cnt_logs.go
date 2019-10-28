@@ -698,7 +698,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 
 	//Start offset flusher
 	dl.offsetQuitFlag = make(chan bool)
-	go dl.flushOffset()
+	go dl.flushOffset(dl.offsetQuitFlag)
 
 	return nil
 }
@@ -755,21 +755,24 @@ func (dl *DockerCNTLogs) checkStreamersStatus() {
 	}
 }
 
-func (dl *DockerCNTLogs) flushOffset() {
+func (dl *DockerCNTLogs) flushOffset(quitFlag <-chan bool) {
 
 	dl.wg.Add(1)
 	defer dl.wg.Done()
 
 	for {
 		select {
-		case <-dl.offsetQuitFlag:
+		case <-quitFlag:
 			return
 		default:
 
 			for _, logReader := range dl.logReader {
 				filename := path.Join(dl.OffsetStoragePath, logReader.contID)
 				offset := []byte(strconv.FormatInt(atomic.LoadInt64(&logReader.currentOffset), 10))
-				ioutil.WriteFile(filename, offset, 0777)
+				err := ioutil.WriteFile(filename, offset, 0777)
+				if err!=nil{
+					log.Printf("E! [inputs.docker_cnt_logs] cant't write logger offset to file '%s', reason: %v",filename ,err)
+				}
 			}
 
 		}
