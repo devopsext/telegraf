@@ -42,12 +42,12 @@ type DockerCNTLogs struct {
 	TargetContainers  []map[string]interface{} `toml:"container"`
 
 	//Internal
-	context             context.Context
-	client              *docker.Client
-	wg                  sync.WaitGroup
-	checkerQuitFlag     chan bool
-	checkerLock         *sync.Mutex
-	offsetQuitFlag      chan bool
+	context     context.Context
+	client      *docker.Client
+	wg          sync.WaitGroup
+	checkerDone chan bool
+	//checkerLock         *sync.Mutex
+	offsetDone          chan bool
 	logReader           map[string]*logReader //Log reader data...
 	offsetFlushInterval time.Duration
 }
@@ -69,7 +69,7 @@ type logReader struct {
 	length                int
 	endOfLineIndex        int
 	tags                  map[string]string
-	quitFlag              chan bool
+	done                  chan bool
 	eofReceived           bool
 	currentOffset         int64
 	lock                  *sync.Mutex
@@ -190,24 +190,26 @@ func isContainsHeader(str *[]byte, length int) bool {
 		strLength = 100
 	}
 
-	log.Printf("D! [inputs.docker_cnt_logs] Raw string for detecting headers (first 100 symbols):\n%s...\n", (*str)[:strLength-1])
-	log.Printf("D! [inputs.docker_cnt_logs] First 4 bytes: '%v,%v,%v,%v', string representation: '%s'", (*str)[0], (*str)[1], (*str)[2], (*str)[3], (*str)[0:4])
-	log.Printf("D! [inputs.docker_cnt_logs] Big endian value: %d", binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]))
+	log.Printf("D! [inputs.docker_cnt_logs] Raw string for detecting headers (first 100 symbols):\n%s...\n",
+		(*str)[:strLength-1])
+	log.Printf("D! [inputs.docker_cnt_logs] First 4 bytes: '%v,%v,%v,%v', string representation: '%s'",
+		(*str)[0], (*str)[1], (*str)[2], (*str)[3], (*str)[0:4])
+	log.Printf("D! [inputs.docker_cnt_logs] Big endian value: %d",
+		binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]))
 
 	//Examine first 4 bytes to detect if they match to header structure (see above)
 	if ((*str)[0] == 0x0 || (*str)[0] == 0x1 || (*str)[0] == 0x2) &&
 		((*str)[1] == 0x0 && (*str)[2] == 0x0 && (*str)[3] == 0x0) &&
 		binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) >= 2 /*Encoding big endian*/ {
 		//binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) - calculates message length.
-		//Minimum message length with timestamp is 32 (timestamp (30 symbols) + space + '\n' = 32.  But in case you switch timestamp off
-		//it will be 2 (space + '\n')
+		//Minimum message length with timestamp is 32 (timestamp (30 symbols) + space + '\n' = 32.
+		//But in case you switch timestamp off it will be 2 (space + '\n')
 
 		log.Printf("I! [inputs.docker_cnt_logs] Detected: log messages from docker API streamed WITH headers...")
 		result = true
 
 	} else {
 		log.Printf("I! [inputs.docker_cnt_logs] Detected: log messages from docker API streamed WITHOUT headers...")
-
 		result = false
 	}
 
@@ -251,8 +253,8 @@ func getInputIntervalDuration(acc telegraf.Accumulator) (dur time.Duration) {
 		} else {
 			runningInput := reflect.Indirect(agentAccumulator.FieldByName("maker").Elem())
 			if reflect.Indirect(runningInput).FieldByName("Config") == emptyValue {
-				log.Printf("W! [inputs.docker_cnt_logs] Error while parsing models.RunningInput type, filed 'Config'"+
-					" is not found.\nDefault pooling duration '%d' nano sec. will be used", defaultPolingIntervalNS)
+				log.Printf("W! [inputs.docker_cnt_logs] Error while parsing models.RunningInput type, filed "+
+					"'Config' is not found.\nDefault pooling duration '%d' nano sec. will be used", defaultPolingIntervalNS)
 				dur = defaultPolingIntervalNS
 			} else {
 				if reflect.Indirect(reflect.Indirect(runningInput).FieldByName("Config").Elem()).FieldByName("Interval") == emptyValue {
@@ -285,7 +287,8 @@ func getOffset(offsetFile string) (string, int64) {
 	if _, err := os.Stat(offsetFile); !os.IsNotExist(err) {
 		data, errRead := ioutil.ReadFile(offsetFile)
 		if errRead != nil {
-			log.Printf("E! [inputs.docker_cnt_logs] Error reading offset file '%s', reason: %s", offsetFile, errRead.Error())
+			log.Printf("E! [inputs.docker_cnt_logs] Error reading offset file '%s', reason: %s",
+				offsetFile, errRead.Error())
 		} else {
 			timeString := ""
 			timeInt, err := strconv.ParseInt(string(data), 10, 64)
@@ -293,7 +296,8 @@ func getOffset(offsetFile string) (string, int64) {
 				timeString = time.Unix(timeInt, 0).Format(time.RFC3339)
 			}
 
-			log.Printf("D! [inputs.docker_cnt_logs] Parsed offset from '%s'\nvalue: %s, %s", offsetFile, string(data), timeString)
+			log.Printf("D! [inputs.docker_cnt_logs] Parsed offset from '%s'\nvalue: %s, %s",
+				offsetFile, string(data), timeString)
 			return string(data), timeInt
 		}
 	}
@@ -314,7 +318,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error {
+func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr *logReader) error {
 
 	var err error
 
@@ -324,24 +328,32 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 	eofReceived := false
 	for {
 		select {
-		case <-lr.quitFlag:
+		case <-done:
 			return nil
 		default:
 			//Iterative reads by chunks
 			// While reading in chunks, there are 2 general cases:
-			// 1. Either full buffer (it means that the message either fit to chunkSize or exceed it. To figure out if it exceed we need to check
-			// if the buffer ends with "\r\n"
+			// 1. Either full buffer (it means that the message either fit to chunkSize or exceed it.
+			// To figure out if it exceed we need to check if the buffer ends with "\r\n"
+
 			// 2. Or partially filled buffer. In this case the rest of the buffer is '\0'
 
-			//Read from docker API
+			// Read from docker API
 			lr.length, err = lr.contStream.Read(lr.buffer) //Can be a case when API returns lr.length==0, and err==nil
 
 			if err != nil {
 				if err.Error() == "EOF" { //Special case, need to flush data and exit
 					eofReceived = true
 				} else {
-					acc.AddError(fmt.Errorf("Read error from container '%s': %v", lr.contID, err))
-					return err
+					select {
+					case <-done: //In case the goroutine was signaled, the stream would be closed, to unblock
+						//the read operation. That's why we don't need to print error, as it is expected behaviour...
+						return nil
+					default:
+						acc.AddError(fmt.Errorf("Read error from container '%s': %v", lr.contID, err))
+						return err
+					}
+
 				}
 			}
 
@@ -355,17 +367,17 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 			}
 
 			if len(lr.leftoverBuffer) > 0 { //append leftover from previous iteration
-				ollrength := lr.length
 				lr.buffer = append(lr.leftoverBuffer, lr.buffer...)
-				lr.length = ollrength + len(lr.leftoverBuffer)
+				lr.length += len(lr.leftoverBuffer)
+
 				//Erasing leftover buffer once used:
 				lr.leftoverBuffer = nil
 			}
 
 			if lr.length != 0 {
 				//Docker API fills buffer with '\0' until the end even if there is no data at all,
-				//In this case, lr.length == 0 as it shows the amount of actually read data, but len(lr.buffer) will be equal to cap(lr.buffer),
-				// as the buffer will be filled out with '\0'
+				//In this case, lr.length == 0 as it shows the amount of actually read data, but len(lr.buffer)
+				// will be equal to cap(lr.buffer), as the buffer will be filled out with '\0'
 				lr.endOfLineIndex = lr.length - 1
 			} else {
 				lr.endOfLineIndex = 0
@@ -394,35 +406,28 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 				}
 
 				//Check if line end is not found
-				//if lr.endOfLineIndex == -1 {
-				if lr.endOfLineIndex == int(lr.outputMsgStartIndex-1) {
-					//This is 1st case...
+				if lr.endOfLineIndex == int(lr.outputMsgStartIndex-1) { //This is 1st case -
+					// buffer holds one string that is not terminated
+					//We need simply to move it into leftover buffer
+					//and grow current chunk size if limit is not exceeded
+					lr.leftoverBuffer = nil
+					lr.leftoverBuffer = make([]byte, len(lr.buffer))
+					copy(lr.leftoverBuffer, lr.buffer)
 
-					//Read next chunk and append to initial buffer (this is expensive operation)
-					tempBuffer := make([]byte, lr.currentChunkSize)
-
-					//This would be non blocking read, as it is reading of something that is for sure in the io stream
-					tempLength, err := lr.contStream.Read(tempBuffer)
-					if err != nil { //Here there is no special check for 'EOF'. In this case we will have EOF check on the read above (in next iteration).
-						acc.AddError(fmt.Errorf("Read error from container '%s': %v", lr.contID, err))
-						return err
-					}
-
-					lr.buffer = append(lr.buffer, tempBuffer[:tempLength]...)
-					lr.length = lr.length + tempLength
-					if len(lr.leftoverBuffer) > 0 {
-						lr.leftoverBuffer = nil
-					}
 					//Grow chunk size
 					if lr.currentChunkSize*2 < lr.maxChunkSize {
 						lr.currentChunkSize = lr.currentChunkSize * 2
+						lr.buffer = nil
+						lr.buffer = make([]byte, lr.currentChunkSize)
+						runtime.GC()
 					}
 
-					return nil
+					continue
 				}
+
 			}
 
-			//Parsing the buffer and passing data to accumulator
+			//Parsing the buffer line by line and passing data to accumulator
 			//Since read from API can return lr.length==0, and err==nil, we need to additionally check the boundaries
 			if len(lr.buffer) > 0 && lr.endOfLineIndex > 0 {
 
@@ -432,7 +437,6 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 				//var tags = map[string]string{}
 				var tags = lr.tags
 
-				/*Short alternative*/
 				for i := 0; i <= lr.endOfLineIndex; i = i + totalLineLength + 1 { // +1 means that we skip '\n'
 
 					//Checking boundaries:
@@ -443,9 +447,8 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 						break
 					}
 
+					//Looking for the end of the line (skipping index)
 					totalLineLength = 0
-
-					//Looking for the end of the line (skipping index):
 					for j := i + int(lr.outputMsgStartIndex); j <= lr.endOfLineIndex; j++ {
 						if lr.buffer[j] == '\n' {
 							totalLineLength = j - i
@@ -469,16 +472,22 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 						tags["stream_type"] = "interactive"
 					}
 
-					if uint(totalLineLength) < lr.outputMsgStartIndex+lr.dockerTimeStampLength+1 || !lr.dockerTimeStamps { //no time stamp
+					if uint(totalLineLength) < lr.outputMsgStartIndex+lr.dockerTimeStampLength+1 || !lr.dockerTimeStamps {
+						//no time stamp
 						timeStamp = time.Now()
 						field["value"] = fmt.Sprintf("%s\n", lr.buffer[i+int(lr.outputMsgStartIndex):i+totalLineLength])
 					} else {
-						timeStamp, err = time.Parse(time.RFC3339Nano, fmt.Sprintf("%s", lr.buffer[i+int(lr.outputMsgStartIndex):i+int(lr.outputMsgStartIndex)+int(lr.dockerTimeStampLength)]))
+						timeStamp, err = time.Parse(time.RFC3339Nano,
+							fmt.Sprintf("%s", lr.buffer[i+int(lr.outputMsgStartIndex):i+int(lr.outputMsgStartIndex)+int(lr.dockerTimeStampLength)]))
 						if err != nil {
-							acc.AddError(fmt.Errorf("Can't parse time stamp from string, container '%s': %v. Raw message string:\n%s\nOutput msg start index: %d", lr.contID, err, lr.buffer[i:i+totalLineLength], lr.outputMsgStartIndex))
-							log.Printf("E! [inputs.docker_cnt_logs]\n=========== buffer[:lr.endOfLineIndex] ===========\n%s\n=========== ====== ===========\n", lr.buffer[:lr.endOfLineIndex])
+							acc.AddError(fmt.Errorf("Can't parse time stamp from string, container '%s': "+
+								"%v. Raw message string:\n%s\nOutput msg start index: %d",
+								lr.contID, err, lr.buffer[i:i+totalLineLength], lr.outputMsgStartIndex))
+							log.Printf("E! [inputs.docker_cnt_logs]\n=========== buffer[:lr.endOfLineIndex] ===========\n"+
+								"%s\n=========== ====== ===========\n", lr.buffer[:lr.endOfLineIndex])
 						}
-						field["value"] = fmt.Sprintf("%s\n", lr.buffer[i+int(lr.outputMsgStartIndex)+int(lr.dockerTimeStampLength)+1:i+totalLineLength])
+						field["value"] = fmt.Sprintf("%s\n",
+							lr.buffer[i+int(lr.outputMsgStartIndex)+int(lr.dockerTimeStampLength)+1:i+totalLineLength])
 					}
 
 					acc.AddFields("stream", field, tags, timeStamp)
@@ -497,13 +506,10 @@ func (dl *DockerCNTLogs) goGather(acc telegraf.Accumulator, lr *logReader) error
 			}
 
 			if eofReceived {
-				log.Printf("E! [inputs.docker_cnt_logs] container '%s': log stream closed, 'EOF' received.", lr.contID)
+				log.Printf("E! [inputs.docker_cnt_logs] Container '%s': log stream closed, 'EOF' received.",
+					lr.contID)
 
 				lr.lock.Lock()
-				if lr.quitFlag != nil {
-					close(lr.quitFlag)
-					lr.quitFlag = nil
-				}
 				lr.eofReceived = eofReceived
 				lr.lock.Unlock()
 
@@ -612,10 +618,10 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		//intitial chunk size
 		if _, ok := container["initial_chunk_size"]; ok { //initial_chunk_size specified
 
-			if container["initial_chunk_size"].(int) <= dockerLogHeaderSize {
+			if int(container["initial_chunk_size"].(int64)) <= dockerLogHeaderSize {
 				logReader.initialChunkSize = 2 * dockerLogHeaderSize
 			} else {
-				logReader.initialChunkSize = container["initial_chunk_size"].(int)
+				logReader.initialChunkSize = int(container["initial_chunk_size"].(int64))
 			}
 		} else {
 			logReader.initialChunkSize = dl.InitialChunkSize
@@ -624,18 +630,19 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		//max chunk size
 		if _, ok := container["max_chunk_size"]; ok { //max_chunk_size specified
 
-			if container["max_chunk_size"].(int) <= logReader.initialChunkSize {
+			if int(container["max_chunk_size"].(int64)) <= logReader.initialChunkSize {
 				logReader.maxChunkSize = 5 * logReader.initialChunkSize
 			} else {
-				logReader.initialChunkSize = container["max_chunk_size"].(int)
+				logReader.maxChunkSize = int(container["max_chunk_size"].(int64))
 			}
 		} else {
-			logReader.initialChunkSize = dl.MaxChunkSize
+			logReader.maxChunkSize = dl.MaxChunkSize
 		}
 
 		logReader.currentChunkSize = logReader.initialChunkSize
 
-		//Gettings target container status (It can be a case when we can attempt to read from the container that already stopped/crashed)
+		//Gettings target container status (It can be a case when we can attempt
+		//to read from the container that already stopped/crashed)
 		contStatus, err := dl.client.ContainerInspect(dl.context, logReader.contID)
 		if err != nil {
 			return err
@@ -679,26 +686,25 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		logReader.msgHeaderExamined = false
 
 		//Init channel to manage go routine
-		logReader.quitFlag = make(chan bool)
+		logReader.done = make(chan bool)
 		logReader.lock = &sync.Mutex{}
 
 		//Store
 		dl.logReader[container["id"].(string)] = &logReader
 	}
 
-	//Starting log streaming
+	//Starting log streaming (only afeter full initialization of logger settings performed)
 	for _, logReader := range dl.logReader {
-		go dl.goGather(acc, logReader)
+		go dl.goGather(logReader.done, acc, logReader)
 	}
 
 	//Start checker
-	dl.checkerQuitFlag = make(chan bool)
-	dl.checkerLock = &sync.Mutex{}
-	go dl.checkStreamersStatus()
+	dl.checkerDone = make(chan bool)
+	go dl.checkStreamersStatus(dl.checkerDone)
 
 	//Start offset flusher
-	dl.offsetQuitFlag = make(chan bool)
-	go dl.flushOffset(dl.offsetQuitFlag)
+	dl.offsetDone = make(chan bool)
+	go dl.flushOffset(dl.offsetDone)
 
 	return nil
 }
@@ -706,7 +712,8 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 func (dl *DockerCNTLogs) shutdownTelegraf() {
 	p, err := os.FindProcess(os.Getpid())
 	if err != nil {
-		errorString := fmt.Errorf("E! [inputs.docker_cnt_logs] Can't get current process PID to initiate graceful shutdown: %v", err)
+		errorString := fmt.Errorf("E! [inputs.docker_cnt_logs] Can't get current process PID "+
+			"to initiate graceful shutdown: %v", err)
 		log.Printf("%s", errorString)
 		panic(errors.Errorf("%s", errorString))
 		return
@@ -718,14 +725,14 @@ func (dl *DockerCNTLogs) shutdownTelegraf() {
 	}
 }
 
-func (dl *DockerCNTLogs) checkStreamersStatus() {
+func (dl *DockerCNTLogs) checkStreamersStatus(done <-chan bool) {
 
 	dl.wg.Add(1)
 	defer dl.wg.Done()
 
 	for {
 		select {
-		case <-dl.checkerQuitFlag:
+		case <-done:
 			return
 		default:
 			closed := 0
@@ -739,14 +746,10 @@ func (dl *DockerCNTLogs) checkStreamersStatus() {
 			}
 			if closed == len(dl.logReader) && dl.ShutDownWhenEOF {
 
-				log.Printf("E! [inputs.docker_cnt_logs] all target containers are stopped/killed!\n" +
+				log.Printf("I! [inputs.docker_cnt_logs] All target containers are stopped/killed!\n" +
 					"Telegraf shutdown is requested...")
 
-				dl.checkerLock.Lock()
-				close(dl.checkerQuitFlag)
-				dl.checkerQuitFlag = nil
 				dl.shutdownTelegraf()
-				dl.checkerLock.Unlock()
 
 				return
 			}
@@ -755,14 +758,14 @@ func (dl *DockerCNTLogs) checkStreamersStatus() {
 	}
 }
 
-func (dl *DockerCNTLogs) flushOffset(quitFlag <-chan bool) {
+func (dl *DockerCNTLogs) flushOffset(done <-chan bool) {
 
 	dl.wg.Add(1)
 	defer dl.wg.Done()
 
 	for {
 		select {
-		case <-quitFlag:
+		case <-done:
 			return
 		default:
 
@@ -770,8 +773,9 @@ func (dl *DockerCNTLogs) flushOffset(quitFlag <-chan bool) {
 				filename := path.Join(dl.OffsetStoragePath, logReader.contID)
 				offset := []byte(strconv.FormatInt(atomic.LoadInt64(&logReader.currentOffset), 10))
 				err := ioutil.WriteFile(filename, offset, 0777)
-				if err!=nil{
-					log.Printf("E! [inputs.docker_cnt_logs] cant't write logger offset to file '%s', reason: %v",filename ,err)
+				if err != nil {
+					log.Printf("E! [inputs.docker_cnt_logs] Can't write logger offset to file '%s', reason: %v",
+						filename, err)
 				}
 			}
 
@@ -782,40 +786,28 @@ func (dl *DockerCNTLogs) flushOffset(quitFlag <-chan bool) {
 
 func (dl *DockerCNTLogs) Stop() {
 
-	log.Printf("D! [inputs.docker_cnt_logs] Shutting down stream checker...")
+	log.Printf("D! [inputs.docker_cnt_logs] Shutting down streams checkers...")
 
 	//Stop check streamers status
-	dl.checkerLock.Lock()
-	if dl.checkerQuitFlag != nil {
-		dl.checkerQuitFlag <- true
-	}
-	dl.checkerLock.Unlock()
+	close(dl.checkerDone)
 
 	//Stop log streaming
-	log.Printf("D! [inputs.docker_cnt_logs] Shutting down log streamers...")
+	log.Printf("D! [inputs.docker_cnt_logs] Shutting down log streamers & closing docker streams...")
 	for _, logReader := range dl.logReader {
-		logReader.lock.Lock()
-		if logReader.quitFlag != nil {
-			logReader.quitFlag <- true
-		}
-		logReader.lock.Unlock()
-	}
-
-	//Stop offset flushing
-	time.Sleep(dl.offsetFlushInterval) //This sleep needed to guarantee that offest will be flushed
-	if dl.offsetQuitFlag != nil {
-		dl.offsetQuitFlag <- true
-	}
-
-	//Wait for all go routines to complete
-	dl.wg.Wait()
-
-	log.Printf("D! [inputs.docker_cnt_logs] Closing docker streams...")
-	for _, logReader := range dl.logReader {
+		close(logReader.done) //Signaling go routine to close
+		//Unblock goroutine if it waits for the data from stream
 		if logReader.contStream != nil {
 			logReader.contStream.Close()
 		}
 	}
+
+	//Stop offset flushing
+	log.Printf("D! [inputs.docker_cnt_logs] Waiting for shutting down offset flusher...")
+	time.Sleep(dl.offsetFlushInterval) //This sleep needed to guarantee that offset will be flushed
+	close(dl.offsetDone)
+
+	//Wait for all go routines to complete
+	dl.wg.Wait()
 
 	if dl.client != nil {
 		dl.client.Close()

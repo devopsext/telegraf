@@ -46,7 +46,7 @@ even if telegraf crashed.
   ## Log streaming settings
   ## Set initial chunk size (length of []byte buffer to read from docker socket)
   ## If not set, default value of 'defaultInitialChunkSize = 1000' will be used
-  # initial_chunk_size = 1000 # 1K symbols
+  # initial_chunk_size = 1000 # 1K symbols (half of 80x25 screen)
 
   ## Set max chunk size (length of []byte buffer to read from docker socket)
   ## If not set, default value of 'defaultMaxChunkSize = 5000' will be used
