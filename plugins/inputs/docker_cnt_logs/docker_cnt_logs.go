@@ -27,6 +27,12 @@ import (
 	tlsint "github.com/influxdata/telegraf/internal/tls"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
+//Docker client wrapper
+type Client interface {
+	ContainerInspect(ctx context.Context, contID string) (types.ContainerJSON, error )
+	ContainerLogs(ctx context.Context, contID string, options types.ContainerLogsOptions) (io.ReadCloser, error)
+	Close() error
+}
 
 // DockerCNTLogs object
 type DockerCNTLogs struct {
@@ -43,13 +49,16 @@ type DockerCNTLogs struct {
 
 	//Internal
 	context     context.Context
-	client      *docker.Client
+	//client      *docker.Client
+	client 		Client
 	wg          sync.WaitGroup
 	checkerDone chan bool
 	//checkerLock         *sync.Mutex
 	offsetDone          chan bool
 	logReader           map[string]*logReader //Log reader data...
 	offsetFlushInterval time.Duration
+	disableTimeStampsStreaming bool //Used for simulating reading logs with or without TS (used in tests only)
+
 }
 
 type logReader struct {
@@ -433,16 +442,16 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 
 				totalLineLength := 0
 				var timeStamp time.Time
-				var field = make(map[string]interface{})
+				var field map[string]interface{}
 				//var tags = map[string]string{}
 				var tags = lr.tags
 
-				for i := 0; i <= lr.endOfLineIndex; i = i + totalLineLength + 1 { // +1 means that we skip '\n'
-
+				for i := 0; i <= lr.endOfLineIndex; i = i + totalLineLength {
+					field = make(map[string]interface{})
 					//Checking boundaries:
 					if i+int(lr.outputMsgStartIndex) > lr.endOfLineIndex { //sort of garbage
 						timeStamp = time.Now()
-						field["value"] = fmt.Sprintf("%s\n", lr.buffer[i:lr.endOfLineIndex])
+						field["value"] = fmt.Sprintf("%s", lr.buffer[i:lr.endOfLineIndex])
 						acc.AddFields("stream", field, tags, timeStamp)
 						break
 					}
@@ -451,12 +460,12 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 					totalLineLength = 0
 					for j := i + int(lr.outputMsgStartIndex); j <= lr.endOfLineIndex; j++ {
 						if lr.buffer[j] == '\n' {
-							totalLineLength = j - i
+							totalLineLength = j - i + 1 //Include '\n'
 							break
 						}
 					}
 					if totalLineLength == 0 {
-						totalLineLength = lr.endOfLineIndex - i
+						totalLineLength = (lr.endOfLineIndex +1) - i
 					}
 
 					//Getting stream type (if header persist)
@@ -469,13 +478,13 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 							tags["stream"] = "stdin"
 						}
 					} else {
-						tags["stream_type"] = "interactive"
+						tags["stream"] = "interactive"
 					}
 
 					if uint(totalLineLength) < lr.outputMsgStartIndex+lr.dockerTimeStampLength+1 || !lr.dockerTimeStamps {
 						//no time stamp
 						timeStamp = time.Now()
-						field["value"] = fmt.Sprintf("%s\n", lr.buffer[i+int(lr.outputMsgStartIndex):i+totalLineLength])
+						field["value"] = fmt.Sprintf("%s", lr.buffer[i+int(lr.outputMsgStartIndex):i+totalLineLength])
 					} else {
 						timeStamp, err = time.Parse(time.RFC3339Nano,
 							fmt.Sprintf("%s", lr.buffer[i+int(lr.outputMsgStartIndex):i+int(lr.outputMsgStartIndex)+int(lr.dockerTimeStampLength)]))
@@ -486,11 +495,12 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 							log.Printf("E! [inputs.docker_cnt_logs]\n=========== buffer[:lr.endOfLineIndex] ===========\n"+
 								"%s\n=========== ====== ===========\n", lr.buffer[:lr.endOfLineIndex])
 						}
-						field["value"] = fmt.Sprintf("%s\n",
+						field["value"] = fmt.Sprintf("%s",
 							lr.buffer[i+int(lr.outputMsgStartIndex)+int(lr.dockerTimeStampLength)+1:i+totalLineLength])
 					}
 
 					acc.AddFields("stream", field, tags, timeStamp)
+					field = nil
 
 					//Saving offset
 					currentOffset := atomic.LoadInt64(&lr.currentOffset)
@@ -527,10 +537,14 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 	var err error
 
 	dl.context = context.Background()
-	if dl.Endpoint == "ENV" {
+	switch dl.Endpoint {
+	case "ENV": {
 		dl.client, err = docker.NewClientWithOpts(docker.FromEnv)
-	} else {
-
+	}
+	case "MOCK": {
+		log.Printf("W! [inputs.docker_cnt_logs] Starting with mock docker client...")
+	}
+	default:{
 		tlsConfig, err := dl.ClientConfig.TLSConfig()
 		if err != nil {
 			return err
@@ -546,13 +560,12 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 			docker.WithHTTPClient(httpClient),
 			docker.WithVersion(version),
 			docker.WithHost(dl.Endpoint))
-	}
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
-
-	//Default behaviour - stream logs with time-stamps
+	}
 
 	if dl.InitialChunkSize == 0 {
 		dl.InitialChunkSize = defaultInitialChunkSize
@@ -577,7 +590,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		dl.offsetFlushInterval, err = time.ParseDuration(dl.OffsetFlush)
 		if err != nil {
 			dl.offsetFlushInterval = defaultFlushInterval
-			log.Printf("W! [inputs.docker_cnt_logs] Can't parse '%s' duration, default value will be used.")
+			log.Printf("W! [inputs.docker_cnt_logs] Can't parse '%s' duration, default value will be used.",dl.OffsetFlush)
 		}
 	}
 
@@ -612,7 +625,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 			logReader.interval = getInputIntervalDuration(acc)
 		}
 
-		logReader.dockerTimeStamps = true
+		logReader.dockerTimeStamps = !dl.disableTimeStampsStreaming //Default behaviour - stream logs with time-stamps
 		logReader.dockerTimeStampLength = dockerTimeStampLength
 
 		//intitial chunk size
@@ -744,14 +757,13 @@ func (dl *DockerCNTLogs) checkStreamersStatus(done <-chan bool) {
 				}
 				logReader.lock.Unlock()
 			}
-			if closed == len(dl.logReader) && dl.ShutDownWhenEOF {
-
-				log.Printf("I! [inputs.docker_cnt_logs] All target containers are stopped/killed!\n" +
-					"Telegraf shutdown is requested...")
-
-				dl.shutdownTelegraf()
-
-				return
+			if closed == len(dl.logReader)  {
+				log.Printf("I! [inputs.docker_cnt_logs] All target containers are stopped/killed!")
+				if dl.ShutDownWhenEOF {
+					log.Printf("I! [inputs.docker_cnt_logs] Telegraf shutdown is requested...")
+					dl.shutdownTelegraf()
+					return
+				}
 			}
 		}
 		time.Sleep(3 * time.Second)
@@ -811,7 +823,6 @@ func (dl *DockerCNTLogs) Stop() {
 
 	if dl.client != nil {
 		dl.client.Close()
-		dl.client = nil
 	}
 
 }

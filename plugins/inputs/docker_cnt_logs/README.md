@@ -100,4 +100,4 @@ even if telegraf crashed.
 	- value (string), the message itself
   - tags:
     - conatainer_id
-    - stream_type `stdin`,`stdout`,`interfactive`
+    - stream `stdin`,`stderr`,`stdout`,`interfactive`
