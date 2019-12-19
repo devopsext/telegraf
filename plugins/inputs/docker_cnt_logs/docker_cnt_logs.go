@@ -2,6 +2,7 @@ package docker_cnt_logs
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/binary"
 	"fmt"
 	"io/ioutil"
@@ -316,7 +317,6 @@ func getOffset(offsetFile string) (string, int64) {
 }
 
 //Primary plugin interface
-
 func (dl *DockerCNTLogs) Description() string {
 	return "Read logs from docker containers via Docker API"
 }
@@ -328,7 +328,7 @@ func (dl *DockerCNTLogs) Gather(acc telegraf.Accumulator) error {
 	return nil
 }
 
-func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr *logReader) error {
+func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr *logReader) {
 
 	var err error
 
@@ -339,7 +339,7 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 	for {
 		select {
 		case <-done:
-			return nil
+			return
 		default:
 			//Iterative reads by chunks
 			// While reading in chunks, there are 2 general cases:
@@ -358,10 +358,10 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 					select {
 					case <-done: //In case the goroutine was signaled, the stream would be closed, to unblock
 						//the read operation. That's why we don't need to print error, as it is expected behaviour...
-						return nil
+						return
 					default:
 						acc.AddError(fmt.Errorf("Read error from container '%s': %v", lr.contID, err))
-						return err
+						return
 					}
 
 				}
@@ -524,7 +524,7 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 				lr.eofReceived = eofReceived
 				lr.lock.Unlock()
 
-				return nil
+				return
 			}
 
 		}
@@ -536,6 +536,7 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 
 func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 	var err error
+	var tlsConfig *tls.Config
 
 	dl.context = context.Background()
 	switch dl.Endpoint {
@@ -549,7 +550,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		}
 	default:
 		{
-			tlsConfig, err := dl.ClientConfig.TLSConfig()
+			tlsConfig, err = dl.ClientConfig.TLSConfig()
 			if err != nil {
 				return err
 			}
@@ -564,11 +565,11 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 				docker.WithHTTPClient(httpClient),
 				docker.WithVersion(version),
 				docker.WithHost(dl.Endpoint))
-
-			if err != nil {
-				return err
-			}
 		}
+	}
+
+	if err != nil {
+		return err
 	}
 
 	if dl.InitialChunkSize == 0 {
@@ -727,19 +728,27 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 }
 
 func (dl *DockerCNTLogs) shutdownTelegraf() {
-	p, err := os.FindProcess(os.Getpid())
+	var err error
+	var p *os.Process
+	p, err = os.FindProcess(os.Getpid())
 	if err != nil {
-		errorString := fmt.Errorf("E! [inputs.docker_cnt_logs] Can't get current process PID "+
-			"to initiate graceful shutdown: %v", err)
-		log.Printf("%s", errorString)
-		panic(errors.Errorf("%s", errorString))
-		return
-	}
-	if runtime.GOOS == "windows" {
-		p.Signal(os.Kill) //Interrupt is not supported on windows
+		log.Printf("E! [inputs.docker_cnt_logs] Can't get current process PID "+
+			"to initiate graceful shutdown: %v.\nHave to panic for shutdown...", err)
 	} else {
-		p.Signal(os.Interrupt)
+		if runtime.GOOS == "windows" {
+			err = p.Signal(os.Kill) //Interrupt is not supported on windows
+		} else {
+			err = p.Signal(os.Interrupt)
+		}
+		if err != nil {
+			log.Printf("W! [inputs.docker_cnt_logs] Can't send signal to main process "+
+				"for initiating Telegraf shutdown, reason: %v\nHave to panic for shutdown...", err)
+		} else {
+			return
+		}
 	}
+
+	panic(errors.New("Graceful shutdown is not possible, force panic."))
 }
 
 func (dl *DockerCNTLogs) checkStreamersStatus(done <-chan bool) {

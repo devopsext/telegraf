@@ -2,7 +2,6 @@ package docker_cnt_logs
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -62,6 +61,11 @@ func (c *mockDockerClient) ContainerLogs(ctx context.Context, contID string, opt
 
 				//Filtering log entries based on TS
 				entryTS, err = time.Parse(time.RFC3339Nano, entry["tss"].(string))
+				if err != nil {
+					log.Printf("D! [inputs.docker_cnt_logs (mock)] Container '%s', stream log entry '%s' can't parse ts '%s'\n",
+						contID, entry["data"].(string), entry["tss"].(string))
+					continue
+				}
 				if entryTS.Unix() < sinceTS {
 					log.Printf("D! [inputs.docker_cnt_logs (mock)] Container '%s', stream log entry '%s' filtered\n"+
 						"based on it's ts: %s (%d)!", contID, entry["data"].(string), entry["tss"].(string), entryTS.Unix())
@@ -229,8 +233,8 @@ func parseDataFromRawLogEntry(rawLogEntry map[string]interface{}) (time.Time, st
 				streamTag = "stderr"
 			}
 		default:
-			err = errors.New(fmt.Sprintf("Corrupted header in log entry. Can be one of"+
-				" noHeader/stdInHeader/stdOutHeader/stdErrHeader, got: %s", rawLogEntry["header"]))
+			err = fmt.Errorf("Corrupted header in log entry. Can be one of"+
+				" noHeader/stdInHeader/stdOutHeader/stdErrHeader, got: %s", rawLogEntry["header"])
 		}
 	}
 	return ts, streamTag, err
@@ -260,7 +264,7 @@ var targetContainersWOTS = []map[string]interface{}{
 		"rawLogEntries": testLogsOutputData,
 		"tags":          []interface{}{"tag1=StreamWithHeaders", "tag2=value2"}}}
 
-func genericTest(t *testing.T, input DockerCNTLogs, waitEof time.Duration) {
+func genericTest(t *testing.T, input *DockerCNTLogs, waitEof time.Duration) {
 	var acc testutil.Accumulator
 	var err error
 	var lastUnixTS = map[string]int64{}
@@ -274,7 +278,7 @@ func genericTest(t *testing.T, input DockerCNTLogs, waitEof time.Duration) {
 	if waitEof == 0 { //wait until EOF
 		//Waiting until docker stream receive EOF
 		closed := 0
-		for ; ; {
+		for {
 			closed = 0
 			for _, logReader := range input.logReader {
 
@@ -366,7 +370,7 @@ func TestTS(t *testing.T) { //Mixed containers with time stamps
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
 
-	genericTest(t, input, 0)
+	genericTest(t, &input, 0)
 }
 
 //Test filtering messages from container based on offset
@@ -410,7 +414,7 @@ func TestTSOffset(t *testing.T) {
 			filename, err))
 
 	}
-	genericTest(t, input, 0)
+	genericTest(t, &input, 0)
 
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
@@ -434,7 +438,7 @@ func TestWOTS(t *testing.T) { //Mixed containers without time stamps
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
 
-	genericTest(t, input, 0)
+	genericTest(t, &input, 0)
 
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
@@ -459,7 +463,7 @@ func TestRaceCondition(t *testing.T) {
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
 
-	genericTest(t, input, time.Millisecond*500)
+	genericTest(t, &input, time.Millisecond*500)
 
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
