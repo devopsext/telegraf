@@ -21,6 +21,7 @@ The IAM user needs the following permissions ( https://docs.aws.amazon.com/Amazo
 
 ## Config
 ```toml
+[[outputs.cloudwatch_logs]]
   ## The region is the Amazon region that you wish to connect to.
   ## Examples include but are not limited to:
   ## - us-west-1

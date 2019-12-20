@@ -78,6 +78,7 @@ const (
 )
 
 var sampleConfig = `
+[[outputs.cloudwatch_logs]]
   ## The region is the Amazon region that you wish to connect to.
   ## Examples include but are not limited to:
   ## - us-west-1
@@ -154,7 +155,8 @@ func (c *CloudWatchLogs) Connect() error {
 		return fmt.Errorf("Log data metrics name is not set!")
 	}
 
-	if c.LDSource == "" {return fmt.Errorf("Log data source is not set!")
+	if c.LDSource == "" {
+		return fmt.Errorf("Log data source is not set!")
 	} else {
 		lsSplitArray := strings.Split(c.LDSource, ":")
 		if len(lsSplitArray) > 1 {
