@@ -5,10 +5,33 @@
     <option name="CUSTOM_SCOPE_NAME" value="Current File" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
+    <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="Update readme">
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/dev/buildDebian.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/dev/telegraf.conf" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/native_finder.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/native_finder_notwindows.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/native_finder_windows.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/native_finder_windows_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/parent_finder.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/pgrep_finder.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/procstat_boost.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/procstat_boost_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/types.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/win_service_notwindows.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/inputs/procstat_boost/win_service_windows.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/watcherTasks.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/watcherTasks.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/all/all.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/all/all.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/dev/buildDebian.sh" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/native_finder_notwindows.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/parent.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/pgrep.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/process.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/process.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/procstat/procstat.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/procstat/procstat.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -85,6 +108,7 @@
     <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="SearchEverywhereHistoryKey" value="&#9;FILE&#9;file:///usr/local/Cellar/go/1.11.4/libexec/src/bytes/bytes.go" />
     <property name="TF_FMT" value="false" />
+    <property name="TODO_SCOPE" value="All Places" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="configurable.Global.GOPATH.is.expanded" value="true" />
     <property name="configurable.Module.GOPATH.is.expanded" value="true" />
@@ -95,27 +119,29 @@
     <property name="go.sdk.automatically.set" value="true" />
     <property name="go.tried.to.enable.integration.dep.integrator" value="true" />
     <property name="go.vendoring.notification.had.been.shown" value="true" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/plugins/inputs" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="nodejs_package_manager_path" value="npm" />
-    <property name="settings.editor.selected.configurable" value="go.sdk" />
+    <property name="settings.editor.selected.configurable" value="watcher.settings" />
   </component>
   <component name="RecentsManager">
-    <key name="CopyFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs" />
-      <recent name="$PROJECT_DIR$/plugins/outputs" />
-      <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb" />
-      <recent name="$PROJECT_DIR$/plugins/inputs/cloudwatch" />
-      <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
-    </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
+      <recent name="$PROJECT_DIR$/plugins/inputs/procstat_boost/native_finder" />
       <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/dev" />
       <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb" />
       <recent name="$PROJECT_DIR$/cmd/telegraf" />
     </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/plugins/inputs" />
+      <recent name="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs" />
+      <recent name="$PROJECT_DIR$/plugins/outputs" />
+      <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb" />
+      <recent name="$PROJECT_DIR$/plugins/inputs/cloudwatch" />
+    </key>
   </component>
-  <component name="RunManager" selected="Go Build.docker_cnt_logs">
+  <component name="RunManager" selected="Go Test.procstat_boost_test.go">
     <configuration name="cloudwatch" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="telegraf" />
       <working_directory value="$PROJECT_DIR$/" />
@@ -174,6 +200,18 @@
       <output_directory value="$PROJECT_DIR$/build" />
       <method v="2" />
     </configuration>
+    <configuration name="procstat_boost" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/" />
+      <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.X' -X main.branch=loca -X main.commit=loca&quot;" />
+      <parameters value="--config $PROJECT_DIR$/plugins/inputs/procstat_boost/dev/telegraf.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
     <configuration name="rancher_input" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="telegraf" />
       <working_directory value="$PROJECT_DIR$" />
@@ -191,59 +229,48 @@
     <configuration default="true" type="GoRemoteDebugConfigurationType" factoryName="Go Remote" port="40000">
       <method v="2" />
     </configuration>
-    <configuration name="TestLogsTSSmallBuffer in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="TestGather_PercentSecondPass in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="telegraf" />
-      <working_directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
       <framework value="gotest" />
       <kind value="PACKAGE" />
-      <package value="github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+      <package value="github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestLogsTSSmallBuffer$" />
+      <pattern value="^TestGather_PercentSecondPass$" />
       <method v="2" />
     </configuration>
-    <configuration name="TestRaceCondition in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="TestGather_cgroupPIDs in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="telegraf" />
-      <working_directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
       <framework value="gotest" />
       <kind value="PACKAGE" />
-      <package value="github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+      <package value="github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestRaceCondition$" />
+      <pattern value="^TestGather_cgroupPIDs$" />
       <method v="2" />
     </configuration>
-    <configuration name="TestTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="TestGather_systemdUnitPIDs in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="telegraf" />
-      <working_directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
       <framework value="gotest" />
       <kind value="PACKAGE" />
-      <package value="github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+      <package value="github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestTS$" />
+      <pattern value="^TestGather_systemdUnitPIDs$" />
       <method v="2" />
     </configuration>
-    <configuration name="TestTSOffset in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+    <configuration name="TestProcstatLookupMetric in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
       <module name="telegraf" />
-      <working_directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
       <framework value="gotest" />
       <kind value="PACKAGE" />
-      <package value="github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+      <package value="github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
       <directory value="$PROJECT_DIR$/" />
       <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestTSOffset$" />
-      <method v="2" />
-    </configuration>
-    <configuration name="TestWOTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
-      <module name="telegraf" />
-      <working_directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
-      <framework value="gotest" />
-      <kind value="PACKAGE" />
-      <package value="github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-      <directory value="$PROJECT_DIR$/" />
-      <filePath value="$PROJECT_DIR$/" />
-      <pattern value="^TestWOTS$" />
+      <pattern value="^TestProcstatLookupMetric$" />
       <method v="2" />
     </configuration>
     <configuration name="docker_cnt_logs_test" type="GoTestRunConfiguration" factoryName="Go Test">
@@ -257,28 +284,39 @@
       <filePath value="$PROJECT_DIR$/" />
       <method v="2" />
     </configuration>
+    <configuration name="procstat_boost_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
+      <framework value="gotest" />
+      <kind value="FILE" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/plugins/inputs/procstat_boost/procstat_boost_test.go" />
+      <method v="2" />
+    </configuration>
     <list>
       <item itemvalue="Go Build.k8s_events_listener" />
       <item itemvalue="Go Build.procstat" />
+      <item itemvalue="Go Build.procstat_boost" />
       <item itemvalue="Go Build.cloudwatch" />
       <item itemvalue="Go Build.docker_cnt_logs" />
       <item itemvalue="Go Build.cloudwatch_logs" />
       <item itemvalue="Go Build.rancher_input" />
       <item itemvalue="Go Remote.Remote_k8s" />
       <item itemvalue="Go Test.docker_cnt_logs_test" />
-      <item itemvalue="Go Test.TestLogsTSSmallBuffer in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-      <item itemvalue="Go Test.TestTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-      <item itemvalue="Go Test.TestWOTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-      <item itemvalue="Go Test.TestTSOffset in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-      <item itemvalue="Go Test.TestRaceCondition in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+      <item itemvalue="Go Test.TestGather_PercentSecondPass in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
+      <item itemvalue="Go Test.TestGather_systemdUnitPIDs in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
+      <item itemvalue="Go Test.TestGather_cgroupPIDs in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
+      <item itemvalue="Go Test.TestProcstatLookupMetric in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
+      <item itemvalue="Go Test.procstat_boost_test.go" />
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Go Test.TestRaceCondition in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-        <item itemvalue="Go Test.TestTSOffset in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-        <item itemvalue="Go Test.TestTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-        <item itemvalue="Go Test.TestWOTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
-        <item itemvalue="Go Test.TestLogsTSSmallBuffer in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+        <item itemvalue="Go Test.procstat_boost_test.go" />
+        <item itemvalue="Go Test.TestProcstatLookupMetric in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
+        <item itemvalue="Go Test.TestGather_cgroupPIDs in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
+        <item itemvalue="Go Test.TestGather_systemdUnitPIDs in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
+        <item itemvalue="Go Test.TestGather_PercentSecondPass in github.com/influxdata/telegraf/plugins/inputs/procstat_boost" />
       </list>
     </recent_temporary>
   </component>
@@ -454,66 +492,96 @@
       <path value="$PROJECT_DIR$/src/github.com/influxdata/telegraf" />
     </ignored-roots>
     <MESSAGE value="Concurrency refactoring, code-style of telegraf project" />
-    <option name="LAST_COMMIT_MESSAGE" value="Concurrency refactoring, code-style of telegraf project" />
+    <MESSAGE value="Update readme" />
+    <option name="LAST_COMMIT_MESSAGE" value="Update readme" />
   </component>
   <component name="WindowStateProjectService">
+    <state x="-1393" y="202" width="1106" height="669" key="#Markdown" timestamp="1576770892965">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1393" y="202" width="1106" height="669" key="#Markdown/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576770892965" />
+    <state x="441" y="213" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1576841802816">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="441" y="213" key="#com.intellij.execution.impl.EditConfigurationsDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576841802816" />
     <state x="680" y="361" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1576761621821">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
     <state x="680" y="361" key="#com.intellij.fileTypes.FileTypeChooser/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576761621821" />
-    <state x="553" y="318" width="692" height="653" key="EditFileWatcherDialog" timestamp="1576760557757">
+    <state x="476" y="150" width="1258" height="887" key="CommitChangelistDialog2" timestamp="1576829529699">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state x="553" y="318" width="692" height="653" key="EditFileWatcherDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576760557757" />
-    <state width="1575" height="356" key="GridCell.Tab.0.bottom" timestamp="1576762934198">
+    <state x="476" y="150" width="1258" height="887" key="CommitChangelistDialog2/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576829529699" />
+    <state x="100" y="123" width="1720" height="857" key="DiffContextDialog" timestamp="1576829472732">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state width="1575" height="356" key="GridCell.Tab.0.bottom/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576762934198" />
-    <state width="1575" height="356" key="GridCell.Tab.0.center" timestamp="1576762934197">
+    <state x="100" y="123" width="1720" height="857" key="DiffContextDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576829472732" />
+    <state x="553" y="318" width="692" height="653" key="EditFileWatcherDialog" timestamp="1576840324014">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state width="1575" height="356" key="GridCell.Tab.0.center/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576762934197" />
-    <state width="1575" height="356" key="GridCell.Tab.0.left" timestamp="1576762934196">
+    <state x="553" y="318" width="692" height="653" key="EditFileWatcherDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576840324014" />
+    <state x="654" y="416" key="EnvironmentVariablesDialog" timestamp="1576838547771">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state width="1575" height="356" key="GridCell.Tab.0.left/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576762934196" />
-    <state width="1575" height="356" key="GridCell.Tab.0.right" timestamp="1576762934198">
+    <state x="654" y="416" key="EnvironmentVariablesDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576838547771" />
+    <state width="1878" height="225" key="GridCell.Tab.0.bottom" timestamp="1576849329737">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state width="1575" height="356" key="GridCell.Tab.0.right/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576762934198" />
-    <state width="1575" height="356" key="GridCell.Tab.1.bottom" timestamp="1576762934200">
+    <state width="1878" height="225" key="GridCell.Tab.0.bottom/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849329737" />
+    <state width="1878" height="225" key="GridCell.Tab.0.center" timestamp="1576849329737">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state width="1575" height="356" key="GridCell.Tab.1.bottom/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576762934200" />
-    <state width="1575" height="356" key="GridCell.Tab.1.center" timestamp="1576762934199">
+    <state width="1878" height="225" key="GridCell.Tab.0.center/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849329737" />
+    <state width="1878" height="225" key="GridCell.Tab.0.left" timestamp="1576849329736">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state width="1575" height="356" key="GridCell.Tab.1.center/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576762934199" />
-    <state width="1575" height="356" key="GridCell.Tab.1.left" timestamp="1576762934199">
+    <state width="1878" height="225" key="GridCell.Tab.0.left/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849329736" />
+    <state width="1878" height="225" key="GridCell.Tab.0.right" timestamp="1576849329737">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state width="1575" height="356" key="GridCell.Tab.1.left/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576762934199" />
-    <state width="1575" height="356" key="GridCell.Tab.1.right" timestamp="1576762934200">
+    <state width="1878" height="225" key="GridCell.Tab.0.right/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849329737" />
+    <state width="1878" height="333" key="GridCell.Tab.1.bottom" timestamp="1576849064615">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state width="1575" height="356" key="GridCell.Tab.1.right/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576762934200" />
-    <state x="408" y="172" key="SettingsEditor" timestamp="1576760753372">
+    <state width="1878" height="333" key="GridCell.Tab.1.bottom/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849064615" />
+    <state width="1878" height="333" key="GridCell.Tab.1.center" timestamp="1576849064614">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state x="408" y="172" key="SettingsEditor/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576760753372" />
-    <state x="-1886" y="23" width="1751" height="977" key="dock-window-1" timestamp="1576761764005">
+    <state width="1878" height="333" key="GridCell.Tab.1.center/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849064614" />
+    <state width="1878" height="333" key="GridCell.Tab.1.left" timestamp="1576849064613">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state width="1878" height="333" key="GridCell.Tab.1.left/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849064613" />
+    <state width="1878" height="333" key="GridCell.Tab.1.right" timestamp="1576849064614">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state width="1878" height="333" key="GridCell.Tab.1.right/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849064614" />
+    <state x="408" y="172" key="SettingsEditor" timestamp="1576840325202">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="408" y="172" key="SettingsEditor/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576840325202" />
+    <state x="-1843" y="23" width="1799" height="1037" key="dock-window-1" timestamp="1576849328909">
       <screen x="-1920" y="23" width="1920" height="1057" />
     </state>
-    <state x="-1886" y="23" width="1751" height="977" key="dock-window-1/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576761764005" />
+    <state x="-1843" y="23" width="1799" height="1037" key="dock-window-1/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849328909" />
     <state x="120" y="108" width="1200" height="637" key="dock-window-1/0.23.1440.877@0.23.1440.877" timestamp="1576440359924" />
     <state x="-1920" y="23" width="1741" height="1010" key="dock-window-2" timestamp="1576761764005">
       <screen x="-1920" y="23" width="1920" height="1057" />
     </state>
     <state x="-1920" y="23" width="1741" height="1010" key="dock-window-2/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576761764005" />
-    <state x="499" y="198" key="scopes" timestamp="1576759967408">
+    <state x="-1874" y="53" width="1777" height="1027" key="dock-window-3" timestamp="1576839239276">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1874" y="53" width="1777" height="1027" key="dock-window-3/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576839239276" />
+    <state x="-1862" y="23" width="1777" height="1027" maximized="true" key="dock-window-3/0.23.1440.877@0.23.1440.877" timestamp="1576775041997" />
+    <state x="626" y="313" width="816" height="540" key="find.popup" timestamp="1576840558209">
       <screen x="0" y="23" width="1920" height="1057" />
     </state>
-    <state x="499" y="198" key="scopes/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576759967408" />
+    <state x="626" y="313" width="816" height="540" key="find.popup/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576840558209" />
+    <state x="499" y="198" key="scopes" timestamp="1576838504803">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="499" y="198" key="scopes/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576838504803" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -543,6 +611,26 @@
           <line>228</line>
           <option name="timeStamp" value="101" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/inputs/procstat/procstat_test.go</url>
+          <line>268</line>
+          <option name="timeStamp" value="113" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/inputs/procstat/procstat.go</url>
+          <line>103</line>
+          <option name="timeStamp" value="114" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/inputs/procstat/procstat.go</url>
+          <line>257</line>
+          <option name="timeStamp" value="115" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/inputs/procstat_boost/procstat_boost_test.go</url>
+          <line>363</line>
+          <option name="timeStamp" value="117" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
@@ -557,9 +645,13 @@
         <watch expression="metricTime" language="go" />
         <watch expression="time.Unix(0, timeInt).UnixNano()" language="go" />
       </configuration>
+      <configuration name="GoTestRunConfiguration">
+        <watch expression="*(*&quot;github.com/influxdata/telegraf/plugins/inputs/procstat.testProc&quot;)(824634527408)" />
+      </configuration>
     </watches-manager>
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/telegraf$docker_cnt_logs_test.out" NAME="docker_cnt_logs_test Coverage Results" MODIFIED="1573762000293" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/telegraf$procstat_boost_test_go.out" NAME="procstat_boost_test.go Coverage Results" MODIFIED="1576849064522" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
   </component>
 </project>

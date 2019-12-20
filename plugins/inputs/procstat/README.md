@@ -18,28 +18,20 @@ Processes can be selected for monitoring using one of several methods:
 ```toml
 # Monitor process cpu and memory usage
 [[inputs.procstat]]
-  ## PID file to monitor process. Valid for pid_finders: pgrep, native
-  pid_file = "/var/run/nginx.pid" 
-  
-  ## executable name (ie, pgrep <exe>). Valid for pid_finders: pgrep, native
+  ## PID file to monitor process
+  pid_file = "/var/run/nginx.pid"
+  ## executable name (ie, pgrep <exe>)
   # exe = "nginx"
-  
-  ## pattern as argument for pgrep (ie, pgrep -f <pattern>). Valid for pid_finders: pgrep, native, parent
+  ## pattern as argument for pgrep (ie, pgrep -f <pattern>)
   # pattern = "nginx"
-  
-  ## raw args for pgrep (ie, pgrep arg1, arg2...). Valid for pid_finders: pgrep
-  # raw_args = ["-a","--inverse","-P 1"]
-  
-  ## user as argument for pgrep (ie, pgrep -u <user>). Valid for pid_finders: pgrep, native
+  ## user as argument for pgrep (ie, pgrep -u <user>)
   # user = "nginx"
-  
-  ## Systemd unit name. Valid for pid_finders: pgrep
+  ## Systemd unit name
   # systemd_unit = "nginx.service"
-  
-  ## CGroup name or path. Valid for pid_finders: pgrep
+  ## CGroup name or path
   # cgroup = "systemd/system.slice/nginx.service"
 
-  ## Windows service name. Valid for pid_finders: native
+  ## Windows service name
   # win_service = ""
 
   ## override for process_name
@@ -49,40 +41,15 @@ Processes can be selected for monitoring using one of several methods:
   ## Field name prefix
   # prefix = ""
 
-  ## Limit metrics. Allow to gather only very basic metrics for process. Default values is false.
-  # limit_metrics = true
-  
-  ## Count of retries, while reading procstat data. In case of very high fork rate, some new processes can be forked exactly 
-  ## at the time when the input gather the statistics. Since 'github.com/shirou/gopsutil' library used, for CPU utilization it needs to be
-  ## called twice (minimum) for every new PID. Also it is observed, that for newly forked PIDs the CPU usage sometimes 
-  ## reported as CPU usage of previous PID in the pooling list, so additional check for uniqueness of CPU utilization is added.
-  ## In case the CPU utilization figure is not unique in the set of current PID pool, then retry called. If retry_limit exceed
-  ## but the value is still incorrect, the error printed into the log and either:
-  ## 1. Metric for the PID emitted (if 'emit_incorrect_cpu_values = true') with special tags 'dpl_info' & or 'unrl_cpu_info':  
-  ##  - 'dpl_info' holds info about duplicated values
-  ##  - 'unrl_cpu_info' holds info about unrealistic duplicated values
-  ## OR
-  ## 2. Metric for the PID is dropped (if 'emit_incorrect_cpu_values = false' ) and metric 'procstat_dropped' added instead.
-  ##
-  # retry_limit = 5 (default value)
-    
-  ## Either drop or emit metrics with incorrect CPU utilization value.
-  ## Emitting can be useful for debugging.
-  # emit_incorrect_cpu_values = false (default)
-  
-  ## If set to 'true', every gather interval, for every PID in scope, the cmdline & name tags will be updated (this produce additional CPU load).
-  # update_process_tags = false
-
   ## Add PID as a tag instead of a field; useful to differentiate between
   ## processes whose tags are otherwise the same.  Can create a large number
   ## of series, use judiciously.
   # pid_tag = false
 
-  ## Method to use when finding process IDs.  Can be one of:
-  ## 'pgrep'- The pgrep finder calls the pgrep executable in the PATH while 
-  ## 'native' - The native finder performs the search directly in a manor dependent on the platform.
-  ## 'parent' - search by means of gopsutil based on the name of the parent process, regex is supported.
-  ## Default is 'pgrep'
+  ## Method to use when finding process IDs.  Can be one of 'pgrep', or
+  ## 'native'.  The pgrep finder calls the pgrep executable in the PATH while
+  ## the native finder performs the search directly in a manor dependent on the
+  ## platform.  Default is 'pgrep'
   # pid_finder = "pgrep"
 ```
 

@@ -1,4 +1,4 @@
-package procstat
+package procstat_boost
 
 import (
 	"fmt"
@@ -22,13 +22,15 @@ type Process interface {
 	Times() (*cpu.TimesStat, error)
 	RlimitUsage(bool) ([]process.RlimitStat, error)
 	Username() (string, error)
+	Cmdline() (string, error)
 }
 
 type PIDFinder interface {
 	PidFile(path string) ([]PID, error)
-	Pattern(pattern string) ([]PID, error)
+	Exe(pattern string) ([]PID, error)
+	XtraConfig(rawArgs []string) ([]PID, error)
 	Uid(user string) ([]PID, error)
-	FullPattern(path string) ([]PID, error)
+	Pattern(path string) ([]PID, error)
 }
 
 type Proc struct {
@@ -39,6 +41,7 @@ type Proc struct {
 
 func NewProc(pid PID) (Process, error) {
 	process, err := process.NewProcess(int32(pid))
+
 	if err != nil {
 		return nil, err
 	}
@@ -61,6 +64,10 @@ func (p *Proc) PID() PID {
 
 func (p *Proc) Username() (string, error) {
 	return p.Process.Username()
+}
+
+func (p *Proc) Cmdline() (string, error) {
+	return p.Process.Cmdline()
 }
 
 func (p *Proc) Percent(interval time.Duration) (float64, error) {

@@ -1,4 +1,4 @@
-package procstat
+package procstat_boost
 
 import (
 	"fmt"
@@ -11,19 +11,20 @@ import (
 )
 
 // Implemention of PIDGatherer that execs pgrep to find processes
-type Pgrep struct {
+// Since calling pgrep forks a process inside OS, it is actually a bad practise under pressure.
+type PgrepFinder struct {
 	path string
 }
 
-func NewPgrep() (PIDFinder, error) {
+func NewPgrepFinder(_ *ProcstatBoost) (PIDFinder, error) {
 	path, err := exec.LookPath("pgrep")
 	if err != nil {
 		return nil, fmt.Errorf("Could not find pgrep binary: %s", err)
 	}
-	return &Pgrep{path}, nil
+	return &PgrepFinder{path}, nil
 }
 
-func (pg *Pgrep) PidFile(path string) ([]PID, error) {
+func (pg *PgrepFinder) PidFile(path string) ([]PID, error) {
 	var pids []PID
 	pidString, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -38,17 +39,21 @@ func (pg *Pgrep) PidFile(path string) ([]PID, error) {
 	return pids, nil
 }
 
-func (pg *Pgrep) Pattern(pattern string) ([]PID, error) {
+func (pg *PgrepFinder) Exe(pattern string) ([]PID, error) {
 	args := []string{pattern}
 	return find(pg.path, args)
 }
 
-func (pg *Pgrep) Uid(user string) ([]PID, error) {
+func (pg *PgrepFinder) XtraConfig(rawArgs []string) ([]PID, error) {
+	return find(pg.path, rawArgs)
+}
+
+func (pg *PgrepFinder) Uid(user string) ([]PID, error) {
 	args := []string{"-u", user}
 	return find(pg.path, args)
 }
 
-func (pg *Pgrep) FullPattern(pattern string) ([]PID, error) {
+func (pg *PgrepFinder) Pattern(pattern string) ([]PID, error) {
 	args := []string{"-f", pattern}
 	return find(pg.path, args)
 }
