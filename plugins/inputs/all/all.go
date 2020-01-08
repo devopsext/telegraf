@@ -34,6 +34,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/dmcache"
 	_ "github.com/influxdata/telegraf/plugins/inputs/dns_query"
 	_ "github.com/influxdata/telegraf/plugins/inputs/docker"
+	_ "github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" //dve_addons
 	_ "github.com/influxdata/telegraf/plugins/inputs/docker_log"
 	_ "github.com/influxdata/telegraf/plugins/inputs/dovecot"
 	_ "github.com/influxdata/telegraf/plugins/inputs/ecs"
@@ -124,6 +125,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/inputs/powerdns_recursor"
 	_ "github.com/influxdata/telegraf/plugins/inputs/processes"
 	_ "github.com/influxdata/telegraf/plugins/inputs/procstat"
+	_ "github.com/influxdata/telegraf/plugins/inputs/procstat_boost" //dve_addons
 	_ "github.com/influxdata/telegraf/plugins/inputs/prometheus"
 	_ "github.com/influxdata/telegraf/plugins/inputs/puppetagent"
 	_ "github.com/influxdata/telegraf/plugins/inputs/rabbitmq"

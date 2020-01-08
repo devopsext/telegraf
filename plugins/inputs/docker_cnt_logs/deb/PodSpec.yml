@@ -1,0 +1,77 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+
+metadata:
+  name: collector-base-service
+  labels:
+    app: collector-base-service
+  namespace: platform-services
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: collector-base-service
+  template:
+    metadata:
+      namespace: platform-services
+      labels:
+        app: collector-base-service
+        version: "1"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "metrics"
+        prometheus.io/port: "59000"
+
+    spec:  
+      nodeSelector:
+        kubernetes.io/hostname: k8s-04.test.env
+
+      containers:
+      - name: base-servicet
+        imagePullPolicy: Always
+        image: alpine:latest
+        command:
+          - "bin/sh"
+          - "-c"
+          - "sleep 600"
+        env:
+          - name: MESSAGE_LENGTH
+            value: "1"
+
+          - name: MESSAGE_COUNT
+            value: "1"
+
+
+      - name: collector
+        imagePullPolicy: Always  
+        image: registry.exness.io/service/collector/pod:1.9.3.2-1.0.0-debug
+
+        env:
+          - name: BOOTSTRAP_LOG_LEVEL
+            value: INFO
+          - name: SERVICE_RUN_LOG_LEVEL
+            value: INFO  
+     
+        ports:
+          - containerPort: 40000
+            name: debug
+            protocol: TCP
+
+        securityContext:
+          capabilities:
+            add:
+             - SYS_PTRACE    
+
+        volumeMounts:
+        - name: dockersock
+          mountPath: "/var/run/docker.sock"
+      
+       
+      volumes:
+      - name: dockersock
+        hostPath:
+          path: /var/run/docker.sock  
+
+      imagePullSecrets:
+      - name: registry.exness.io

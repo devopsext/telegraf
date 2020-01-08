@@ -15,4 +15,8 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/processors/tag_limit"
 	_ "github.com/influxdata/telegraf/plugins/processors/topk"
 	_ "github.com/influxdata/telegraf/plugins/processors/unpivot"
+	//dve_addons:
+	_ "github.com/influxdata/telegraf/plugins/processors/combine"
+	_ "github.com/influxdata/telegraf/plugins/processors/stdout"
+	_ "github.com/influxdata/telegraf/plugins/processors/substring"
 )
