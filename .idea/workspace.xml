@@ -1,0 +1,677 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="SCOPE_TYPE" value="8" />
+    <option name="CUSTOM_SCOPE_NAME" value="Current File" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CoverageViewManager">
+    <option name="myElementSize" value="206" />
+  </component>
+  <component name="DatabaseView">
+    <option name="SHOW_INTERMEDIATE" value="true" />
+    <option name="GROUP_DATA_SOURCES" value="true" />
+    <option name="GROUP_SCHEMA" value="true" />
+    <option name="GROUP_CONTENTS" value="false" />
+    <option name="SORT_POSITIONED" value="false" />
+    <option name="SHOW_EMPTY_GROUPS" value="false" />
+    <option name="AUTO_SCROLL_FROM_SOURCE" value="false" />
+    <option name="HIDDEN_KINDS">
+      <set />
+    </option>
+    <expand />
+    <select />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" path="/usr/local/Cellar/go/1.13.1/libexec" />
+  <component name="Git.Settings">
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="dve_addons_1.9.3" />
+      </map>
+    </option>
+  </component>
+  <component name="GoDepProject">
+    <exec-path>/usr/local/bin/dep</exec-path>
+  </component>
+  <component name="GoLibraries">
+    <option name="indexEntireGoPath" value="false" />
+    <option name="useGoPathFromSystemEnvironment" value="false" />
+  </component>
+  <component name="IgnoredFileRootStore">
+    <option name="generatedRoots">
+      <set>
+        <option value="$PROJECT_DIR$/.idea" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectId" id="1TbtBS0DmcARqYQL7nQp3kLPOC0" />
+  <component name="ProjectInspectionProfilesVisibleTreeState">
+    <entry key="Project Default">
+      <profile-state>
+        <expanded-state>
+          <State />
+        </expanded-state>
+        <selected-state>
+          <State>
+            <id>CSS</id>
+          </State>
+        </selected-state>
+      </profile-state>
+    </entry>
+  </component>
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="DefaultGoTemplateProperty" value="Go File" />
+    <property name="GO_FMT" value="true" />
+    <property name="NewWatcherDialog.advanced.open" value="true" />
+    <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="SearchEverywhereHistoryKey" value="&#9;FILE&#9;file:///usr/local/Cellar/go/1.11.4/libexec/src/bytes/bytes.go" />
+    <property name="TF_FMT" value="false" />
+    <property name="TODO_SCOPE" value="All Places" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="configurable.Global.GOPATH.is.expanded" value="true" />
+    <property name="configurable.Module.GOPATH.is.expanded" value="true" />
+    <property name="configurable.Project.GOPATH.is.expanded" value="true" />
+    <property name="go.dep.advertise" value="false" />
+    <property name="go.gopath.indexing.explicitly.defined" value="true" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.sdk.automatically.set" value="true" />
+    <property name="go.tried.to.enable.integration.dep.integrator" value="true" />
+    <property name="go.tried.to.enable.integration.vgo.integrator" value="true" />
+    <property name="go.vendoring.notification.had.been.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="nodejs_package_manager_path" value="npm" />
+    <property name="settings.editor.selected.configurable" value="go.vgo" />
+    <property name="two.files.diff.last.used.file" value="$PROJECT_DIR$/plugins/inputs/procstat_boost/types.go" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/plugins/inputs" />
+      <recent name="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs" />
+      <recent name="$PROJECT_DIR$/plugins/outputs" />
+      <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb" />
+      <recent name="$PROJECT_DIR$/plugins/inputs/cloudwatch" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/plugins/inputs" />
+      <recent name="$PROJECT_DIR$/build" />
+      <recent name="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
+      <recent name="$PROJECT_DIR$/plugins/inputs/procstat_boost/native_finder" />
+      <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/dev" />
+    </key>
+  </component>
+  <component name="RunManager" selected="Go Test.docker_cnt_logs_test.go">
+    <configuration name="cloudwatch" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/" />
+      <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.5' -X main.branch=localMBP -X main.commit=localMBP&quot;" />
+      <parameters value="--config $PROJECT_DIR$/plugins/inputs/cloudwatch/telegraf.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
+    <configuration name="cloudwatch_logs" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$" />
+      <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.X' -X main.branch=local -X main.commit=local&quot;" />
+      <parameters value="--config $PROJECT_DIR$/plugins/outputs/cloudwatch_logs/dev/config.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
+    <configuration name="docker_cnt_logs" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$" />
+      <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.X' -X main.branch=localMBP -X main.commit=localMBP&quot;" />
+      <parameters value="--config $PROJECT_DIR$/plugins/inputs/docker_cnt_logs/dev/config.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
+    <configuration name="k8s_events_listener" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/" />
+      <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.5' -X main.branch=localMBP -X main.commit=localMBP&quot;" />
+      <parameters value="--config $PROJECT_DIR$/plugins/inputs/k8s_events_listener/config.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
+    <configuration name="procstat" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/" />
+      <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.5' -X main.branch=localMBP -X main.commit=localMBP&quot;" />
+      <parameters value="--config $PROJECT_DIR$/plugins/inputs/procstat/dev/telegraf.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
+    <configuration name="procstat_boost" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/" />
+      <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.X' -X main.branch=loca -X main.commit=loca&quot;" />
+      <parameters value="--config $PROJECT_DIR$/plugins/inputs/procstat_boost/dev/telegraf.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
+    <configuration name="rancher_input" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$" />
+      <go_parameters value="-i" />
+      <parameters value="--config $PROJECT_DIR$/plugins/inputs/rancher_1_x/config.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
+    <configuration name="Remote_k8s" type="GoRemoteDebugConfigurationType" factoryName="Go Remote" port="40000">
+      <method v="2" />
+    </configuration>
+    <configuration default="true" type="GoRemoteDebugConfigurationType" factoryName="Go Remote" port="40000">
+      <method v="2" />
+    </configuration>
+    <configuration name="TestTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" />
+      <pattern value="^TestTS$" />
+      <method v="2" />
+    </configuration>
+    <configuration name="docker_cnt_logs_test" type="GoTestRunConfiguration" factoryName="Go Test">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
+      <go_parameters value="-i" />
+      <framework value="gotest" />
+      <kind value="PACKAGE" />
+      <package value="github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+      <directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
+      <filePath value="$PROJECT_DIR$/" />
+      <method v="2" />
+    </configuration>
+    <configuration name="docker_cnt_logs_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
+      <framework value="gotest" />
+      <kind value="FILE" />
+      <package value="github.com/devopsext/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="native_finder_windows_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
+      <framework value="gotest" />
+      <kind value="FILE" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/plugins/inputs/procstat_boost/native_finder_windows_test.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="procstat_boost_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/procstat_boost" />
+      <framework value="gotest" />
+      <kind value="FILE" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/plugins/inputs/procstat_boost/procstat_boost_test.go" />
+      <method v="2" />
+    </configuration>
+    <configuration name="procstat_test.go" type="GoTestRunConfiguration" factoryName="Go Test" temporary="true" nameIsGenerated="true">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$/plugins/inputs/procstat" />
+      <framework value="gotest" />
+      <kind value="FILE" />
+      <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <filePath value="$PROJECT_DIR$/plugins/inputs/procstat/procstat_test.go" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="Go Build.k8s_events_listener" />
+      <item itemvalue="Go Build.procstat" />
+      <item itemvalue="Go Build.procstat_boost" />
+      <item itemvalue="Go Build.cloudwatch" />
+      <item itemvalue="Go Build.docker_cnt_logs" />
+      <item itemvalue="Go Build.cloudwatch_logs" />
+      <item itemvalue="Go Build.rancher_input" />
+      <item itemvalue="Go Remote.Remote_k8s" />
+      <item itemvalue="Go Test.docker_cnt_logs_test" />
+      <item itemvalue="Go Test.procstat_boost_test.go" />
+      <item itemvalue="Go Test.procstat_test.go" />
+      <item itemvalue="Go Test.docker_cnt_logs_test.go" />
+      <item itemvalue="Go Test.native_finder_windows_test.go" />
+      <item itemvalue="Go Test.TestTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+    </list>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Test.docker_cnt_logs_test.go" />
+        <item itemvalue="Go Test.TestTS in github.com/influxdata/telegraf/plugins/inputs/docker_cnt_logs" />
+        <item itemvalue="Go Test.procstat_boost_test.go" />
+        <item itemvalue="Go Test.native_finder_windows_test.go" />
+        <item itemvalue="Go Test.procstat_test.go" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.conf" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---code.googlesource.com-gocloud" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---code.googlesource.com-google--api--go--client" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-Azure-go--autorest" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-DataDog-zstd" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-Microsoft-ApplicationInsights--Go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-Microsoft-ApplicationInsights--Go/vendor/code.cloudfoundry.org/clock" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-Microsoft-ApplicationInsights--Go/vendor/github.com/satori/go.uuid" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-Microsoft-go--winio" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-Shopify-sarama" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-StackExchange-wmi" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-aerospike-aerospike--client--go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-alecthomas-template" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-alecthomas-units" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-amir-raidman" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-apache-thrift" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-aws-aws--sdk--go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-beorn7-perks" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-bsm-sarama--cluster" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-cenkalti-backoff" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-census--ecosystem-opencensus--go--exporter--stackdriver" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-census--instrumentation-opencensus--go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-cloudfoundry-clock" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-collectd-go--collectd" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-couchbase-go--couchbase" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-couchbase-gomemcached" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-couchbase-goutils" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-davecgh-go--spew" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-denisenkom-go--mssqldb" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-dgrijalva-jwt--go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-dimchansky-utfbom" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-docker-distribution" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-docker-docker" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-docker-go--connections" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-docker-go--units" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-docker-libnetwork" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-eapache-go--resiliency" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-eapache-go--xerial--snappy" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-eapache-queue" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-eclipse-paho.mqtt.golang" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-ericchiang-k8s" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-fsnotify-fsnotify" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-go--ini-ini" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-go--logfmt-logfmt" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-go--ole-go--ole" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-go--redis-redis" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-go--sql--driver-mysql" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-gobwas-glob" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-gogo-protobuf" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-golang-appengine" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-golang-mock" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-golang-protobuf" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-golang-snappy" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-google-go--cmp" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-google-go--genproto" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-google-uuid" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-googleapis-gax--go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-gorilla-context" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-gorilla-mux" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-grpc-grpc--go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-hailocab-go--hostpool" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-hashicorp-consul" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-hashicorp-go--cleanhttp" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-hashicorp-go--rootcerts" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-hashicorp-serf" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-influxdata-go--syslog" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-influxdata-tail" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-influxdata-telegraf" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-influxdata-toml" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-influxdata-wlog" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-jackc-pgx" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-jmespath-go--jmespath" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-kardianos-osext" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-kardianos-service" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-kballard-go--shellquote" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-konsorten-go--windows--terminal--sequences" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-kr-logfmt" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-mailru-easyjson" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-matttproud-golang_protobuf_extensions" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-miekg-dns" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-mitchellh-go--homedir" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-mitchellh-mapstructure" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-multiplay-go--ts3" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-naoina-go--stringutil" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-nats--io-gnatsd" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-nats--io-go--nats" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-nats--io-nkeys" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-nats--io-nuid" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-nsqio-go--nsq" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-opencontainers-go--digest" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-opencontainers-image--spec" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-opentracing--contrib-go--observer" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-opentracing-opentracing--go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-openzipkin--contrib-zipkin--go--opentracing" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-openzipkin-zipkin--go--opentracing" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-pierrec-lz4" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-pkg-errors" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-pmezard-go--difflib" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-prometheus-client_golang" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-prometheus-client_model" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-prometheus-common" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-prometheus-procfs" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-rcrowley-go--metrics" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-samuel-go--zookeeper" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-satori-go.uuid" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-shirou-gopsutil" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-shirou-w32" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-sirupsen-logrus" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-soniah-gosnmp" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-streadway-amqp" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-stretchr-objx" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-stretchr-testify" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-tidwall-gjson" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-tidwall-match" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-vishvananda-netlink" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-vishvananda-netns" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-vjeantet-grok" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-vmware-govmomi" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-wvanbergen-kafka" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-wvanbergen-kazoo--go" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-yuin-gopher--lua" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---go.googlesource.com-crypto" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---go.googlesource.com-net" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---go.googlesource.com-oauth2" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---go.googlesource.com-sys" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---go.googlesource.com-text" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-alecthomas-kingpin.v2" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-asn1--ber.v1" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-fatih-pool.v2" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-gorethink-gorethink.v3" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-ldap.v2" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-mgo.v2" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-olivere-elastic.v5" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-tomb.v1" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---gopkg.in-yaml.v2" />
+      <path value="$PROJECT_DIR$/src/telegraf" />
+      <path value="$PROJECT_DIR$/pkg/dep/sources/https---github.com-leodido-ragel--machinery" />
+      <path value="$PROJECT_DIR$/src/github.com/influxdata/telegraf" />
+    </ignored-roots>
+    <MESSAGE value="Concurrency refactoring, code-style of telegraf project" />
+    <MESSAGE value="Update readme" />
+    <MESSAGE value="Switch to sync.Mutex from atomic for offset flusher" />
+    <MESSAGE value="Update readme and config.conf" />
+    <MESSAGE value="Docker container logs input added" />
+    <MESSAGE value="Procstat_boost input plugin added" />
+    <option name="LAST_COMMIT_MESSAGE" value="Procstat_boost input plugin added" />
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="-1393" y="202" width="1106" height="669" key="#Markdown" timestamp="1576770892965">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1393" y="202" width="1106" height="669" key="#Markdown/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576770892965" />
+    <state x="-1479" y="213" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1577110807414">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1479" y="213" key="#com.intellij.execution.impl.EditConfigurationsDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577110807414" />
+    <state x="441" y="213" key="#com.intellij.execution.impl.EditConfigurationsDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576841802816" />
+    <state x="680" y="361" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1576761621821">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="680" y="361" key="#com.intellij.fileTypes.FileTypeChooser/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576761621821" />
+    <state x="-1196" y="394" key="#com.intellij.ide.actions.ChooseComponentsToExportDialog" timestamp="1577110802161">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1196" y="394" key="#com.intellij.ide.actions.ChooseComponentsToExportDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577110802161" />
+    <state x="0" y="97" width="1330" height="759" key="CommitChangelistDialog2" timestamp="1578503011691">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="476" y="150" width="1258" height="887" key="CommitChangelistDialog2/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576829529699" />
+    <state x="0" y="97" width="1330" height="759" key="CommitChangelistDialog2/0.23.1440.877@0.23.1440.877" timestamp="1578503011691" />
+    <state x="75" y="106" width="1290" height="712" key="DiffContextDialog" timestamp="1578314584048">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="-1820" y="123" width="1720" height="857" key="DiffContextDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577117292180" />
+    <state x="100" y="123" width="1720" height="857" key="DiffContextDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576829472732" />
+    <state x="75" y="106" width="1290" height="712" key="DiffContextDialog/0.23.1440.877@0.23.1440.877" timestamp="1578314584048" />
+    <state x="-1367" y="318" width="692" height="653" key="EditFileWatcherDialog" timestamp="1577115312981">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1367" y="318" key="EditFileWatcherDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577115312981" />
+    <state x="553" y="318" width="692" height="653" key="EditFileWatcherDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576840324014" />
+    <state x="654" y="416" key="EnvironmentVariablesDialog" timestamp="1576838547771">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="654" y="416" key="EnvironmentVariablesDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576838547771" />
+    <state width="1398" height="375" key="GridCell.Tab.0.bottom" timestamp="1578502092631">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state width="1878" height="457" key="GridCell.Tab.0.bottom/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577118421588" />
+    <state width="1878" height="434" key="GridCell.Tab.0.bottom/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1577113063128" />
+    <state width="1398" height="375" key="GridCell.Tab.0.bottom/0.23.1440.877@0.23.1440.877" timestamp="1578502092631" />
+    <state width="1398" height="375" key="GridCell.Tab.0.center" timestamp="1578502092628">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state width="1878" height="457" key="GridCell.Tab.0.center/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577118421586" />
+    <state width="1878" height="434" key="GridCell.Tab.0.center/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1577113063126" />
+    <state width="1398" height="375" key="GridCell.Tab.0.center/0.23.1440.877@0.23.1440.877" timestamp="1578502092628" />
+    <state width="1398" height="375" key="GridCell.Tab.0.left" timestamp="1578502092627">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state width="1878" height="457" key="GridCell.Tab.0.left/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577118421586" />
+    <state width="1878" height="434" key="GridCell.Tab.0.left/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1577113063125" />
+    <state width="1398" height="375" key="GridCell.Tab.0.left/0.23.1440.877@0.23.1440.877" timestamp="1578502092627" />
+    <state width="1398" height="375" key="GridCell.Tab.0.right" timestamp="1578502092630">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state width="1878" height="457" key="GridCell.Tab.0.right/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577118421587" />
+    <state width="1878" height="434" key="GridCell.Tab.0.right/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1577113063127" />
+    <state width="1398" height="375" key="GridCell.Tab.0.right/0.23.1440.877@0.23.1440.877" timestamp="1578502092630" />
+    <state width="1878" height="333" key="GridCell.Tab.1.bottom" timestamp="1576849064615">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state width="1878" height="333" key="GridCell.Tab.1.bottom/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849064615" />
+    <state width="1878" height="333" key="GridCell.Tab.1.center" timestamp="1576849064614">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state width="1878" height="333" key="GridCell.Tab.1.center/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849064614" />
+    <state width="1878" height="333" key="GridCell.Tab.1.left" timestamp="1576849064613">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state width="1878" height="333" key="GridCell.Tab.1.left/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849064613" />
+    <state width="1878" height="333" key="GridCell.Tab.1.right" timestamp="1576849064614">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state width="1878" height="333" key="GridCell.Tab.1.right/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576849064614" />
+    <state x="0" y="23" width="1440" height="877" key="MergeDialog" timestamp="1578314802051">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="0" y="23" width="1440" height="877" key="MergeDialog/0.23.1440.877@0.23.1440.877" timestamp="1578314802051" />
+    <state x="433" y="184" key="MultipleFileMergeDialog" timestamp="1578314802115">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="433" y="184" key="MultipleFileMergeDialog/0.23.1440.877@0.23.1440.877" timestamp="1578314802115" />
+    <state x="323" y="158" key="SettingsEditor" timestamp="1578503272588">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="-1489" y="186" key="SettingsEditor/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577115316834" />
+    <state x="408" y="172" key="SettingsEditor/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576840325202" />
+    <state x="323" y="158" key="SettingsEditor/0.23.1440.877@0.23.1440.877" timestamp="1578503272588" />
+    <state x="372" y="173" key="VCS.ChangeListViewerDialog" timestamp="1578314673318">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="372" y="173" key="VCS.ChangeListViewerDialog/0.23.1440.877@0.23.1440.877" timestamp="1578314673318" />
+    <state x="420" y="227" key="Vcs.Multiple.Commit.Info.Dialog.Key" timestamp="1578314668570">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="420" y="227" key="Vcs.Multiple.Commit.Info.Dialog.Key/0.23.1440.877@0.23.1440.877" timestamp="1578314668570" />
+    <state x="0" y="23" width="1907" height="1046" maximized="true" key="dock-window-1" timestamp="1577117292181">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="0" y="23" width="1907" height="1046" maximized="true" key="dock-window-1/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577117292181" />
+    <state x="277" y="23" width="1529" height="1052" key="dock-window-1/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1577094537263" />
+    <state x="-1826" y="23" width="1799" height="1037" maximized="true" key="dock-window-1/0.23.1440.877@0.23.1440.877" timestamp="1576873144304" />
+    <state x="-1920" y="23" width="1741" height="1010" key="dock-window-2" timestamp="1576761764005">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1920" y="23" width="1741" height="1010" key="dock-window-2/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576761764005" />
+    <state x="-1874" y="53" width="1777" height="1027" key="dock-window-3" timestamp="1576839239276">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1874" y="53" width="1777" height="1027" key="dock-window-3/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576839239276" />
+    <state x="-1862" y="23" width="1777" height="1027" maximized="true" key="dock-window-3/0.23.1440.877@0.23.1440.877" timestamp="1576775041997" />
+    <state x="-1294" y="313" width="816" height="714" key="find.popup" timestamp="1577117164493">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1294" y="313" width="816" height="714" key="find.popup/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@-1920.23.1920.1057" timestamp="1577117164493" />
+    <state x="626" y="313" width="816" height="540" key="find.popup/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576840558209" />
+    <state x="499" y="198" key="scopes" timestamp="1576838504803">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="499" y="198" key="scopes/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576838504803" />
+    <state x="385" y="213" width="670" height="676" key="search.everywhere.popup" timestamp="1578256163197">
+      <screen x="0" y="23" width="1440" height="877" />
+    </state>
+    <state x="385" y="213" width="670" height="676" key="search.everywhere.popup/0.23.1440.877@0.23.1440.877" timestamp="1578256163197" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/src/github.com/influxdata/telegraf/plugins/outputs/kafka/kafka.go</url>
+          <line>301</line>
+          <option name="timeStamp" value="59" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file:///usr/local/Cellar/go/1.11.4/libexec/src/log/log.go</url>
+          <line>294</line>
+          <option name="timeStamp" value="63" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/inputs/k8s_events_listener/k8s_events_listener.go</url>
+          <line>326</line>
+          <option name="timeStamp" value="64" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/outputs/cloudwatch/cloudwatch.go</url>
+          <line>229</line>
+          <option name="timeStamp" value="100" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/outputs/cloudwatch/cloudwatch.go</url>
+          <line>228</line>
+          <option name="timeStamp" value="101" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/inputs/procstat/procstat_test.go</url>
+          <line>268</line>
+          <option name="timeStamp" value="113" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/inputs/procstat/procstat.go</url>
+          <line>103</line>
+          <option name="timeStamp" value="114" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/plugins/inputs/procstat/procstat.go</url>
+          <line>257</line>
+          <option name="timeStamp" value="115" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+    <watches-manager>
+      <configuration name="GoRemoteDebugConfigurationType">
+        <watch expression="dl.buffer[0:44]" language="go" />
+      </configuration>
+      <configuration name="GoApplicationRunConfiguration">
+        <watch expression="c.ls" language="go" />
+        <watch expression="*(*&quot;int64&quot;)(824649603024)" />
+        <watch expression="lsContainer" language="go" />
+        <watch expression="batch.putLogEvents" language="go" />
+        <watch expression="metricTime" language="go" />
+        <watch expression="time.Unix(0, timeInt).UnixNano()" language="go" />
+      </configuration>
+      <configuration name="GoTestRunConfiguration">
+        <watch expression="*(*&quot;github.com/influxdata/telegraf/plugins/inputs/procstat.testProc&quot;)(824634527408)" />
+      </configuration>
+    </watches-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/telegraf$procstat_test_go.out" NAME="procstat_test.go Coverage Results" MODIFIED="1576850396661" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/telegraf$docker_cnt_logs_test_go.out" NAME="docker_cnt_logs_test.go Coverage Results" MODIFIED="1577112608312" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/telegraf$docker_cnt_logs_test.out" NAME="docker_cnt_logs_test Coverage Results" MODIFIED="1573762000293" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+    <SUITE FILE_PATH="coverage/telegraf$procstat_boost_test_go.out" NAME="procstat_boost_test.go Coverage Results" MODIFIED="1576849064522" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
+  </component>
+</project>
