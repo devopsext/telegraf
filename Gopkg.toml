@@ -147,6 +147,15 @@
   version = "2.19.7"
 
 [[constraint]]
+  name = "github.com/mitchellh/go-ps"
+  branch = "procstat_input_support"
+  source = "gitlab.com/devopsext/source/github.com/mitchellh/go-ps.git"
+
+[[constraint]]
+  name = "github.com/dlclark/regexp2"
+  version = "1.1.8"
+
+[[constraint]]
   name = "github.com/Shopify/sarama"
   version = "1.24.0"
 
