@@ -1,14 +1,5 @@
 package docker_cnt_logs
 
-//TODO 1. Godoc для комментов к функциям
-//TODO 2. Профайлер использовать (пришлю)
-//TODO 3. Вынести код который обрабатывает данные из контейнера в отдельные функции (single resp) - SOLID
-//TODO 4. ОБернеуть логгер - не дублировать [inputs.docker_cnt_logs]
-//TODO 5. Вынести хелперы в отдельные файлы
-//TODO 6. We have something similar in the tail plugin which allow Telegraf to resume at the same point when sent a SIGHUP, it doesn't save offsets to file currently though. We could add this to the docker_log plugin if you can split it out as a separate pull request. We need to make sure it will work in Windows/Linux/Mac/etc and that it will clean up after itself.
-//TODO 7. Add feature of tracking new plugins to be in alignment with `docker_log`
-//TODO 8. Refactor configuration interface to be in alignment with `docker_log`
-
 import (
 	"context"
 	"crypto/tls"
