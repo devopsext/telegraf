@@ -144,12 +144,13 @@
 
 [[constraint]]
   name = "github.com/shirou/gopsutil"
-  version = "2.19.7"
+  branch = "process-disk-fix_2.19.11"
+  source = "github.com/devopsext/gopsutil.git"
 
 [[constraint]]
   name = "github.com/mitchellh/go-ps"
-  branch = "procstat_input_support"
-  source = "gitlab.com/devopsext/source/github.com/mitchellh/go-ps.git"
+  branch = "nondef_mount_point_proc"
+  source = "github.com/devopsext/go-ps.git"
 
 [[constraint]]
   name = "github.com/dlclark/regexp2"

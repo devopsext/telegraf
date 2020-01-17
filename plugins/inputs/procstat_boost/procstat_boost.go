@@ -1,5 +1,8 @@
 package procstat_boost
 
+//TODO: Clarify what to do with borken gopsutils (disk_linux.go, process_linux.go - name resolving) -> Build from own feature branch of gopsutils
+//TODO: Make pull request in gopsutil project
+
 import (
 	"bytes"
 	"fmt"

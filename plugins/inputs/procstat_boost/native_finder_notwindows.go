@@ -13,31 +13,36 @@ func (nf *NativeFinder) Exe(pattern string) ([]PID, error) {
 	var pids []PID
 
 	procs, err := gops.Processes() //gops
+	//procs, err := process.Processes()
 	if err != nil {
 		return pids, err
 	}
 
 	for _, p := range procs {
 		name := p.Executable()
+		//name, err := p.Exe()
 
-		if err != nil {
-			//skip, this can be caused by the pid no longer existing
-			//or you having no permissions to access it
-			continue
-		}
+		//if err != nil {
+		//skip, this can be caused by the pid no longer existing
+		//or you having no permissions to access it
+		//	continue
+		//}
 
 		if !nf.regexpFullMatch {
 			matched, err := nf.regexp.MatchString(name)
 			if err != nil {
-				log.Printf("E! [inputs.procstat_boost] Can't check regex match of executable '%s', skipping this process (PID - '%d'). Reason: %v\n", name, p.Pid(), err)
+				//log.Printf("E! [inputs.procstat_boost] Can't check regex match of executable '%s', skipping this process (PID - '%d'). Reason: %v\n", name, p.Pid(), err)
+				log.Printf("E! [inputs.procstat_boost] Can't check regex match of executable '%s', skipping this process (PID - '%d'). Reason: %v\n", name, p.Pid, err)
 				continue
 			}
 
 			if matched {
 				pids = append(pids, PID(p.Pid()))
+				//pids = append(pids, PID(p.Pid))
 			}
 		} else {
 			pids = append(pids, PID(p.Pid()))
+			//pids = append(pids, PID(p.Pid))
 		}
 
 	}

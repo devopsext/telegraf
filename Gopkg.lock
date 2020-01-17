@@ -889,13 +889,13 @@
   version = "v1.1.0"
 
 [[projects]]
-  branch = "procstat_input_support"
-  digest = "1:ae08fdd70715b82bdd6120af27712dec64315641bb097c571f6b7532b5bb2aa9"
+  branch = "nondef_mount_point_proc"
+  digest = "1:ea9633a8c1ba7ac25ed7011f2de497da232d22cf10f8f0f65a7b9d6b0d1332b2"
   name = "github.com/mitchellh/go-ps"
   packages = ["."]
   pruneopts = ""
-  revision = "e05d8c16993fcf1cbc236c917cff5a6f916b7b47"
-  source = "gitlab.com/devopsext/source/github.com/mitchellh/go-ps.git"
+  revision = "8db86b211ff270b290977eb12482cfcca1073644"
+  source = "github.com/devopsext/go-ps.git"
 
 [[projects]]
   branch = "master"
@@ -1131,7 +1131,8 @@
   revision = "b2ce2384e17bbe0c6d34077efa39dbab3e09123b"
 
 [[projects]]
-  digest = "1:9024df427b3c8a80a0c4b34e535e5e1ae922c7174e3242b6c7f30ffb3b9f715e"
+  branch = "process-disk-fix_2.19.11"
+  digest = "1:32dbe65d2664cb7a0973708b713437406f9cae56bb632d3dbfb959b8d2a0fbe7"
   name = "github.com/shirou/gopsutil"
   packages = [
     "cpu",
@@ -1144,8 +1145,8 @@
     "process",
   ]
   pruneopts = ""
-  revision = "fc7e5e7af6052e36e83e5539148015ed2c09d8f9"
-  version = "v2.19.11"
+  revision = "0cd27a4273dd9abd26d5d736aeed5f47dfa04206"
+  source = "github.com/devopsext/gopsutil.git"
 
 [[projects]]
   branch = "master"
