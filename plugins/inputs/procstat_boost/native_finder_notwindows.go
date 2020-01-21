@@ -32,7 +32,7 @@ func (nf *NativeFinder) Exe(pattern string) ([]PID, error) {
 			matched, err := nf.regexp.MatchString(name)
 			if err != nil {
 				//log.Printf("E! [inputs.procstat_boost] Can't check regex match of executable '%s', skipping this process (PID - '%d'). Reason: %v\n", name, p.Pid(), err)
-				log.Printf("E! [inputs.procstat_boost] Can't check regex match of executable '%s', skipping this process (PID - '%d'). Reason: %v\n", name, p.Pid, err)
+				log.Printf("E! [inputs.procstat_boost] Can't check regex match of executable '%s', skipping this process (PID - '%d'). Reason: %v\n", name, p.Pid(), err)
 				continue
 			}
 

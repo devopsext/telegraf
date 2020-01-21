@@ -1145,7 +1145,7 @@
     "process",
   ]
   pruneopts = ""
-  revision = "0cd27a4273dd9abd26d5d736aeed5f47dfa04206"
+  revision = "6cf5dfddc1c1fa25c4638e627c670fa60fc84462"
   source = "github.com/devopsext/gopsutil.git"
 
 [[projects]]
