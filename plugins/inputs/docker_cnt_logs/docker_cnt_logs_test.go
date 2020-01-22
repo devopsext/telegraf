@@ -280,15 +280,15 @@ func genericTest(t *testing.T, input *DockerCNTLogs, waitEof time.Duration) {
 		closed := 0
 		for {
 			closed = 0
-			for _, logReader := range input.logReader {
+			for _, streamer := range input.logStreamer {
 
-				logReader.lock.Lock()
-				if logReader.eofReceived {
+				streamer.lock.Lock()
+				if streamer.eofReceived {
 					closed++
 				}
-				logReader.lock.Unlock()
+				streamer.lock.Unlock()
 			}
-			if closed == len(input.logReader) {
+			if closed == len(input.logStreamer) {
 				break
 			}
 		}
