@@ -3,29 +3,112 @@ package docker_cnt_logs
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"github.com/influxdata/telegraf/testutil"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
-	"log"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+	"unicode"
+
+	"github.com/docker/docker/api/types"
+	"github.com/influxdata/telegraf/testutil"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+//Mock data
+var (
+	//Ensure mockDockerClient implements dClient wrapper
+	_ dClient = (*mockDockerClient)(nil)
+
+	stdOutHeader = []byte{1, 0, 0, 0, 0, 0, 1, 0}
+	stdErrHeader = []byte{2, 0, 0, 0, 0, 0, 1, 0}
+	stdInHeader  = []byte{0, 0, 0, 0, 0, 0, 1, 0}
+
+	testLogsOutputData = []map[string]interface{}{
+		{
+			"tss":    "2019-10-29T11:15:14.813957700Z",
+			"data":   "0:first message\r\n",
+			"header": stdOutHeader,
+		},
+		{
+			"tss":    "2019-10-29T11:15:15.813957700Z",
+			"data":   "1:intermediate message\r\n",
+			"header": stdErrHeader,
+		},
+		{
+			"tss":    "2019-10-29T11:15:17.813957700Z",
+			"data":   "2:last message", //Important! When EOF, last message is not terminated...
+			"header": stdInHeader,
+		}}
+	testLogsOutputDataWOHeaders = []map[string]interface{}{
+		{
+			"tss":    "2019-10-29T11:15:13.813957700Z",
+			"data":   "0:first message\r\n",
+			"header": nil,
+		},
+		{
+			"tss":    "2019-10-29T11:15:18.813957700Z",
+			"data":   "1:last message", //Important! When EOF, last message is not terminated...
+			"header": nil,
+		}}
+
+	targetContainers = []map[string]interface{}{
+		{
+			"id":                  "container1",
+			"log_gather_interval": "500ms",
+			"rawLogEntries":       testLogsOutputData,
+			"hasTTY":              false,
+			"status":              "running",
+			"tags":                []interface{}{"tag1=StreamWithHeaders", "tag2=value2"}},
+		{
+			"id":                  "container2",
+			"log_gather_interval": "1000ms",
+			"rawLogEntries":       testLogsOutputDataWOHeaders,
+			"hasTTY":              true,
+			"status":              "paused",
+			"tags":                []interface{}{"tag1=StreamWithoutHeaders", "tag2=value2"}}}
+	targetContainersWOTS = []map[string]interface{}{
+		{
+			"id":                  "container1",
+			"log_gather_interval": "500ms",
+			"rawLogEntries":       testLogsOutputDataWOHeaders,
+			"hasTTY":              true,
+			"status":              "running",
+			"tags":                []interface{}{"tag1=StreamWithoutHeaders", "tag2=value2"}},
+		{
+			"id":                  "container2",
+			"log_gather_interval": "1000ms",
+			"rawLogEntries":       testLogsOutputData,
+			"hasTTY":              false,
+			"status":              "paused",
+			"tags":                []interface{}{"tag1=StreamWithHeaders", "tag2=value2"}}}
 )
 
 type mockDockerClient struct {
-	containerInspectData types.ContainerJSON
-	targetContainers     []map[string]interface{}
+	targetContainers []map[string]interface{}
+}
+
+func newMockDockerClient(targetContainers []map[string]interface{}) *mockDockerClient {
+	return &mockDockerClient{targetContainers: targetContainers}
 }
 
 func (c *mockDockerClient) ContainerInspect(ctx context.Context, contID string) (types.ContainerJSON, error) {
-	return c.containerInspectData, nil
+	inspectData := types.ContainerJSON{
+		ContainerJSONBase: &types.ContainerJSONBase{ID: contID, State: &types.ContainerState{}},
+		Config:            &container.Config{}}
+
+	for _, container := range c.targetContainers {
+		if container["id"].(string) == contID {
+			inspectData.Config.Tty = container["hasTTY"].(bool)
+			inspectData.State.Status = container["status"].(string)
+		}
+	}
+	return inspectData, nil
 }
 
 func (c *mockDockerClient) ContainerLogs(ctx context.Context, contID string, options types.ContainerLogsOptions) (io.ReadCloser, error) {
@@ -46,13 +129,13 @@ func (c *mockDockerClient) ContainerLogs(ctx context.Context, contID string, opt
 					sinceTSTime := time.Time{}
 					sinceTSTime, err = time.Parse(time.RFC3339Nano, options.Since)
 					if err != nil {
-						return nil, fmt.Errorf("MOCK Client: Can't parse timestamp from docker options. Cont ID '%s', reason: %v", contID, err)
+						return nil, fmt.Errorf("MOCK dClient: Can't parse timestamp from docker options. Cont ID '%s', reason: %v", contID, err)
 					} else {
 						sinceTS = sinceTSTime.UnixNano()
 					}
 				}
 
-				log.Printf("D! [inputs.docker_cnt_logs (mock)] Container '%s', stream logs since: %s (%d)",
+				lg.logD("Container '%s', stream logs since: %s (%d)",
 					contID, time.Unix(sinceTS, 0).Format(time.RFC3339Nano), sinceTS)
 			}
 			rawLogEntries := container["rawLogEntries"].([]map[string]interface{})
@@ -62,12 +145,12 @@ func (c *mockDockerClient) ContainerLogs(ctx context.Context, contID string, opt
 				//Filtering log entries based on TS
 				entryTS, err = time.Parse(time.RFC3339Nano, entry["tss"].(string))
 				if err != nil {
-					log.Printf("D! [inputs.docker_cnt_logs (mock)] Container '%s', stream log entry '%s' can't parse ts '%s'\n",
+					lg.logD("Container '%s', stream log entry '%s' can't parse ts '%s'\n",
 						contID, entry["data"].(string), entry["tss"].(string))
 					continue
 				}
 				if entryTS.Unix() < sinceTS {
-					log.Printf("D! [inputs.docker_cnt_logs (mock)] Container '%s', stream log entry '%s' filtered\n"+
+					lg.logD("Container '%s', stream log entry '%s' filtered\n"+
 						"based on it's ts: %s (%d)!", contID, entry["data"].(string), entry["tss"].(string), entryTS.Unix())
 					continue
 				}
@@ -95,7 +178,19 @@ func (c *mockDockerClient) ContainerLogs(ctx context.Context, contID string, opt
 
 		}
 	}
-	return nil, fmt.Errorf("MOCK Client: Can't find stream for container '%s'", contID)
+	return nil, fmt.Errorf("MOCK dClient: Can't find stream for container '%s'", contID)
+}
+
+func (c *mockDockerClient) ContainerList(ctx context.Context, options types.ContainerListOptions) ([]types.Container, error) {
+	containers := []types.Container{}
+	for _, elem := range c.targetContainers {
+		containerName, _ := elem["name"].(string)
+
+		containers = append(containers,
+			types.Container{ID: elem["id"].(string),
+				Names: []string{containerName}})
+	}
+	return containers, nil
 }
 
 func (c *mockDockerClient) Close() error {
@@ -104,7 +199,7 @@ func (c *mockDockerClient) Close() error {
 
 func (c *mockDockerClient) getContainerByID(contID string) map[string]interface{} {
 	for _, elem := range c.targetContainers {
-		if elem["id"] == contID {
+		if elem["id"] == contID || trimId(elem["id"].(string)) == contID {
 			return elem
 		}
 	}
@@ -148,76 +243,13 @@ func (r *mockReaderCloser) Close() (err error) {
 	return nil
 }
 
-var int64Dummy int64
-
-var containerInspectRunning = types.ContainerJSON{
-	ContainerJSONBase: &types.ContainerJSONBase{
-		ID:              "dummyContainer",
-		Created:         "",
-		Path:            "",
-		Args:            []string{""},
-		State:           &types.ContainerState{Status: "running"},
-		Image:           "",
-		ResolvConfPath:  "",
-		HostnamePath:    "",
-		HostsPath:       "",
-		LogPath:         "",
-		Node:            &types.ContainerNode{},
-		Name:            "",
-		RestartCount:    0,
-		Driver:          "",
-		Platform:        "",
-		MountLabel:      "",
-		ProcessLabel:    "",
-		AppArmorProfile: "",
-		ExecIDs:         []string{""},
-		HostConfig:      &container.HostConfig{},
-		GraphDriver:     types.GraphDriverData{},
-		SizeRw:          &int64Dummy,
-		SizeRootFs:      &int64Dummy},
-	Mounts:          []types.MountPoint{},
-	Config:          &container.Config{},
-	NetworkSettings: &types.NetworkSettings{}}
-
-var stdOutHeader = []byte{1, 0, 0, 0, 0, 0, 1, 0}
-var stdErrHeader = []byte{2, 0, 0, 0, 0, 0, 1, 0}
-var stdInHeader = []byte{0, 0, 0, 0, 0, 0, 1, 0}
-
-var testLogsOutputData = []map[string]interface{}{
-	{
-		"tss":    "2019-10-29T11:15:14.813957700Z",
-		"data":   "0:first message\n",
-		"header": stdOutHeader,
-	},
-	{
-		"tss":    "2019-10-29T11:15:15.813957700Z",
-		"data":   "1:intermediate message\n",
-		"header": stdErrHeader,
-	},
-	{
-		"tss":    "2019-10-29T11:15:17.813957700Z",
-		"data":   "2:last message",
-		"header": stdInHeader,
-	}}
-var testLogsOutputDataWOHeaders = []map[string]interface{}{
-	{
-		"tss":    "2019-10-29T11:15:13.813957700Z",
-		"data":   "0:first message\n",
-		"header": nil,
-	},
-	{
-		"tss":    "2019-10-29T11:15:18.813957700Z",
-		"data":   "1:last message",
-		"header": nil,
-	}}
-
 func parseDataFromRawLogEntry(rawLogEntry map[string]interface{}) (time.Time, string, error) {
 	var ts time.Time
 	var streamTag string
 	var err error
 	ts, err = time.Parse(time.RFC3339Nano, rawLogEntry["tss"].(string))
 	if rawLogEntry["header"] == nil {
-		streamTag = "interactive"
+		streamTag = "tty"
 	} else {
 		switch rawLogEntry["header"].([]byte)[0] {
 		case stdInHeader[0]:
@@ -240,31 +272,205 @@ func parseDataFromRawLogEntry(rawLogEntry map[string]interface{}) (time.Time, st
 	return ts, streamTag, err
 }
 
-var targetContainers = []map[string]interface{}{
-	{
-		"id":            "dummyContainer1",
-		"interval":      "500ms",
-		"rawLogEntries": testLogsOutputData,
-		"tags":          []interface{}{"tag1=StreamWithHeaders", "tag2=value2"}},
-	{
-		"id":            "dummyContainer2",
-		"interval":      "1000ms",
-		"rawLogEntries": testLogsOutputDataWOHeaders,
-		"tags":          []interface{}{"tag1=StreamWithoutHeaders", "tag2=value2"}}}
+func genericTest(t *testing.T, input *DockerCNTLogs, waitStreamers time.Duration) {
+	var acc testutil.Accumulator
+	var err error
+	var lastUnixTS = map[string]int64{}
+	var msgConut = map[string]int{}
+	var msgIndex = map[string][]int{}
 
-var targetContainersWOTS = []map[string]interface{}{
-	{
-		"id":            "dummyContainer1",
-		"interval":      "500ms",
-		"rawLogEntries": testLogsOutputDataWOHeaders,
-		"tags":          []interface{}{"tag1=StreamWithoutHeaders", "tag2=value2"}},
-	{
-		"id":            "dummyContainer2",
-		"interval":      "1000ms",
-		"rawLogEntries": testLogsOutputData,
-		"tags":          []interface{}{"tag1=StreamWithHeaders", "tag2=value2"}}}
+	acc.SetDebug(true)
 
-func genericTest(t *testing.T, input *DockerCNTLogs, waitEof time.Duration) {
+	err = input.Init()
+	require.NoError(t, err)
+
+	err = input.Gather(&acc)
+	require.NoError(t, err)
+
+	if waitStreamers == 0 { //wait until streamers done
+		//Waiting until docker streamer receive EOF or canceled
+		input.wgStreamers.Wait()
+
+	} else {
+		time.Sleep(waitStreamers)
+	}
+
+	input.Stop()
+	input.wg.Wait()
+
+	for _, metric := range acc.Metrics {
+		containerElement := input.client.(*mockDockerClient).getContainerByID(metric.Fields["container_id"].(string))
+		require.NotNil(t, containerElement, "Can't detect container by accumulator metric tag 'container_id'.\n"+
+			"Check if tag populated and has proper value")
+
+		msgSplitArray := strings.Split(metric.Fields["message"].(string), ":")
+		if len(msgSplitArray) < 1 { //TODO: replace to require.Compare
+			panic("Corrupted mock container log entries, each string should start with index of message in the raw log entries array.\n" +
+				"Pattern: '<INDEX>:<MESSAGE>'")
+		}
+		rawLogEntriesIndex, err := strconv.Atoi(msgSplitArray[0])
+		require.Nil(t, err, "Can't parse message index from the mock container message, is index an integer?...")
+
+		rawLogEntry := containerElement["rawLogEntries"].([]map[string]interface{})[rawLogEntriesIndex]
+		ts, streamTag, err := parseDataFromRawLogEntry(rawLogEntry)
+		require.Nil(t, err, "Can't parse ts/streamTag from raw log entry")
+
+		assert.Equal(t, "docker_cnt_logs", metric.Measurement)
+
+		assert.Equal(t,
+			strings.TrimRightFunc(rawLogEntry["data"].(string), unicode.IsSpace),
+			metric.Fields["message"].(string))
+
+		if !input.disableTimeStampsStreaming {
+			assert.Equal(t,
+				ts,
+				metric.Time)
+		}
+
+		assert.Equal(t,
+			streamTag,
+			metric.Tags["stream"])
+
+		msgConut[metric.Fields["container_id"].(string)]++
+		msgIndex[metric.Fields["container_id"].(string)] = append(msgIndex[metric.Fields["container_id"].(string)], []int{rawLogEntriesIndex}...)
+		lastUnixTS[metric.Fields["container_id"].(string)] = metric.Time.UnixNano() + 1
+
+	}
+
+	//Check filtering of container log entries based on TS (in case all messages are received)
+	if waitStreamers == 0 {
+		for contID, msgCount := range msgConut {
+			containerElement := input.client.(*mockDockerClient).getContainerByID(contID)
+			assert.Equal(t, msgCount, containerElement["msgCount"], fmt.Sprintf("Container ID '%s'", contID))
+		}
+	}
+
+	//Checking offset flusher
+	for contID, lastTS := range lastUnixTS {
+		_, tsFromOffsetFile := input.getOffset(path.Join(input.OffsetStoragePath, contID))
+		assert.Equal(t, lastTS, tsFromOffsetFile, fmt.Sprintf("Container ID '%s'", contID))
+	}
+}
+
+//Test log delivery with different headers and TS
+func TestTS(t *testing.T) { //Mixed containers with time stamps
+
+	input := DockerCNTLogs{
+		client:              newMockDockerClient(targetContainers),
+		OffsetStoragePath:   "./collector_offset",
+		InitialChunkSize:    20, //to split the first string in 2 parts
+		MaxChunkSize:        80,
+		StaticContainerList: targetContainers}
+
+	//Removing offset files
+	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
+	genericTest(t, &input, 0)
+}
+
+//Test filtering messages from container based on offset
+func TestTSOffset(t *testing.T) {
+
+	input := DockerCNTLogs{
+		client:              newMockDockerClient(targetContainers),
+		OffsetStoragePath:   "./collector_offset",
+		InitialChunkSize:    20, //to split the first string in 2 parts
+		MaxChunkSize:        80,
+		StaticContainerList: targetContainers}
+
+	//Generating TS files:
+	//Create storage path
+	if src, err := os.Stat(input.OffsetStoragePath); os.IsNotExist(err) {
+		errDir := os.MkdirAll(input.OffsetStoragePath, 0755)
+		if errDir != nil {
+			require.Nil(t, errDir, fmt.Sprintf("Can't create directory '%s' to store offset, reason: %s", input.OffsetStoragePath, errDir.Error()))
+		}
+	} else if src != nil && src.Mode().IsRegular() {
+		require.Equal(t, false, src.Mode().IsRegular(), fmt.Sprintf("'%s' already exist as a file!", input.OffsetStoragePath))
+	}
+
+	for _, container := range input.client.(*mockDockerClient).targetContainers {
+		//get ts from the lst log entry in container's rawLogEntries
+		rawLogEntries := container["rawLogEntries"].([]map[string]interface{})
+		entryTS, err := time.Parse(time.RFC3339Nano, rawLogEntries[len(rawLogEntries)-1]["tss"].(string))
+		require.Nil(t, err, fmt.Sprintf("Container id '%s', can't parse timestamp from log entry: %s, ts: %s",
+			container["id"],
+			rawLogEntries[len(rawLogEntries)-1]["data"].(string),
+			rawLogEntries[len(rawLogEntries)-1]["tss"].(string)))
+
+		filename := path.Join(input.OffsetStoragePath, container["id"].(string))
+		offset := []byte(strconv.FormatInt(entryTS.Unix(), 10))
+		err = ioutil.WriteFile(filename, offset, 0777)
+		require.Nil(t, err, fmt.Sprintf("Can't write lg offset to file '%s', reason: %v",
+			filename, err))
+
+	}
+	genericTest(t, &input, 0)
+
+	//Removing offset files
+	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
+}
+
+//Test streaming of logs without TS
+func TestWOTS(t *testing.T) { //Mixed containers without time stamps
+
+	input := DockerCNTLogs{
+		client:                     newMockDockerClient(targetContainersWOTS),
+		OffsetStoragePath:          "./collector_offset",
+		InitialChunkSize:           20, //to split the first string in 2 parts
+		MaxChunkSize:               80,
+		disableTimeStampsStreaming: true,
+		StaticContainerList:        targetContainersWOTS}
+
+	//Removing offset files
+	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
+
+	genericTest(t, &input, 0)
+
+	//Removing offset files
+	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
+}
+
+//Test race condition while interrupt receiving logs from containers...
+//Check for possible deadlocks while stopping srteam readers, offset flusher, etc.
+func TestRaceCondition(t *testing.T) {
+
+	input := DockerCNTLogs{
+		client:                     newMockDockerClient(targetContainersWOTS),
+		OffsetStoragePath:          "./collector_offset",
+		InitialChunkSize:           20, //to split the first string in 2 parts
+		MaxChunkSize:               80,
+		disableTimeStampsStreaming: true,
+		StaticContainerList:        targetContainersWOTS}
+
+	//Removing offset files
+	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
+
+	genericTest(t, &input, time.Millisecond*100)
+
+	//Removing offset files
+	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
+}
+
+//Test ShutDownWhenEOF...
+//Check for possible deadlocks while checking the eof and shutdowning....
+/*
+func TestShutdownWhenEOF(t *testing.T) {
+
+	input := DockerCNTLogs{
+		client: &mockDockerClient{
+			containerInspectData: containerInspectRunning,
+			targetContainers:     targetContainersWOTS},
+		Endpoint:                   "MOCK",
+		ShutDownWhenEOF:            true,
+		OffsetStoragePath:          "./collector_offset",
+		InitialChunkSize:           20, //to split the first string in 2 parts
+		MaxChunkSize:               80,
+		disableTimeStampsStreaming: true,
+		StaticContainerList:           targetContainersWOTS}
+
+	//Removing offset files
+	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
+
 	var acc testutil.Accumulator
 	var err error
 	var lastUnixTS = map[string]int64{}
@@ -275,29 +481,8 @@ func genericTest(t *testing.T, input *DockerCNTLogs, waitEof time.Duration) {
 
 	err = input.Start(&acc)
 	require.NoError(t, err)
-	if waitEof == 0 { //wait until EOF
-		//Waiting until docker stream receive EOF
-		closed := 0
-		for {
-			closed = 0
-			for _, streamer := range input.logStreamer {
 
-				streamer.lock.Lock()
-				if streamer.eofReceived {
-					closed++
-				}
-				streamer.lock.Unlock()
-			}
-			if closed == len(input.logStreamer) {
-				break
-			}
-		}
-	} else {
-		time.Sleep(waitEof)
-	}
-
-	input.Stop()
-	input.wg.Wait()
+	input.wgStreamers.Wait()
 
 	for _, metric := range acc.Metrics {
 		containerElement := input.client.(*mockDockerClient).getContainerByID(metric.Tags["container_id"])
@@ -339,132 +524,21 @@ func genericTest(t *testing.T, input *DockerCNTLogs, waitEof time.Duration) {
 	}
 
 	//Check filtering of container log entries based on TS (in case all messages are received)
-	if waitEof == 0 {
-		for contID, msgCount := range msgConut {
-			containerElement := input.client.(*mockDockerClient).getContainerByID(contID)
-			assert.Equal(t, msgCount, containerElement["msgCount"], fmt.Sprintf("Container ID '%s'", contID))
-		}
+	for contID, msgCount := range msgConut {
+		containerElement := input.client.(*mockDockerClient).getContainerByID(contID)
+		assert.Equal(t, msgCount, containerElement["msgCount"], fmt.Sprintf("Container ID '%s'", contID))
 	}
+
+	input.wg.Wait()
+	//Wait while input.Stop is called by telegraf itslef and all the stuff flushed
+	time.Sleep(3 * time.Second)
 
 	//Checking offset flusher
-	for contID, lastTS := range lastUnixTS {
-		_, tsFromOffsetFile := getOffset(path.Join(input.OffsetStoragePath, contID))
-		assert.Equal(t, lastTS, tsFromOffsetFile, fmt.Sprintf("Container ID '%s'", contID))
-	}
-}
-
-//Test log delivery with different headers and TS
-func TestTS(t *testing.T) { //Mixed containers with time stamps
-
-	input := DockerCNTLogs{
-		client: &mockDockerClient{
-			containerInspectData: containerInspectRunning,
-			targetContainers:     targetContainers},
-		Endpoint:          "MOCK",
-		ShutDownWhenEOF:   false,
-		OffsetStoragePath: "./collector_offset",
-		InitialChunkSize:  20, //to split the first string in 2 parts
-		MaxChunkSize:      80,
-		TargetContainers:  targetContainers}
-
-	//Removing offset files
-	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
-
-	genericTest(t, &input, 0)
-}
-
-//Test filtering messages from container based on offset
-func TestTSOffset(t *testing.T) {
-
-	input := DockerCNTLogs{
-		client: &mockDockerClient{
-			containerInspectData: containerInspectRunning,
-			targetContainers:     targetContainers},
-		Endpoint:          "MOCK",
-		ShutDownWhenEOF:   false,
-		OffsetStoragePath: "./collector_offset",
-		InitialChunkSize:  20, //to split the first string in 2 parts
-		MaxChunkSize:      80,
-		TargetContainers:  targetContainers}
-
-	//Generating TS files:
-	//Create storage path
-	if src, err := os.Stat(input.OffsetStoragePath); os.IsNotExist(err) {
-		errDir := os.MkdirAll(input.OffsetStoragePath, 0755)
-		if errDir != nil {
-			require.Nil(t, errDir, fmt.Sprintf("Can't create directory '%s' to store offset, reason: %s", input.OffsetStoragePath, errDir.Error()))
+		for contID, lastTS := range lastUnixTS {
+			_, tsFromOffsetFile := getOffset(path.Join(input.OffsetStoragePath, contID))
+			assert.Equal(t, lastTS, tsFromOffsetFile, fmt.Sprintf("Container ID '%s'", contID))
 		}
-	} else if src != nil && src.Mode().IsRegular() {
-		require.Equal(t, false, src.Mode().IsRegular(), fmt.Sprintf("'%s' already exist as a file!", input.OffsetStoragePath))
-	}
-
-	for _, container := range input.client.(*mockDockerClient).targetContainers {
-		//get ts from the lst log entry in container's rawLogEntries
-		rawLogEntries := container["rawLogEntries"].([]map[string]interface{})
-		entryTS, err := time.Parse(time.RFC3339Nano, rawLogEntries[len(rawLogEntries)-1]["tss"].(string))
-		require.Nil(t, err, fmt.Sprintf("Container id '%s', can't parse timestamp from log entry: %s, ts: %s",
-			container["id"],
-			rawLogEntries[len(rawLogEntries)-1]["data"].(string),
-			rawLogEntries[len(rawLogEntries)-1]["tss"].(string)))
-
-		filename := path.Join(input.OffsetStoragePath, container["id"].(string))
-		offset := []byte(strconv.FormatInt(entryTS.Unix(), 10))
-		err = ioutil.WriteFile(filename, offset, 0777)
-		require.Nil(t, err, fmt.Sprintf("Can't write logger offset to file '%s', reason: %v",
-			filename, err))
-
-	}
-	genericTest(t, &input, 0)
-
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
 }
-
-//Test streaming of logs without TS
-func TestWOTS(t *testing.T) { //Mixed containers without time stamps
-
-	input := DockerCNTLogs{
-		client: &mockDockerClient{
-			containerInspectData: containerInspectRunning,
-			targetContainers:     targetContainersWOTS},
-		Endpoint:                   "MOCK",
-		ShutDownWhenEOF:            false,
-		OffsetStoragePath:          "./collector_offset",
-		InitialChunkSize:           20, //to split the first string in 2 parts
-		MaxChunkSize:               80,
-		disableTimeStampsStreaming: true,
-		TargetContainers:           targetContainersWOTS}
-
-	//Removing offset files
-	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
-
-	genericTest(t, &input, 0)
-
-	//Removing offset files
-	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
-}
-
-//Test race condition while interrupt receiving logs from containers...
-//Check for possible deadlocks while stopping srteam readers, offset flusher, etc.
-func TestRaceCondition(t *testing.T) {
-
-	input := DockerCNTLogs{
-		client: &mockDockerClient{
-			containerInspectData: containerInspectRunning,
-			targetContainers:     targetContainersWOTS},
-		Endpoint:                   "MOCK",
-		ShutDownWhenEOF:            false,
-		OffsetStoragePath:          "./collector_offset",
-		InitialChunkSize:           20, //to split the first string in 2 parts
-		MaxChunkSize:               80,
-		disableTimeStampsStreaming: true,
-		TargetContainers:           targetContainersWOTS}
-
-	//Removing offset files
-	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
-
-	genericTest(t, &input, time.Millisecond*500)
-
-	//Removing offset files
-	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
-}
+*/

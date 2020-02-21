@@ -53,8 +53,8 @@ API version vs Docker version compatibility matrix: https://docs.docker.com/deve
   ## Interval to gather data from docker sock.
   ## the longer the interval the fewer request is made towards docker API (less CPU utilization on dockerd).
   ## On the other hand, this increase the delay between producing logs and delivering it. Reasonable trade off
-  ## should be chosen
-  interval = "2000ms"
+  ## should be chosen. Default value is 2000 ms.
+  # log_gather_interval = "2000ms"
   
   ## Docker Endpoint
   ##  To use unix, set endpoint = "unix:///var/run/docker.sock" (/var/run/docker.sock is default mount path)
@@ -105,8 +105,7 @@ API version vs Docker version compatibility matrix: https://docs.docker.com/deve
     id = "dc23d3ea534b3a6ec3934ae21e2dd4955fdbf61106b32fa19b831a6040a7feef"
 
     ## Override common settings
-    ## input interval (specified or inherited from agent section)
-    # interval = "500ms"
+    log_gather_interval = "500ms"
 
     ## Initial chunk size
     initial_chunk_size = 2000 # 2K symbols

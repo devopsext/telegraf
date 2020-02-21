@@ -1,14 +1,14 @@
 package docker_cnt_logs
 
 import (
-	"encoding/binary"
+	"context"
 	"fmt"
+	"github.com/influxdata/telegraf/internal/docker"
 	"io"
 	"path"
-	"reflect"
 	"strings"
-	"sync"
 	"time"
+	"unicode"
 
 	"github.com/docker/docker/api/types"
 	"github.com/influxdata/telegraf"
@@ -17,84 +17,155 @@ import (
 
 type streamer struct {
 	contID     string
-	acc        *telegraf.Accumulator
+	acc        telegraf.Accumulator
 	contStream io.ReadCloser
 
-	msgHeaderExamined     bool
-	dockerTimeStamps      bool
-	interval              time.Duration
-	initialChunkSize      int
-	currentChunkSize      int
-	maxChunkSize          int
-	outputMsgStartIndex   uint
-	dockerTimeStampLength uint
-	buffer                []byte
-	leftoverBuffer        []byte
-	length                int
-	endOfLineIndex        int
-	tags                  map[string]string
-	wg                    *sync.WaitGroup
-	done                  chan bool //primary streamer go-routine
-	eofReceived           bool
-	currentOffset         int64
-	offsetLock            *sync.Mutex
-	lock                  *sync.Mutex
-	logger                *loggerWrapper
+	dockerTimeStamps    bool
+	headers             bool
+	interval            time.Duration
+	initialChunkSize    int
+	currentChunkSize    int
+	maxChunkSize        int
+	outputMsgStartIndex int
+	buffer              []byte
+	leftoverBuffer      []byte
+	length              int
+	endOfLineIndex      int
+	tags                map[string]string
+
+	currentOffset int64
+	offsetData    chan offsetData
 }
 
-//Service functions
-func (s *streamer) isContainsHeader(str *[]byte, length int) bool {
+func newStreamer(ctxStream context.Context, container types.Container,contStatus types.ContainerJSON, acc telegraf.Accumulator, d *DockerCNTLogs) (*streamer, error) {
+	var err error
+	var getLogsSince string
+	var currentOffset int64
+	var fromBeginning bool
+	var logRC io.ReadCloser
+	var outputMsgStartIndex int
+	var logGatherInterval time.Duration
+	var initialChunkSize int
+	var maxChunkSize int
+	var tags = map[string]string{"container_name": contStatus.Name}
 
-	//Docker inject headers when running in detached mode, to distinguish stdout, stderr, etc.
-	//Header structure:
-	//header := [8]byte{STREAM_TYPE, 0, 0, 0, SIZE1, SIZE2, SIZE3, SIZE4}
-	//STREAM_TYPE can be:
-	//
-	//0: stdin (is written on stdout)
-	//1: stdout
-	//2: stderr
-	//SIZE1, SIZE2, SIZE3, SIZE4 are the four bytes of the uint32 size encoded as big endian.
-	//
-	//Following the header is the payload, which is the specified number of bytes of STREAM_TYPE.
+	fromBeginning = d.FromBeginning
+	logGatherInterval = d.LogGatherInterval.Duration
+	initialChunkSize = d.InitialChunkSize
+	maxChunkSize = d.MaxChunkSize
 
-	var result bool
-	if length <= 0 || /*garbage*/
-		length < dockerLogHeaderSize /*No header*/ {
-		return false
+	//Update streaming options respecting individual settings that can come from static container list:
+	if staticContainer := d.getContainerFromStaticList(contStatus.ID); staticContainer != nil {
+		//From beginning
+		if fb, ok := staticContainer["from_beginning"].(bool); ok {
+			fromBeginning = fb
+		}
+
+		//Interval
+		interval, ok := staticContainer["log_gather_interval"].(string)
+		if parsedInterval, err := time.ParseDuration(interval); ok && err == nil {
+			logGatherInterval = parsedInterval
+		} else if err != nil && ok {
+			return nil, errors.Errorf("Can't parse interval from string '%s', reason: %s", staticContainer["interval"].(string), err.Error())
+		}
+
+		//initial chunk size
+		if initialChSz, ok := staticContainer["initial_chunk_size"].(int); ok && initialChSz <= dockerLogHeaderSize {
+			initialChunkSize = 2 * dockerLogHeaderSize
+		} else if initialChSz > dockerLogHeaderSize {
+			initialChunkSize = initialChSz
+		}
+
+		//max chunk size
+		if maxChSz, ok := staticContainer["max_chunk_size"].(int); ok && maxChSz <= initialChunkSize {
+			maxChunkSize = 5 * initialChunkSize
+		} else if maxChSz > initialChunkSize {
+			maxChunkSize = maxChSz
+		}
+
+		if _, ok := staticContainer["tags"]; ok { //tags specified
+			for _, tag := range staticContainer["tags"].([]interface{}) {
+				arr := strings.Split(tag.(string), "=")
+				if len(arr) != 2 {
+					lg.logE("Static container: '%s'.\n"+
+						"Can't parse tags from string '%s', valid format is <tag_name>=<tag_value>",
+						trimId(contStatus.ID),
+						tag.(string))
+					continue
+				}
+				tags[arr[0]] = arr[1]
+			}
+		}
+
 	}
 
-	strLength := len(*str)
-	if strLength > 100 {
-		strLength = 100
-	}
-
-	s.logger.logD("Raw string for detecting headers (first 100 symbols):\n%s...\n", (*str)[:strLength-1])
-	s.logger.logD("First 4 bytes: '%v,%v,%v,%v', string representation: '%s'",
-		(*str)[0], (*str)[1], (*str)[2], (*str)[3], (*str)[0:4])
-	s.logger.logD("Big endian value: %d", binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]))
-
-	//Examine first 4 bytes to detect if they match to header structure (see above)
-	if ((*str)[0] == 0x0 || (*str)[0] == 0x1 || (*str)[0] == 0x2) &&
-		((*str)[1] == 0x0 && (*str)[2] == 0x0 && (*str)[3] == 0x0) &&
-		binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) >= 2 /*Encoding big endian*/ {
-		//binary.BigEndian.Uint32((*str)[4:dockerLogHeaderSize]) - calculates message length.
-		//Minimum message length with timestamp is 32 (timestamp (30 symbols) + space + '\n' = 32.
-		//But in case you switch timestamp off it will be 2 (space + '\n')
-
-		s.logger.logI("Detected: log messages from docker API streamed WITH headers...")
-		result = true
-
+	//Detecting headers:
+	if !contStatus.Config.Tty { //Non tty containers mutliplex stdout, stderr into single channel
+		outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
+		lg.logD("Container '%s', logs are streamed WITH headers!", trimId(contStatus.ID))
 	} else {
-		s.logger.logI("Detected: log messages from docker API streamed WITHOUT headers...")
-		result = false
+		outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
+		lg.logD("Container '%s', logs are streamed WITHOUT headers!", trimId(contStatus.ID))
 	}
 
-	return result
+	//Detecting offset
+	getLogsSince, currentOffset = d.getOffset(path.Join(d.OffsetStoragePath, contStatus.ID))
+
+	if getLogsSince != "" && fromBeginning { // If there is an offset, then it means that we already deliver logs until the offset
+		//In this case we can ignore 'fromBeginning' ,and continue from the offset
+		lg.logD("Container '%s', 'from_beginning' option ignored, since there is an offset: %s", trimId(contStatus.ID), getLogsSince)
+
+	} else if getLogsSince == "" && !fromBeginning { //No offset and not from beginning, means that we ship logs since now.
+		getLogsSince = time.Now().UTC().Format(time.RFC3339Nano)
+	}
+
+	//Setup logs reader
+	options := types.ContainerLogsOptions{
+		ShowStdout: true,
+		ShowStderr: true,
+		Follow:     true,
+		Timestamps: !d.disableTimeStampsStreaming,
+		Since:      getLogsSince}
+
+	logRC, err = d.client.ContainerLogs(ctxStream, contStatus.ID, options)
+	if err != nil {
+		return nil, errors.Errorf("Container '%s', can't get log ReadCloser from Docker API, reason:\n%s", trimId(contStatus.ID), err.Error())
+	}
+
+	tags["container_image"], tags["container_version"] = docker.ParseImage(contStatus.Config.Image)
+	if d.IncludeSourceTag {
+		tags["source"] = trimId(contStatus.ID)
+	}
+
+	// Add matching container labels as tags
+	for k, label := range container.Labels {
+		if d.labelFilter.Match(k) {
+			tags[k] = label
+		}
+	}
+
+	return &streamer{
+			acc:                 acc,
+			contID:              contStatus.ID,
+			offsetData:          d.offsetData,
+			interval:            logGatherInterval,
+			dockerTimeStamps:    !d.disableTimeStampsStreaming, //Default behaviour - stream logs with time-stamps
+			headers:             !contStatus.Config.Tty,
+			initialChunkSize:    initialChunkSize,
+			maxChunkSize:        maxChunkSize,
+			currentChunkSize:    initialChunkSize,
+			outputMsgStartIndex: outputMsgStartIndex,
+			contStream:          logRC,
+			buffer:              make([]byte, initialChunkSize),
+			currentOffset:       currentOffset,
+			tags:                tags},
+		nil
 }
 
 //If there is no new line in interval [eolIndex-HeaderSize,eolIndex+HeaderSize],
 //then we are definitely not in the middle of header, otherwise, we are.
-func (s *streamer) isNewLineInMsgHeader(str *[]byte, eolIndex int) bool {
+func (s *streamer) isNewLineInMsgHeader(eolIndex int) bool {
+	str := &s.buffer
 	//Edge case:
 	if eolIndex == dockerLogHeaderSize {
 		return false
@@ -114,238 +185,78 @@ func (s *streamer) isNewLineInMsgHeader(str *[]byte, eolIndex int) bool {
 	return false
 }
 
-func (s *streamer) getInputIntervalDuration() (dur time.Duration) {
-	// As agent.accumulator type is not exported, we need to use reflect, for getting the value of
-	// 'interval' for this input
-	// The code below should be revised, in case agent.accumulator type would be changed.
-	// Anyway, all possible checks on the data structure are made to handle types change.
-	emptyValue := reflect.Value{}
-	agentAccumulator := reflect.ValueOf(s.acc).Elem()
-	if agentAccumulator.Kind() == reflect.Struct {
-		if agentAccumulator.FieldByName("maker") == emptyValue { //Empty value
-			s.logger.logW("Error while parsing agent.accumulator type, filed 'maker'"+
-				" is not found.\nDefault pooling duration '%d' nano sec. will be used", defaultPolingIntervalNS)
-			dur = defaultPolingIntervalNS
-		} else {
-			runningInput := reflect.Indirect(agentAccumulator.FieldByName("maker").Elem())
-			if reflect.Indirect(runningInput).FieldByName("Config") == emptyValue {
-				s.logger.logW("Error while parsing models.RunningInput type, filed "+
-					"'Config' is not found.\nDefault pooling duration '%d' nano sec. will be used", defaultPolingIntervalNS)
-				dur = defaultPolingIntervalNS
-			} else {
-				if reflect.Indirect(reflect.Indirect(runningInput).FieldByName("Config").Elem()).FieldByName("Interval") == emptyValue {
-					s.logger.logW("Error while parsing models.InputConfig type, filed 'Interval'"+
-						" is not found.\nDefault pooling duration '%d' nano sec. will be used", defaultPolingIntervalNS)
-					dur = defaultPolingIntervalNS
-
-				} else {
-					interval := reflect.Indirect(reflect.Indirect(runningInput).FieldByName("Config").Elem()).FieldByName("Interval")
-					if interval.Kind() == reflect.Int64 {
-						dur = time.Duration(interval.Int())
-					} else {
-						s.logger.logW("Error while parsing models.RunningInput.Interval type, filed "+
-							" is not of type 'int'.\nDefault pooling duration '%d' nano sec. will be used", defaultPolingIntervalNS)
-						dur = defaultPolingIntervalNS
-					}
-				}
-
-			}
-
-		}
-
-	}
-
-	return
-}
-
-func newStreamer(acc *telegraf.Accumulator, dl *DockerCNTLogs, container map[string]interface{}) (*streamer, error) {
-	var err error
-	var getLogsSince string
-	var contStatus types.ContainerJSON
-	s := &streamer{}
-	s.wg = &dl.wg
-	s.acc = acc
-	s.logger = newLoggerWrapper(inputTitle)
-	s.contID = container["id"].(string)
-
-	if _, ok := container["interval"]; ok { //inetrval is specified
-		s.interval, err = time.ParseDuration(container["interval"].(string))
-		if err != nil {
-			return nil, errors.Errorf("Can't parse interval from string '%s', reason: %s", container["interval"].(string), err.Error())
-		}
-	} else {
-		s.interval = s.getInputIntervalDuration()
-	}
-
-	s.dockerTimeStamps = !dl.disableTimeStampsStreaming //Default behaviour - stream logs with time-stamps
-	s.dockerTimeStampLength = dockerTimeStampLength
-
-	//intitial chunk size
-	if _, ok := container["initial_chunk_size"]; ok { //initial_chunk_size specified
-
-		if int(container["initial_chunk_size"].(int64)) <= dockerLogHeaderSize {
-			s.initialChunkSize = 2 * dockerLogHeaderSize
-		} else {
-			s.initialChunkSize = int(container["initial_chunk_size"].(int64))
-		}
-	} else {
-		s.initialChunkSize = dl.InitialChunkSize
-	}
-
-	//max chunk size
-	if _, ok := container["max_chunk_size"]; ok { //max_chunk_size specified
-
-		if int(container["max_chunk_size"].(int64)) <= s.initialChunkSize {
-			s.maxChunkSize = 5 * s.initialChunkSize
-		} else {
-			s.maxChunkSize = int(container["max_chunk_size"].(int64))
-		}
-	} else {
-		s.maxChunkSize = dl.MaxChunkSize
-	}
-
-	s.currentChunkSize = s.initialChunkSize
-
-	//Gettings target container status (It can be a case when we can attempt
-	//to read from the container that already stopped/crashed)
-	contStatus, err = dl.client.ContainerInspect(dl.context, s.contID)
-	if err != nil {
-		return nil, err
-	}
-
-	s.offsetLock = &sync.Mutex{} //Used to lock 'currentOffset' when reading/writing
-	getLogsSince, s.currentOffset = getOffset(path.Join(dl.OffsetStoragePath, s.contID))
-
-	if contStatus.State.Status == "removing" ||
-		contStatus.State.Status == "exited" || contStatus.State.Status == "dead" {
-		s.logger.logW("container '%s' is not running!", s.contID)
-	}
-
-	options := types.ContainerLogsOptions{
-		ShowStdout: true,
-		ShowStderr: true,
-		Follow:     true,
-		Timestamps: s.dockerTimeStamps,
-		Since:      getLogsSince}
-
-	s.contStream, err = dl.client.ContainerLogs(dl.context, s.contID, options)
-	if err != nil {
-		return nil, err
-	}
-
-	//Parse tags if any
-	s.tags = map[string]string{}
-	if _, ok := container["tags"]; ok { //tags specified
-		for _, tag := range container["tags"].([]interface{}) {
-			arr := strings.Split(tag.(string), "=")
-			if len(arr) != 2 {
-				return nil, errors.Errorf("Can't parse tags from string '%s', valid format is <tag_name>=<tag_value>", tag.(string))
-			}
-			s.tags[arr[0]] = arr[1]
-		}
-	}
-	//set container ID tag:
-	s.tags["container_id"] = s.contID
-
-	//Allocate buffer for reading logs
-	s.buffer = make([]byte, s.initialChunkSize)
-	s.msgHeaderExamined = false
-
-	//Init channel to manage go routine
-	s.done = make(chan bool)
-	s.lock = &sync.Mutex{}
-
-	return s, nil
-}
-
-func (s *streamer) stream(done <-chan bool) {
+func (s *streamer) stream() error {
 
 	var err error
+	var eofReceived = false
+	var contextCancelled = false
+	defer s.contStream.Close()
 
-	s.wg.Add(1)
-	defer s.wg.Done()
-
-	eofReceived := false
 	for {
-		select {
-		case <-done:
-			return
+		//Iterative reads by chunks
+		// While reading in chunks, there are 2 general cases:
+		// 1. Either full buffer (it means that the message either fit to chunkSize or exceed it.
+		// To figure out if it exceed we need to check if the buffer ends with "\r\n"
+
+		// 2. Or partially filled buffer. In this case the rest of the buffer is '\0'
+
+		// Read from docker API
+		//Can be a case when API returns length==0, and err==nil
+		s.length, err = s.contStream.Read(s.buffer)
+
+		switch err {
+		case nil: //No error, proceed!
+		case io.EOF:
+			eofReceived = true
+			lg.logW("Container '%s', EOF received.", trimId(s.contID))
+		case context.Canceled:
+			contextCancelled = true
+			lg.logW("Container '%s', streamer shutdown requested.", trimId(s.contID))
 		default:
-			//Iterative reads by chunks
-			// While reading in chunks, there are 2 general cases:
-			// 1. Either full buffer (it means that the message either fit to chunkSize or exceed it.
-			// To figure out if it exceed we need to check if the buffer ends with "\r\n"
+			return fmt.Errorf("Read error from container '%s': %v", trimId(s.contID), err)
+		}
 
-			// 2. Or partially filled buffer. In this case the rest of the buffer is '\0'
+		if needMoreData := s.prepareDataForSending(); needMoreData {
+			continue
+		}
 
-			// Read from docker API
-			s.length, err = s.contStream.Read(s.buffer) //Can be a case when API returns lr.length==0, and err==nil
+		//Check if there smth. to be sent and send.
+		if len(s.buffer) > 0 && s.endOfLineIndex > 0 {
+			s.sendData()
+		}
 
-			if err != nil {
-				if err.Error() == "EOF" { //Special case, need to flush data and exit
-					eofReceived = true
-				} else {
-					select {
-					case <-done: //In case the goroutine was signaled, the stream would be closed, to unblock
-						//the read operation. Moreover read operations can return error in this case (if stream is closed).
-						//That's why we don't need to print error, as it is expected behaviour...
-						return
-					default:
-						(*s.acc).AddError(fmt.Errorf("Read error from container '%s': %v", s.contID, err))
-						return
-					}
+		//Send offset to flusher (in a non blocking manner)
+		select {
+		case s.offsetData <- offsetData{s.contID, s.currentOffset}:
+		default:
+		}
 
-				}
-			}
+		//Control the size of buffer. Buffer can grow because of:
+		//1. Appending leftover (most often case)
+		//2. Increase in chunksize
+		if len(s.buffer) > s.currentChunkSize+s.currentChunkSize/2 ||
+			len(s.buffer) > s.maxChunkSize {
+			s.buffer = nil
+			s.buffer = make([]byte, s.currentChunkSize)
+		}
 
-			if needMoreData := s.processReadData(); needMoreData {
-				continue
-			}
-
-			//Since read from API can return lr.length==0, and err==nil, we need to additionally check the boundaries
-			if len(s.buffer) > 0 && s.endOfLineIndex > 0 {
-				s.sendData()
-			}
-
-			//Control the size of buffer
-			if len(s.buffer) > s.maxChunkSize {
-				s.buffer = nil
-				s.buffer = make([]byte, s.currentChunkSize)
-			}
-
-			if eofReceived {
-				s.logger.logE("Container '%s': 'EOF' received.", s.contID)
-
-				s.lock.Lock()
-				s.eofReceived = eofReceived
-				s.lock.Unlock()
-
-				return
-			}
-
+		if eofReceived || contextCancelled {
+			return err
 		}
 
 		time.Sleep(s.interval)
 	}
+
 }
 
-func (s *streamer) processReadData() (readMore bool) {
-	// There are 2 general cases when we read logs data from docker API into buffer of specifed size:
-	// 1. Either full buffer (it means that the message either fit to chunkSize or exceed it.
-	// To figure out if it exceed we need to check if the buffer ends with "\r\n"
+func (s *streamer) prepareDataForSending() (readMore bool) {
 
-	// 2. Or partially filled buffer. In this case the rest of the buffer is '\0'
+	// s.length stores count of symbols returned by last call to s.contStream.Read(s.buffer)
+	// if s.length==0 - no data was returned.
+	newDataFromStreamExist := s.length != 0
 
-	if !s.msgHeaderExamined {
-		if s.isContainsHeader(&s.buffer, s.length) {
-			s.outputMsgStartIndex = dockerLogHeaderSize //Header is in the string, need to strip it out...
-		} else {
-			s.outputMsgStartIndex = 0 //No header in the output, start from the 1st letter.
-		}
-		s.msgHeaderExamined = true
-	}
-
-	if len(s.leftoverBuffer) > 0 { //append leftover from previous iteration
+	//Append leftover from previous iteration (if it exists)
+	if len(s.leftoverBuffer) > 0 {
 		s.buffer = append(s.leftoverBuffer, s.buffer...)
 		s.length += len(s.leftoverBuffer)
 
@@ -353,136 +264,126 @@ func (s *streamer) processReadData() (readMore bool) {
 		s.leftoverBuffer = nil
 	}
 
-	if s.length != 0 {
-		//This covers the 2nd case.
-		s.endOfLineIndex = s.length - 1
-	} else {
-		//The buffer is filled with '\0' until the end even if there is no data at all,
-		//In this case, lr.length == 0 as it shows the amount of actually read data, but len(lr.buffer)
-		// will be equal to cap(lr.buffer), as the buffer will be filled out with '\0'
-		s.endOfLineIndex = 0
+	//Now we have buffer to work with
+	//The purpose of the code below is to find position (index) where the last complete line ends (last '\n' symbol).
+	//If buffer represents unterminated line, then we move all the buffer to leftover buffer, and request more data from s.contStream
+	//The edge case here is when s.contStream returns some data and EOF, in this case buffer won't be terminated with \n
+
+	//Setting s.endOfLineIndex to the last position in buffer (as we perform search of '\n' from the end of the buffer)
+	s.endOfLineIndex = s.length - 1
+
+	if !newDataFromStreamExist { //No new data to process
+		return false
 	}
 
-	//Check if 1st case is in place. If it is, then we need to adjust s.endOfLineIndex, and move some data to leftover buffer
-	if s.length == len(s.buffer) && s.length > 0 {
-		//Seek last line end (from the end), ignoring the case when this line end is in the message header
-		for ; s.endOfLineIndex >= int(s.outputMsgStartIndex); s.endOfLineIndex-- {
-			if s.buffer[s.endOfLineIndex] == '\n' {
+	//Seek last '\n' (from the end), ignoring the edge case when '\n' is in the message header
+	for ; s.endOfLineIndex >= s.outputMsgStartIndex; s.endOfLineIndex-- {
+		if s.buffer[s.endOfLineIndex] == '\n' {
 
-				//Skip '\n' if there are headers and '\n' is inside header
-				if s.outputMsgStartIndex > 0 && s.isNewLineInMsgHeader(&s.buffer, s.endOfLineIndex) {
-					continue
-				}
-
-				if s.endOfLineIndex != s.length-1 {
-					// Moving everything that is after s.endOfLineIndex to leftover buffer
-					s.leftoverBuffer = nil
-					s.leftoverBuffer = make([]byte, (s.length-1)-s.endOfLineIndex)
-					copy(s.leftoverBuffer, s.buffer[s.endOfLineIndex+1:])
-				}
-				break
-			}
-		}
-
-		//Check if line end is not found, then we either got very long message or buffer is really small
-		if s.endOfLineIndex == int(s.outputMsgStartIndex-1) { //This means that the end of line is not found
-			//Buffer holds one string that is not terminated (this is a part of the message)
-			//We need simply to move it into leftover buffer
-			//and grow current chunk size if limit is not exceeded
-			s.leftoverBuffer = nil
-			s.leftoverBuffer = make([]byte, len(s.buffer))
-			copy(s.leftoverBuffer, s.buffer)
-
-			//Grow chunk size
-			if s.currentChunkSize*2 < s.maxChunkSize {
-				s.currentChunkSize = s.currentChunkSize * 2
-				s.buffer = nil
-				s.buffer = make([]byte, s.currentChunkSize)
+			//Skip '\n' if there are headers and '\n' is inside header (edge case when stream has headers)
+			if s.headers && s.isNewLineInMsgHeader(s.endOfLineIndex) {
+				continue
 			}
 
-			return true
+			if s.endOfLineIndex != s.length-1 { //Something is in buffer after last '\n'
+				// Moving everything to leftover buffer
+				s.leftoverBuffer = nil
+				s.leftoverBuffer = make([]byte, (s.length-1)-s.endOfLineIndex)
+				copy(s.leftoverBuffer, s.buffer[s.endOfLineIndex+1:])
+			}
+			return false
 		}
-
 	}
-	return false
+
+	//End of line is not found! We either got very long message or buffer is really small
+	//We need to:
+	//1. move it into leftover buffer
+	//2. grow current chunk size if limit is not exceeded
+	s.leftoverBuffer = nil
+	s.leftoverBuffer = make([]byte, s.length)
+	copy(s.leftoverBuffer, s.buffer[:s.length])
+
+	//Grow chunk size
+	if s.currentChunkSize*2 <= s.maxChunkSize {
+		s.currentChunkSize = s.currentChunkSize * 2
+		s.buffer = nil
+		s.buffer = make([]byte, s.currentChunkSize)
+	}
+
+	return true //Means that we have incomplete portion of data
+
 }
 
 func (s *streamer) sendData() {
-	//Parsing the buffer line by line and send data to accumulator
-	totalLineLength := 0
+	var totalLineLength int
 	var timeStamp time.Time
-	var field map[string]interface{}
+	var field = map[string]interface{}{"container_id": s.contID}
 	var tags = s.tags
 	var err error
 
+	tags["stream"] = "tty" //default stream tag
+
+	//Parsing the buffer line by line and send data to accumulator
 	for i := 0; i <= s.endOfLineIndex; i = i + totalLineLength {
-		field = make(map[string]interface{})
-		//Checking boundaries:
-		if i+int(s.outputMsgStartIndex) > s.endOfLineIndex { //sort of garbage
+		field["message"] = ""
+
+		if i+s.outputMsgStartIndex < s.endOfLineIndex { //Checking boundaries, if the data consistent
+			//Looking for the end of the line (skipping header, as header can contain '\n')
+			totalLineLength = 0
+			for j := i + s.outputMsgStartIndex; j <= s.endOfLineIndex; j++ {
+				if s.buffer[j] == '\n' {
+					totalLineLength = j - i + 1 //Include '\n'
+					break
+				}
+			}
+			if totalLineLength == 0 {
+				totalLineLength = (s.endOfLineIndex + 1) - i
+			}
+
+			//Getting stream type (if header persist)
+			if s.headers {
+				switch s.buffer[i] {
+				case 0x1:
+					tags["stream"] = "stdout"
+				case 0x2:
+					tags["stream"] = "stderr"
+				case 0x0:
+					tags["stream"] = "stdin"
+				}
+			}
+
+			if !s.dockerTimeStamps { //no time stamp
+				timeStamp = time.Now()
+				field["message"] = string(s.buffer[i+s.outputMsgStartIndex : i+totalLineLength])
+			} else {
+
+				timeStamp, err = time.Parse(time.RFC3339Nano,
+					string(s.buffer[i+s.outputMsgStartIndex:i+s.outputMsgStartIndex+dockerTimeStampLength]))
+
+				if err != nil {
+					s.acc.AddError(fmt.Errorf("Can't parse time stamp from string, container '%s': "+
+						"%v. Raw message string:\n%s\nOutput msg start index: %d",
+						trimId(s.contID), err, s.buffer[i:i+totalLineLength], s.outputMsgStartIndex))
+					//lg.logE("\n=========== buffer[:lr.endOfLineIndex] ===========\n"+
+					//	"%s\n=========== ====== ===========\n", s.buffer[:s.endOfLineIndex])
+					timeStamp = time.Now()
+				}
+				field["message"] = string(s.buffer[i+s.outputMsgStartIndex+dockerTimeStampLength+1 : i+totalLineLength])
+			}
+
+			//Saving offset
+			s.currentOffset += timeStamp.UTC().UnixNano() - s.currentOffset + 1 //+1 (nanosecond) here prevents to include current message
+
+		} else { //sort of garbage
 			timeStamp = time.Now()
-			field["value"] = fmt.Sprintf("%s", s.buffer[i:s.endOfLineIndex])
-			(*s.acc).AddFields("stream", field, tags, timeStamp)
-			break
+			field["message"] = string(s.buffer[i:s.endOfLineIndex])
 		}
 
-		//Looking for the end of the line (skipping index)
-		totalLineLength = 0
-		for j := i + int(s.outputMsgStartIndex); j <= s.endOfLineIndex; j++ {
-			if s.buffer[j] == '\n' {
-				totalLineLength = j - i + 1 //Include '\n'
-				break
-			}
-		}
-		if totalLineLength == 0 {
-			totalLineLength = (s.endOfLineIndex + 1) - i
-		}
-
-		//Getting stream type (if header persist)
-		if s.outputMsgStartIndex > 0 {
-			if s.buffer[i] == 0x1 {
-				tags["stream"] = "stdout"
-			} else if s.buffer[i] == 0x2 {
-				tags["stream"] = "stderr"
-			} else if s.buffer[i] == 0x0 {
-				tags["stream"] = "stdin"
-			}
-		} else {
-			tags["stream"] = "interactive"
-		}
-
-		if uint(totalLineLength) < s.outputMsgStartIndex+s.dockerTimeStampLength+1 || !s.dockerTimeStamps { //no time stamp
-
-			timeStamp = time.Now()
-			field["value"] = fmt.Sprintf("%s", s.buffer[i+int(s.outputMsgStartIndex):i+totalLineLength])
-
-		} else {
-
-			timeStamp, err = time.Parse(time.RFC3339Nano,
-				fmt.Sprintf("%s",
-					s.buffer[i+int(s.outputMsgStartIndex):i+int(s.outputMsgStartIndex)+int(s.dockerTimeStampLength)]))
-
-			if err != nil {
-
-				(*s.acc).AddError(fmt.Errorf("Can't parse time stamp from string, container '%s': "+
-					"%v. Raw message string:\n%s\nOutput msg start index: %d",
-					s.contID, err, s.buffer[i:i+totalLineLength], s.outputMsgStartIndex))
-
-				s.logger.logE("\n=========== buffer[:lr.endOfLineIndex] ===========\n"+
-					"%s\n=========== ====== ===========\n", s.buffer[:s.endOfLineIndex])
-			}
-			field["value"] = fmt.Sprintf("%s",
-				s.buffer[i+int(s.outputMsgStartIndex)+int(s.dockerTimeStampLength)+1:i+totalLineLength])
-		}
-
-		(*s.acc).AddFields("stream", field, tags, timeStamp)
-
-		for k := range field {
-			delete(field, k)
-		}
-
-		//Saving offset
-		s.offsetLock.Lock()
-		s.currentOffset += timeStamp.UTC().UnixNano() - s.currentOffset + 1 //+1 (nanosecond) here prevents to include current message
-		s.offsetLock.Unlock()
+		// Keep any leading space, but remove whitespace from end of line.
+		// This preserves space in, for example, stacktraces, while removing
+		// annoying end of line characters and is similar to how other logging
+		// plugins such as syslog behave.
+		field["message"] = strings.TrimRightFunc(field["message"].(string), unicode.IsSpace)
+		s.acc.AddFields("docker_cnt_logs", field, tags, timeStamp)
 	}
 }
