@@ -37,7 +37,7 @@ type streamer struct {
 	offsetData    chan offsetData
 }
 
-func newStreamer(ctxStream context.Context, container types.Container,contStatus types.ContainerJSON, acc telegraf.Accumulator, d *DockerCNTLogs) (*streamer, error) {
+func newStreamer(ctxStream context.Context, container types.Container, contStatus types.ContainerJSON, acc telegraf.Accumulator, d *DockerCNTLogs) (*streamer, error) {
 	var err error
 	var getLogsSince string
 	var currentOffset int64
@@ -286,7 +286,7 @@ func (s *streamer) prepareDataForSending() (readMore bool) {
 			}
 
 			if s.endOfLineIndex != s.length-1 { //Something is in buffer after last '\n'
-				// Moving everything to leftover buffer
+				// Moving this to leftover buffer
 				s.leftoverBuffer = nil
 				s.leftoverBuffer = make([]byte, (s.length-1)-s.endOfLineIndex)
 				copy(s.leftoverBuffer, s.buffer[s.endOfLineIndex+1:])
@@ -384,6 +384,6 @@ func (s *streamer) sendData() {
 		// annoying end of line characters and is similar to how other logging
 		// plugins such as syslog behave.
 		field["message"] = strings.TrimRightFunc(field["message"].(string), unicode.IsSpace)
-		s.acc.AddFields("docker_cnt_logs", field, tags, timeStamp)
+		s.acc.AddFields(title, field, tags, timeStamp)
 	}
 }

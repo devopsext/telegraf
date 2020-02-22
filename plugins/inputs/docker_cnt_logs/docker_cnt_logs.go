@@ -28,20 +28,17 @@ import (
 
 const (
 	inputTitle               = "inputs.docker_cnt_logs"
+	title                    = "docker_cnt_logs"
 	defaultInitialChunkSize  = 1000
 	defaultMaxChunkSize      = 5000
 	dockerLogHeaderSize      = 8
 	dockerTimeStampLength    = 30
 	defaultLogGatherInterval = 2000 * time.Millisecond
 	defaultFlushInterval     = 3 * time.Second
+	defaultAPICallTimeout    = 5 * time.Second
+	defaultOffsetStoragePath = "/var/run/telegraf/docker_log_offset"
 
 	sampleConfig = `
-  ## Interval to gather data from docker sock.
-  ## the longer the interval the fewer request is made towards docker API (less CPU utilization on dockerd).
-  ## On the other hand, this increase the delay between producing logs and delivering it. Reasonable trade off
-  ## should be chosen
-  interval = "2000ms"
-  
   ## Docker Endpoint
   ##  To use unix, set endpoint = "unix:///var/run/docker.sock" (/var/run/docker.sock is default mount path)
   ##  To use TCP, set endpoint = "tcp://[ip]:[port]"
@@ -55,8 +52,41 @@ const (
 
   ## Use TLS but skip chain & host verification
   # insecure_skip_verify = false
+  
+  ## When true, container logs are read from the beginning; otherwise
+  ## reading begins at the end of the log.
+  # from_beginning = false
 
-  ## Log streaming settings
+  ## Timeout for Docker API calls.
+  # timeout = "5s"
+
+  ## Containers to include and exclude. Globs accepted.
+  ## Note that an empty array for both will include all containers
+  # container_name_include = []
+  # container_name_exclude = []
+
+  ## Container states to include and exclude. Globs accepted.
+  ## When empty all states will be captured.
+  ## Valid values are: "created", "restarting", "running", "removing", "paused", "exited", "dead"
+  # container_state_include = []
+  # container_state_exclude = []
+
+  ## docker labels to include and exclude as tags.  Globs accepted.
+  ## Note that an empty array for both will include all labels as tags
+  # docker_label_include = []
+  # docker_label_exclude = []
+ 
+ 
+  ## Log streaming settings:
+  ## Interval to gather data from docker sock.
+  ## the longer the interval the fewer request is made towards docker API (less CPU utilization on dockerd).
+  ## On the other hand, this increase the delay between producing logs and delivering it. Reasonable trade off
+  ## should be chosen. Default value is 2000 ms.
+  # log_gather_interval = "2000ms"
+
+  ## Set the source tag for the metrics to the container ID hostname, eg first 12 chars
+  source_tag = false
+
   ## Set initial chunk size (length of []byte buffer to read from docker socket)
   ## If not set, default value of 'defaultInitialChunkSize = 1000' will be used
   # initial_chunk_size = 1000 # 1K symbols (half of 80x25 screen)
@@ -76,39 +106,47 @@ const (
 
   ## Offset storage path (mandatory), make sure the user on behalf 
   ## of which the telegraf is started has appropriate rights to read and write to chosen path.
-  offset_storage_path = "/var/run/collector_offset"
+  ## default value is "/var/run/telegraf/docker_log_offset"
+  offset_storage_path = "/var/run/telegraf/docker_log_offset"
+  
+  ## Command to be run when all static containers (see section below) are processed.
+  ## 'Processed' in this context mean that logs are delivered and container is not in a running state 
+  #[inputs.docker_cnt_logs.when_static_container_processed]
+  #  execute_cmd=["s6-svc", "-d", "/services/service/run"]
 
-  ## Shutdown telegraf if all log streaming containers stopped/killed, default - false
-  ## This option make sense when telegraf started especially for streaming logs
-  ## in a form of sidecar container in k8s. In case primary container exited,
-  ## side-car should be terminated also.
-  # shutdown_when_eof = false
+  ## Optional static (means containers are not dinamycally discovered) containers configuration (specify as many sections as needed).
+  ## The section below is mutually exclusive with the
+  ## 'container_name_include' & 'container_name_exclude' options!
+  ## The section below used to configure input for delivering logs from specific containers with
+  ## individual settings for throttling. Primary use case is to define this config for containers in a k8s POD
+  ## in which the telegraf is running as a separate container. This section used to be paired with 'when_static_container_processed'
+  ## section, as it provides ability to finalized telegraf container in POD when the target static containers
+  ## are exited.
+  ## 
+  #[[inputs.docker_cnt_logs.container]]
+  ## Set container id (long or short from, mutually exclusive with container name)
+  #  id = "dc23d3ea534b3a6ec3934ae21e2dd4955fdbf61106b32fa19b831a6040a7feef"
+  ## Set container name (mutually exclusive with container id)
+  #  name = "quirky_fermi"
 
-  ## Static settings per container (specify as many sections as needed)
-  [[inputs.docker_cnt_logs.container]]
-    ## Set container id (long or short from), or container name
-    ## to stream logs from, this attribute is mandatory
-    id = "dc23d3ea534b3a6ec3934ae21e2dd4955fdbf61106b32fa19b831a6040a7feef"
+  ## Overriding common settings:
+  # log_gather_interval = "500ms"
 
-    ## Override common settings
-    ## input interval (specified or inherited from agent section)
-    # interval = "500ms"
+  ## Initial chunk size
+  #  initial_chunk_size = 2000 # 2K symbols
 
-    ## Initial chunk size
-    initial_chunk_size = 2000 # 2K symbols
+  ## Max chunk size
+  #  max_chunk_size = 6000 # 6K symbols
 
-    ## Max chunk size
-    max_chunk_size = 6000 # 6K symbols
-
-    #Set additional tags that will be tagged to the stream from the current container:
-    tags = [
-        "tag1=value1",
-        "tag2=value2"
-    ]
-  ##Another container to stream logs from  
-  [[inputs.docker_cnt_logs.container]]
-    id = "009d82030745c9994e2f5c2280571e8b9f95681793a8f7073210759c74c1ea36"
-    interval = "600ms"
+  #Set additional tags that will be tagged to the stream from the current container:
+  # tags = [
+  #      "tag1=value1",
+  #      "tag2=value2"
+  #  ]
+  ##Another static container to stream logs from  
+  #[[inputs.docker_cnt_logs.container]]
+  #  id = "009d82030745"
+  #  interval = "600ms"
 `
 )
 
@@ -141,7 +179,7 @@ type DockerCNTLogs struct {
 	LogGatherInterval             internal.Duration      `toml:"log_gather_interval"`
 	InitialChunkSize              int                    `toml:"initial_chunk_size"`
 	MaxChunkSize                  int                    `toml:"max_chunk_size"`
-	OffsetFlush                   string                 `toml:"offset_flush"`
+	OffsetFlush                   internal.Duration      `toml:"offset_flush"`
 	OffsetStoragePath             string                 `toml:"offset_storage_path"`
 	WhenStaticContainersProcessed map[string]interface{} `toml:"when_static_container_processed"`
 
@@ -168,10 +206,9 @@ type DockerCNTLogs struct {
 	processedContainersCheckerDone chan bool                     //Channel for signalling processed container checker go routine to stop
 
 	//For sync & communicate with streamers:
-	wgStreamers         sync.WaitGroup  //WG for streamers, used to ensure that all streamers stopped working
-	offsetFlushInterval time.Duration   //Parsed (from OffsetFlush) offset flush interval
-	offsetData          chan offsetData //Non-buffered channel to send offset value from streamer to offsetFlusher
-	offsetDone          chan bool       //Channel for signalling offsetFlusher go routine to stop
+	wgStreamers sync.WaitGroup  //WG for streamers, used to ensure that all streamers stopped working
+	offsetData  chan offsetData //Non-buffered channel to send offset value from streamer to offsetFlusher
+	offsetDone  chan bool       //Channel for signalling offsetFlusher go routine to stop
 }
 
 func (d *DockerCNTLogs) Description() string {
@@ -183,11 +220,6 @@ func (d *DockerCNTLogs) SampleConfig() string { return sampleConfig }
 func (d *DockerCNTLogs) Init() error {
 	var err error
 	var tlsConfig *tls.Config
-
-	//FIXME: Move default values to input creation
-	if d.Timeout.Duration == time.Duration(0) {
-		d.Timeout.Duration = 5 * time.Second
-	}
 
 	if d.client == nil { //Can be already set to mock docker client
 		if d.Endpoint == "ENV" {
@@ -255,13 +287,6 @@ func (d *DockerCNTLogs) Init() error {
 		}
 	}
 
-	if d.LogGatherInterval.Duration == time.Duration(0) {
-		d.LogGatherInterval.Duration = defaultLogGatherInterval
-	}
-
-	d.containerList = make(map[string]context.CancelFunc)
-	d.processedContainerList = make(map[string]interface{})
-
 	if rawCommand, ok := d.WhenStaticContainersProcessed["execute_cmd"].([]interface{}); ok && len(rawCommand) > 0 {
 		for index, elem := range rawCommand {
 			if stringElem, ok := elem.(string); !ok {
@@ -273,31 +298,16 @@ func (d *DockerCNTLogs) Init() error {
 
 	}
 
-	if d.InitialChunkSize == 0 {
-		d.InitialChunkSize = defaultInitialChunkSize
-	} else {
-		if d.InitialChunkSize <= dockerLogHeaderSize {
-			d.InitialChunkSize = 2 * dockerLogHeaderSize
-		}
+	if d.InitialChunkSize <= dockerLogHeaderSize {
+		d.InitialChunkSize = 2 * dockerLogHeaderSize
+		lg.logW("'initial_chunk_size' is less than docker log message header size,"+
+			" automatically increased to %d", 2*dockerLogHeaderSize)
 	}
 
-	if d.MaxChunkSize == 0 {
-		d.MaxChunkSize = defaultMaxChunkSize
-	} else {
-		if d.MaxChunkSize <= d.InitialChunkSize {
-			d.MaxChunkSize = 5 * d.InitialChunkSize
-		}
-	}
-
-	//Parsing flush offset
-	if d.OffsetFlush == "" {
-		d.offsetFlushInterval = defaultFlushInterval
-	} else {
-		d.offsetFlushInterval, err = time.ParseDuration(d.OffsetFlush)
-		if err != nil {
-			d.offsetFlushInterval = defaultFlushInterval
-			lg.logW("Can't parse '%s' duration, default value will be used.", d.OffsetFlush)
-		}
+	if d.MaxChunkSize <= d.InitialChunkSize {
+		d.MaxChunkSize = 5 * d.InitialChunkSize
+		lg.logW("'max_chunk_size' is less than 'initial_chunk_size',"+
+			" automatically increased to %d", 5*d.InitialChunkSize)
 	}
 
 	//Create storage path
@@ -312,15 +322,10 @@ func (d *DockerCNTLogs) Init() error {
 	}
 
 	//Start processed containers checker
-	d.processedContainersCheckerDone = make(chan bool)
-	d.processedContainersChan = make(chan map[string]interface{})
-
 	d.wg.Add(1)
 	go d.checkProcessedContainers(d.processedContainersCheckerDone)
 
 	//Start offset flusher
-	d.offsetData = make(chan offsetData)
-	d.offsetDone = make(chan bool)
 	d.wg.Add(1)
 	go d.flushOffset(d.offsetDone)
 
@@ -607,7 +612,7 @@ func (d *DockerCNTLogs) checkProcessedContainers(done <-chan bool) {
 
 func (d *DockerCNTLogs) flushOffset(done <-chan bool) {
 	var containerOffsets = map[string]int64{}
-	var ticker = time.NewTicker(d.offsetFlushInterval)
+	var ticker = time.NewTicker(d.OffsetFlush.Duration)
 
 	defer ticker.Stop()
 	defer d.wg.Done()
@@ -651,7 +656,7 @@ func (d *DockerCNTLogs) Stop() {
 
 	//Stop offset flushing
 	lg.logD("Waiting for shutting down offset flusher...")
-	time.Sleep(d.offsetFlushInterval) //This sleep needed to guarantee that offset will be flushed
+	time.Sleep(d.OffsetFlush.Duration) //This sleep needed to guarantee that offset will be flushed
 	close(d.offsetDone)
 
 	//Wait for all go routines to complete
@@ -665,7 +670,7 @@ func (d *DockerCNTLogs) Stop() {
 }
 
 func (d *DockerCNTLogs) processStaticContainersList() error {
-
+	var identity string
 	//Ambiguity:
 	//Static container list is mutually exclusive with the
 	// container_name_include  & container_name_exclude options!
@@ -688,14 +693,16 @@ func (d *DockerCNTLogs) processStaticContainersList() error {
 		if contName != "" && contID != "" {
 			return fmt.Errorf("For static container list %v, both name (%s) and id (%s) specified!", cont, contName, contID)
 		}
-		identity := ""
+
 		if contID != "" {
 			identity = contID
 		}
 		if contName != "" {
 			identity = contName
 		}
-
+		if identity == "" {
+			return fmt.Errorf("For static container list %v, neiter 'name' nor 'id' specified!", cont)
+		}
 		//checking container existence
 		contStatus, err := d.client.ContainerInspect(ctxT, identity)
 		if err != nil {
@@ -734,8 +741,7 @@ func (d *DockerCNTLogs) createLabelFilters() error {
 
 func (d *DockerCNTLogs) createContainerStateFilters() error {
 	if len(d.ContainerStateInclude) == 0 && len(d.ContainerStateExclude) == 0 {
-		//d.ContainerStateInclude = []string{"running"}
-		d.ContainerStateInclude = containerStates //all statuses
+		d.ContainerStateInclude = containerStates //all states
 	}
 	filter, err := filter.NewIncludeExcludeFilter(d.ContainerStateInclude, d.ContainerStateExclude)
 	if err != nil {
@@ -746,5 +752,19 @@ func (d *DockerCNTLogs) createContainerStateFilters() error {
 }
 
 func init() {
-	inputs.Add("docker_cnt_logs", func() telegraf.Input { return &DockerCNTLogs{} })
+	inputs.Add(title, func() telegraf.Input {
+		return &DockerCNTLogs{
+			InitialChunkSize:               defaultInitialChunkSize,
+			MaxChunkSize:                   defaultMaxChunkSize,
+			Timeout:                        internal.Duration{Duration: defaultAPICallTimeout},
+			OffsetFlush:                    internal.Duration{Duration: defaultFlushInterval},
+			LogGatherInterval:              internal.Duration{Duration: defaultLogGatherInterval},
+			OffsetStoragePath:              defaultOffsetStoragePath,
+			containerList:                  make(map[string]context.CancelFunc),
+			processedContainerList:         make(map[string]interface{}),
+			processedContainersCheckerDone: make(chan bool),
+			processedContainersChan:        make(chan map[string]interface{}),
+			offsetData:                     make(chan offsetData),
+			offsetDone:                     make(chan bool)}
+	})
 }

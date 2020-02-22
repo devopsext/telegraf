@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/docker/docker/api/types/container"
+	"github.com/influxdata/telegraf/internal"
 	"io"
 	"io/ioutil"
 	"os"
@@ -356,11 +357,20 @@ func genericTest(t *testing.T, input *DockerCNTLogs, waitStreamers time.Duration
 func TestTS(t *testing.T) { //Mixed containers with time stamps
 
 	input := DockerCNTLogs{
-		client:              newMockDockerClient(targetContainers),
-		OffsetStoragePath:   "./collector_offset",
-		InitialChunkSize:    20, //to split the first string in 2 parts
-		MaxChunkSize:        80,
-		StaticContainerList: targetContainers}
+		client:                         newMockDockerClient(targetContainers),
+		OffsetStoragePath:              "./collector_offset",
+		InitialChunkSize:               20, //to split the first string in 2 parts
+		MaxChunkSize:                   80,
+		StaticContainerList:            targetContainers,
+		OffsetFlush:                    internal.Duration{Duration: defaultFlushInterval},
+		LogGatherInterval:              internal.Duration{Duration: defaultLogGatherInterval},
+		Timeout:                        internal.Duration{Duration: defaultAPICallTimeout},
+		containerList:                  make(map[string]context.CancelFunc),
+		processedContainerList:         make(map[string]interface{}),
+		processedContainersCheckerDone: make(chan bool),
+		processedContainersChan:        make(chan map[string]interface{}),
+		offsetData:                     make(chan offsetData),
+		offsetDone:                     make(chan bool)}
 
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
@@ -371,11 +381,20 @@ func TestTS(t *testing.T) { //Mixed containers with time stamps
 func TestTSOffset(t *testing.T) {
 
 	input := DockerCNTLogs{
-		client:              newMockDockerClient(targetContainers),
-		OffsetStoragePath:   "./collector_offset",
-		InitialChunkSize:    20, //to split the first string in 2 parts
-		MaxChunkSize:        80,
-		StaticContainerList: targetContainers}
+		client:                         newMockDockerClient(targetContainers),
+		OffsetStoragePath:              "./collector_offset",
+		InitialChunkSize:               20, //to split the first string in 2 parts
+		MaxChunkSize:                   80,
+		StaticContainerList:            targetContainers,
+		OffsetFlush:                    internal.Duration{Duration: defaultFlushInterval},
+		LogGatherInterval:              internal.Duration{Duration: defaultLogGatherInterval},
+		Timeout:                        internal.Duration{Duration: defaultAPICallTimeout},
+		containerList:                  make(map[string]context.CancelFunc),
+		processedContainerList:         make(map[string]interface{}),
+		processedContainersCheckerDone: make(chan bool),
+		processedContainersChan:        make(chan map[string]interface{}),
+		offsetData:                     make(chan offsetData),
+		offsetDone:                     make(chan bool)}
 
 	//Generating TS files:
 	//Create storage path
@@ -414,12 +433,21 @@ func TestTSOffset(t *testing.T) {
 func TestWOTS(t *testing.T) { //Mixed containers without time stamps
 
 	input := DockerCNTLogs{
-		client:                     newMockDockerClient(targetContainersWOTS),
-		OffsetStoragePath:          "./collector_offset",
-		InitialChunkSize:           20, //to split the first string in 2 parts
-		MaxChunkSize:               80,
-		disableTimeStampsStreaming: true,
-		StaticContainerList:        targetContainersWOTS}
+		client:                         newMockDockerClient(targetContainersWOTS),
+		OffsetStoragePath:              "./collector_offset",
+		InitialChunkSize:               20, //to split the first string in 2 parts
+		MaxChunkSize:                   80,
+		disableTimeStampsStreaming:     true,
+		StaticContainerList:            targetContainersWOTS,
+		OffsetFlush:                    internal.Duration{Duration: defaultFlushInterval},
+		LogGatherInterval:              internal.Duration{Duration: defaultLogGatherInterval},
+		Timeout:                        internal.Duration{Duration: defaultAPICallTimeout},
+		containerList:                  make(map[string]context.CancelFunc),
+		processedContainerList:         make(map[string]interface{}),
+		processedContainersCheckerDone: make(chan bool),
+		processedContainersChan:        make(chan map[string]interface{}),
+		offsetData:                     make(chan offsetData),
+		offsetDone:                     make(chan bool)}
 
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
@@ -435,12 +463,21 @@ func TestWOTS(t *testing.T) { //Mixed containers without time stamps
 func TestRaceCondition(t *testing.T) {
 
 	input := DockerCNTLogs{
-		client:                     newMockDockerClient(targetContainersWOTS),
-		OffsetStoragePath:          "./collector_offset",
-		InitialChunkSize:           20, //to split the first string in 2 parts
-		MaxChunkSize:               80,
-		disableTimeStampsStreaming: true,
-		StaticContainerList:        targetContainersWOTS}
+		client:                         newMockDockerClient(targetContainersWOTS),
+		OffsetStoragePath:              "./collector_offset",
+		InitialChunkSize:               20, //to split the first string in 2 parts
+		MaxChunkSize:                   80,
+		disableTimeStampsStreaming:     true,
+		StaticContainerList:            targetContainersWOTS,
+		OffsetFlush:                    internal.Duration{Duration: defaultFlushInterval},
+		LogGatherInterval:              internal.Duration{Duration: defaultLogGatherInterval},
+		Timeout:                        internal.Duration{Duration: defaultAPICallTimeout},
+		containerList:                  make(map[string]context.CancelFunc),
+		processedContainerList:         make(map[string]interface{}),
+		processedContainersCheckerDone: make(chan bool),
+		processedContainersChan:        make(chan map[string]interface{}),
+		offsetData:                     make(chan offsetData),
+		offsetDone:                     make(chan bool)}
 
 	//Removing offset files
 	require.Nil(t, os.RemoveAll(input.OffsetStoragePath))
