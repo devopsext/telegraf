@@ -1,11 +1,9 @@
 package cloudwatch_logs
 
 import (
-	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
 	"log"
-	"os"
 	"runtime"
 	"sort"
 	"strings"
@@ -75,12 +73,19 @@ const (
 
 	maxItemsInBatch = 10000 // The maximum number of log events in a batch is 10,000.
 
-	maxTimeSpanInBatch = time.Hour * 24 // A batch of log events in a single request cannot span more than 24 hours.
+	//maxTimeSpanInBatch = time.Hour * 24 // A batch of log events in a single request cannot span more than 24 hours.
 	// Otherwise, the operation fails.
 )
 
 var sampleConfig = `
-  ## Amazon REGION
+  ## The region is the Amazon region that you wish to connect to.
+  ## Examples include but are not limited to:
+  ## - us-west-1
+  ## - us-west-2
+  ## - us-east-1
+  ## - ap-southeast-1
+  ## - ap-southeast-2
+  ## ...
   region = "us-east-1"
 
   ## Amazon Credentials
@@ -98,13 +103,6 @@ var sampleConfig = `
   #profile = ""
   #shared_credential_file = ""
   
-  ## Needed rights for proper operation of output:
-  ## https://docs.aws.amazon.com/AmazonCloudWatch/latest/logs/permissions-reference-cwl.html
-  ## - DescribeLogGroups (list, view, log groups)	logs:DescribeLogGroups
-  ## - DescribeLogStreams (Required to view all log streams associated with a log group.) logs:DescribeLogStreams
-  ## - CreateLogStream (Required to create a new log stream in a log group.) logs:CreateLogStream
-  ## - PutLogEvents	(Required to upload a batch of log events to a log stream.) logs:PutLogEvents
-
   ## Endpoint to make request against, the correct endpoint is automatically
   ## determined and this option should only be set if you wish to override the
   ## default.
@@ -112,12 +110,22 @@ var sampleConfig = `
   # endpoint_url = ""
 
   ## Cloud watch log group. Must be created in AWS cloudwatch logs upfront!
-  log_group = "k8s-cluster-name"
+  log_group = "k8s-cluster-name" #In this example, it is imply that we grop all logs from particular EKS cluster at one place
   
   ## Log stream in log group
-  ## Either log group name or reference to metric attribute:
-  ## tag:<TAG_NAME> or field:<FIELD_NAME>
+  ## Either log group name or reference to metric attribute, from which it can be parsed:
+  ## tag:<TAG_NAME> or field:<FIELD_NAME>. If log stram is not exist, it will be created.
+  ## Since AWS is not automatically delete logs streams with expired logs entries (i.e. empty log stream) 
+  ## you need to put in place appropriate house-keeping (https://forums.aws.amazon.com/thread.jspa?threadID=178855)
   log_stream = "tag:location"
+  
+  ## Source of log data - metric name
+  ## specify the name of the metric, from which the log data should be retrieved. 
+  log_data_metric_name  = "stream"
+  
+  ## Specify from which metric attribute the log data should be retrieved:
+  ## tag:<TAG_NAME> or field:<FIELD_NAME>.
+  log_data_source  = "field:value"
 `
 
 func (c *CloudWatchLogs) SampleConfig() string {
@@ -128,50 +136,25 @@ func (c *CloudWatchLogs) Description() string {
 	return "Configuration for AWS CloudWatchLogs output."
 }
 
-func (c *CloudWatchLogs) shutdownTelegraf() {
-	p, err := os.FindProcess(os.Getpid())
-	if err != nil {
-
-		err = errors.New(fmt.Sprintf("Can't get current process PID "+
-			"to initiate graceful shutdown: %v", err))
-
-		log.Printf("E! %s %s", logId, err.Error())
-
-		panic(err)
-		return
-	}
-	if runtime.GOOS == "windows" {
-		p.Signal(os.Kill) //Interrupt is not supported on windows
-	} else {
-		p.Signal(os.Interrupt)
-	}
-}
-
 func (c *CloudWatchLogs) Connect() error {
 	var queryToken *string
 	var dummyToken = "dummy"
 	var logGroupsOutput = &cloudwatchlogs.DescribeLogGroupsOutput{NextToken: &dummyToken}
 	var err error
 
-	/*
-		defer func (preventTelegrafShutdown *bool) {
-			if !*preventTelegrafShutdown {c.shutdownTelegraf()}
-		}(&preventTelegrafShutdown)
-	*/
 	if c.LogGroup == "" {
-		return errors.New("Log group is not set!")
+		return fmt.Errorf("Log group is not set!")
 	}
 
 	if c.LogStream == "" {
-		return errors.New("Log stream is not set!")
+		return fmt.Errorf("Log stream is not set!")
 	}
 
 	if c.LDMetricName == "" {
-		return errors.New("Log data metrics name is not set!")
+		return fmt.Errorf("Log data metrics name is not set!")
 	}
 
-	if c.LDSource == "" {
-		return errors.New("Log data source is not set!")
+	if c.LDSource == "" {return fmt.Errorf("Log data source is not set!")
 	} else {
 		lsSplitArray := strings.Split(c.LDSource, ":")
 		if len(lsSplitArray) > 1 {
@@ -180,11 +163,11 @@ func (c *CloudWatchLogs) Connect() error {
 				c.ldSource = lsSplitArray[1]
 				log.Printf("D! %s Log data: key '%s', source '%s'...", logId, c.ldKey, c.ldSource)
 			} else {
-				return errors.New("Log data source is not properly formatted.\n" +
+				return fmt.Errorf("Log data source is not properly formatted.\n" +
 					"Should be 'tag:<tag_mame>' or 'field:<field_name>'")
 			}
 		} else {
-			return errors.New("Log data source is not properly formatted, ':' is missed.\n" +
+			return fmt.Errorf("Log data source is not properly formatted, ':' is missed.\n" +
 				"Should be 'tag:<tag_mame>' or 'field:<field_name>'")
 		}
 
@@ -208,12 +191,12 @@ func (c *CloudWatchLogs) Connect() error {
 
 	c.svc = cloudwatchlogs.New(configProvider)
 	if c.svc == nil {
-		return errors.New("Can't create cloudwatch logs service endpoint...")
+		return fmt.Errorf("Can't create cloudwatch logs service endpoint...")
 	}
 
 	//Find log group with name 'c.LogGroup'
 	if c.lg == nil { //In case connection is not retried, first time
-		for ; logGroupsOutput.NextToken != nil; {
+		for logGroupsOutput.NextToken != nil {
 
 			logGroupsOutput, err = c.svc.DescribeLogGroups(
 				&cloudwatchlogs.DescribeLogGroupsInput{
@@ -234,7 +217,7 @@ func (c *CloudWatchLogs) Connect() error {
 		}
 
 		if c.lg == nil {
-			return errors.New(fmt.Sprintf("Can't find log group '%s'...", c.LogGroup))
+			return fmt.Errorf("Can't find log group '%s'...", c.LogGroup)
 		}
 
 		lsSplitArray := strings.Split(c.LogStream, ":")

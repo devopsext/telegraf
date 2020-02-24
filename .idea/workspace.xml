@@ -6,17 +6,13 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/README.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/cloudwatch_logs.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/cloudwatch_logs_test.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/watcherTasks.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Gopkg.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Gopkg.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/dev/config.conf" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/dev/config.conf" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/outputs/all/all.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/outputs/all/all.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/cloudwatch_logs.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/cloudwatch_logs.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/dev/config.conf" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/dev/config.conf" afterDir="false" />
     </list>
-    <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -43,7 +39,7 @@
       </list>
     </option>
   </component>
-  <component name="GOROOT" path="/usr/local/go" />
+  <component name="GOROOT" path="/usr/local/Cellar/go/1.13.1/libexec" />
   <component name="Git.Settings">
     <option name="ROOT_SYNC" value="DONT_SYNC" />
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -80,9 +76,16 @@
     </entry>
   </component>
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
   <component name="PropertiesComponent">
     <property name="DefaultGoTemplateProperty" value="Go File" />
     <property name="GO_FMT" value="true" />
+    <property name="NewWatcherDialog.advanced.open" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="SearchEverywhereHistoryKey" value="&#9;FILE&#9;file:///usr/local/Cellar/go/1.11.4/libexec/src/bytes/bytes.go" />
     <property name="TF_FMT" value="false" />
     <property name="WebServerToolWindowFactoryState" value="false" />
@@ -99,7 +102,7 @@
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
     <property name="nodejs_package_manager_path" value="npm" />
-    <property name="settings.editor.selected.configurable" value="com.goide.configuration.GoLibrariesConfigurableProvider" />
+    <property name="settings.editor.selected.configurable" value="go.sdk" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
@@ -114,18 +117,6 @@
       <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb" />
       <recent name="$PROJECT_DIR$/cmd/telegraf" />
     </key>
-  </component>
-  <component name="RunDashboard">
-    <option name="ruleStates">
-      <list>
-        <RuleState>
-          <option name="name" value="ConfigurationTypeDashboardGroupingRule" />
-        </RuleState>
-        <RuleState>
-          <option name="name" value="StatusDashboardGroupingRule" />
-        </RuleState>
-      </list>
-    </option>
   </component>
   <component name="RunManager" selected="Go Build.cloudwatch_logs">
     <configuration name="cloudwatch" type="GoApplicationRunConfiguration" factoryName="Go Application">
@@ -294,6 +285,18 @@
       </list>
     </recent_temporary>
   </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="1" />
   </component>
@@ -456,6 +459,33 @@
     <MESSAGE value="Concurrency refactoring, code-style of telegraf project" />
     <option name="LAST_COMMIT_MESSAGE" value="Concurrency refactoring, code-style of telegraf project" />
   </component>
+  <component name="WindowStateProjectService">
+    <state x="680" y="361" key="#com.intellij.fileTypes.FileTypeChooser" timestamp="1576761621821">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="680" y="361" key="#com.intellij.fileTypes.FileTypeChooser/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576761621821" />
+    <state x="553" y="318" width="692" height="653" key="EditFileWatcherDialog" timestamp="1576760557757">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="553" y="318" width="692" height="653" key="EditFileWatcherDialog/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576760557757" />
+    <state x="408" y="172" key="SettingsEditor" timestamp="1576760753372">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="408" y="172" key="SettingsEditor/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576760753372" />
+    <state x="-1886" y="23" width="1751" height="977" key="dock-window-1" timestamp="1576761764005">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1886" y="23" width="1751" height="977" key="dock-window-1/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576761764005" />
+    <state x="120" y="108" width="1200" height="637" key="dock-window-1/0.23.1440.877@0.23.1440.877" timestamp="1576440359924" />
+    <state x="-1920" y="23" width="1741" height="1010" key="dock-window-2" timestamp="1576761764005">
+      <screen x="-1920" y="23" width="1920" height="1057" />
+    </state>
+    <state x="-1920" y="23" width="1741" height="1010" key="dock-window-2/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576761764005" />
+    <state x="499" y="198" key="scopes" timestamp="1576759967408">
+      <screen x="0" y="23" width="1920" height="1057" />
+    </state>
+    <state x="499" y="198" key="scopes/-859.1103.1440.877/0.23.1920.1057/-1920.23.1920.1057@0.23.1920.1057" timestamp="1576759967408" />
+  </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
@@ -484,11 +514,6 @@
           <line>228</line>
           <option name="timeStamp" value="101" />
         </line-breakpoint>
-        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/cloudwatch_logs.go</url>
-          <line>401</line>
-          <option name="timeStamp" value="102" />
-        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
     <watches-manager>
@@ -507,20 +532,5 @@
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/telegraf$docker_cnt_logs_test.out" NAME="docker_cnt_logs_test Coverage Results" MODIFIED="1573762000293" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="GoCoverage" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" />
-  </component>
-  <component name="masterDetails">
-    <states>
-      <state key="ScopeChooserConfigurable.UI">
-        <settings>
-          <splitter-proportions>
-            <option name="proportions">
-              <list>
-                <option value="0.2" />
-              </list>
-            </option>
-          </splitter-proportions>
-        </settings>
-      </state>
-    </states>
   </component>
 </project>
