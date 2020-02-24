@@ -6,6 +6,7 @@ import (
 	_ "github.com/influxdata/telegraf/plugins/outputs/application_insights"
 	_ "github.com/influxdata/telegraf/plugins/outputs/azure_monitor"
 	_ "github.com/influxdata/telegraf/plugins/outputs/cloudwatch"
+	_ "github.com/influxdata/telegraf/plugins/outputs/cloudwatch_logs" //dve_addons
 	_ "github.com/influxdata/telegraf/plugins/outputs/cratedb"
 	_ "github.com/influxdata/telegraf/plugins/outputs/datadog"
 	_ "github.com/influxdata/telegraf/plugins/outputs/discard"

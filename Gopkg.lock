@@ -182,6 +182,7 @@
     "private/protocol/rest",
     "private/protocol/xml/xmlutil",
     "service/cloudwatch",
+    "service/cloudwatchlogs",
     "service/kinesis",
     "service/sts",
   ]
@@ -1759,6 +1760,7 @@
     "github.com/aws/aws-sdk-go/aws/credentials/stscreds",
     "github.com/aws/aws-sdk-go/aws/session",
     "github.com/aws/aws-sdk-go/service/cloudwatch",
+    "github.com/aws/aws-sdk-go/service/cloudwatchlogs",
     "github.com/aws/aws-sdk-go/service/kinesis",
     "github.com/bsm/sarama-cluster",
     "github.com/couchbase/go-couchbase",

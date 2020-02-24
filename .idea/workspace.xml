@@ -1,12 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AnalysisUIOptions">
+    <option name="SCOPE_TYPE" value="8" />
+    <option name="CUSTOM_SCOPE_NAME" value="Current File" />
+  </component>
   <component name="ChangeListManager">
     <list default="true" id="4b68dc69-e043-4717-b27b-077f19a5a442" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/README.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/cloudwatch_logs.go" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/cloudwatch_logs_test.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Gopkg.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Gopkg.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/dev/config.conf" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/dev/config.conf" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/docker_cnt_logs_test.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/plugins/outputs/all/all.go" beforeDir="false" afterPath="$PROJECT_DIR$/plugins/outputs/all/all.go" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -90,10 +98,13 @@
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="nodejs_package_manager_path" value="npm" />
     <property name="settings.editor.selected.configurable" value="com.goide.configuration.GoLibrariesConfigurableProvider" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/plugins/outputs/cloudwatch_logs" />
+      <recent name="$PROJECT_DIR$/plugins/outputs" />
       <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs/deb" />
       <recent name="$PROJECT_DIR$/plugins/inputs/cloudwatch" />
       <recent name="$PROJECT_DIR$/plugins/inputs/docker_cnt_logs" />
@@ -116,7 +127,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Go Test.docker_cnt_logs_test">
+  <component name="RunManager" selected="Go Build.cloudwatch_logs">
     <configuration name="cloudwatch" type="GoApplicationRunConfiguration" factoryName="Go Application">
       <module name="telegraf" />
       <working_directory value="$PROJECT_DIR$/" />
@@ -125,6 +136,17 @@
       <kind value="FILE" />
       <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
       <package value="github.com/influxdata/telegraf" />
+      <directory value="$PROJECT_DIR$/" />
+      <output_directory value="$PROJECT_DIR$/build" />
+      <method v="2" />
+    </configuration>
+    <configuration name="cloudwatch_logs" type="GoApplicationRunConfiguration" factoryName="Go Application">
+      <module name="telegraf" />
+      <working_directory value="$PROJECT_DIR$" />
+      <go_parameters value="-i -ldflags &quot;-X main.version='1.9.3.X' -X main.branch=local -X main.commit=local&quot;" />
+      <parameters value="--config $PROJECT_DIR$/plugins/outputs/cloudwatch_logs/dev/config.conf" />
+      <kind value="FILE" />
+      <filePath value="$PROJECT_DIR$/cmd/telegraf/telegraf.go" />
       <directory value="$PROJECT_DIR$/" />
       <output_directory value="$PROJECT_DIR$/build" />
       <method v="2" />
@@ -252,6 +274,7 @@
       <item itemvalue="Go Build.procstat" />
       <item itemvalue="Go Build.cloudwatch" />
       <item itemvalue="Go Build.docker_cnt_logs" />
+      <item itemvalue="Go Build.cloudwatch_logs" />
       <item itemvalue="Go Build.rancher_input" />
       <item itemvalue="Go Remote.Remote_k8s" />
       <item itemvalue="Go Test.docker_cnt_logs_test" />
@@ -282,7 +305,9 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
           </value>
         </entry>
       </map>
@@ -460,8 +485,8 @@
           <option name="timeStamp" value="101" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DlvLineBreakpoint">
-          <url>file://$PROJECT_DIR$/plugins/outputs/cloudwatch/cloudwatch.go</url>
-          <line>292</line>
+          <url>file://$PROJECT_DIR$/plugins/outputs/cloudwatch_logs/cloudwatch_logs.go</url>
+          <line>401</line>
           <option name="timeStamp" value="102" />
         </line-breakpoint>
       </breakpoints>
@@ -471,8 +496,12 @@
         <watch expression="dl.buffer[0:44]" language="go" />
       </configuration>
       <configuration name="GoApplicationRunConfiguration">
-        <watch expression="lr.buffer[:52]" language="go" />
-        <watch expression="*(*&quot;int&quot;)(824634688008)" />
+        <watch expression="c.ls" language="go" />
+        <watch expression="*(*&quot;int64&quot;)(824649603024)" />
+        <watch expression="lsContainer" language="go" />
+        <watch expression="batch.putLogEvents" language="go" />
+        <watch expression="metricTime" language="go" />
+        <watch expression="time.Unix(0, timeInt).UnixNano()" language="go" />
       </configuration>
     </watches-manager>
   </component>

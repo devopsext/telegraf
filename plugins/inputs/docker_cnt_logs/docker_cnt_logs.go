@@ -27,9 +27,10 @@ import (
 	tlsint "github.com/influxdata/telegraf/internal/tls"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
+
 //Docker client wrapper
 type Client interface {
-	ContainerInspect(ctx context.Context, contID string) (types.ContainerJSON, error )
+	ContainerInspect(ctx context.Context, contID string) (types.ContainerJSON, error)
 	ContainerLogs(ctx context.Context, contID string, options types.ContainerLogsOptions) (io.ReadCloser, error)
 	Close() error
 }
@@ -48,15 +49,15 @@ type DockerCNTLogs struct {
 	TargetContainers  []map[string]interface{} `toml:"container"`
 
 	//Internal
-	context     context.Context
+	context context.Context
 	//client      *docker.Client
-	client 		Client
+	client      Client
 	wg          sync.WaitGroup
 	checkerDone chan bool
 	//checkerLock         *sync.Mutex
-	offsetDone          chan bool
-	logReader           map[string]*logReader //Log reader data...
-	offsetFlushInterval time.Duration
+	offsetDone                 chan bool
+	logReader                  map[string]*logReader //Log reader data...
+	offsetFlushInterval        time.Duration
 	disableTimeStampsStreaming bool //Used for simulating reading logs with or without TS (used in tests only)
 
 }
@@ -302,12 +303,12 @@ func getOffset(offsetFile string) (string, int64) {
 			timeString := ""
 			timeInt, err := strconv.ParseInt(string(data), 10, 64)
 			if err == nil {
-				timeString = time.Unix(timeInt, 0).Format(time.RFC3339)
+				timeString = time.Unix(0, timeInt).UTC().Format(time.RFC3339Nano)
 			}
 
 			log.Printf("D! [inputs.docker_cnt_logs] Parsed offset from '%s'\nvalue: %s, %s",
 				offsetFile, string(data), timeString)
-			return string(data), timeInt
+			return timeString, timeInt
 		}
 	}
 
@@ -465,7 +466,7 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 						}
 					}
 					if totalLineLength == 0 {
-						totalLineLength = (lr.endOfLineIndex +1) - i
+						totalLineLength = (lr.endOfLineIndex + 1) - i
 					}
 
 					//Getting stream type (if header persist)
@@ -504,7 +505,7 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 
 					//Saving offset
 					currentOffset := atomic.LoadInt64(&lr.currentOffset)
-					atomic.AddInt64(&lr.currentOffset, timeStamp.Unix()-currentOffset)
+					atomic.AddInt64(&lr.currentOffset, timeStamp.UTC().UnixNano()-currentOffset+1)
 				}
 			}
 
@@ -516,7 +517,7 @@ func (dl *DockerCNTLogs) goGather(done <-chan bool, acc telegraf.Accumulator, lr
 			}
 
 			if eofReceived {
-				log.Printf("E! [inputs.docker_cnt_logs] Container '%s': log stream closed, 'EOF' received.",
+				log.Printf("E! [inputs.docker_cnt_logs] Container '%s': 'EOF' received.",
 					lr.contID)
 
 				lr.lock.Lock()
@@ -538,33 +539,36 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 
 	dl.context = context.Background()
 	switch dl.Endpoint {
-	case "ENV": {
-		dl.client, err = docker.NewClientWithOpts(docker.FromEnv)
-	}
-	case "MOCK": {
-		log.Printf("W! [inputs.docker_cnt_logs] Starting with mock docker client...")
-	}
-	default:{
-		tlsConfig, err := dl.ClientConfig.TLSConfig()
-		if err != nil {
-			return err
+	case "ENV":
+		{
+			dl.client, err = docker.NewClientWithOpts(docker.FromEnv)
 		}
-
-		transport := &http.Transport{
-			TLSClientConfig: tlsConfig,
+	case "MOCK":
+		{
+			log.Printf("W! [inputs.docker_cnt_logs] Starting with mock docker client...")
 		}
-		httpClient := &http.Client{Transport: transport}
+	default:
+		{
+			tlsConfig, err := dl.ClientConfig.TLSConfig()
+			if err != nil {
+				return err
+			}
 
-		dl.client, err = docker.NewClientWithOpts(
-			docker.WithHTTPHeaders(defaultHeaders),
-			docker.WithHTTPClient(httpClient),
-			docker.WithVersion(version),
-			docker.WithHost(dl.Endpoint))
+			transport := &http.Transport{
+				TLSClientConfig: tlsConfig,
+			}
+			httpClient := &http.Client{Transport: transport}
 
-		if err != nil {
-			return err
+			dl.client, err = docker.NewClientWithOpts(
+				docker.WithHTTPHeaders(defaultHeaders),
+				docker.WithHTTPClient(httpClient),
+				docker.WithVersion(version),
+				docker.WithHost(dl.Endpoint))
+
+			if err != nil {
+				return err
+			}
 		}
-	}
 	}
 
 	if dl.InitialChunkSize == 0 {
@@ -590,7 +594,7 @@ func (dl *DockerCNTLogs) Start(acc telegraf.Accumulator) error {
 		dl.offsetFlushInterval, err = time.ParseDuration(dl.OffsetFlush)
 		if err != nil {
 			dl.offsetFlushInterval = defaultFlushInterval
-			log.Printf("W! [inputs.docker_cnt_logs] Can't parse '%s' duration, default value will be used.",dl.OffsetFlush)
+			log.Printf("W! [inputs.docker_cnt_logs] Can't parse '%s' duration, default value will be used.", dl.OffsetFlush)
 		}
 	}
 
@@ -757,7 +761,7 @@ func (dl *DockerCNTLogs) checkStreamersStatus(done <-chan bool) {
 				}
 				logReader.lock.Unlock()
 			}
-			if closed == len(dl.logReader)  {
+			if closed == len(dl.logReader) {
 				log.Printf("I! [inputs.docker_cnt_logs] All target containers are stopped/killed!")
 				if dl.ShutDownWhenEOF {
 					log.Printf("I! [inputs.docker_cnt_logs] Telegraf shutdown is requested...")
