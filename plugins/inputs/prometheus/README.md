@@ -23,7 +23,7 @@ in Prometheus format.
   ## Filter metrics from response body. If specified, then response body
   ## is filtered before metrics will be parsed.
   ## If filtering enabled, then additional 2 metrics emitted: 
-  ## Measurment 'prometheus', field: 'filtered_lines', 'total_lines'
+  ## Measurment 'prometheus', field: 'filtered_response_lines', 'total_response_lines'
   ## filter_metrics = ["regex1","regex2",...]
    
 

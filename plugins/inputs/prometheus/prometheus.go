@@ -80,7 +80,7 @@ var sampleConfig = `
   ## Filter metrics from response body. If specified, then response body
   ## is filtered before metrics will be parsed.
   ## If filtering enabled, then additional 2 metrics emitted: 
-  ## Measurment 'prometheus', field: 'filtered_lines', 'total_lines'
+  ## Measurment 'prometheus', field: 'filtered_response_lines', 'total_response_lines'
   ## filter_metrics = ["regex1","regex2",...]
    
 
@@ -365,8 +365,8 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 		if p.URLTag != "" {
 			tags[p.URLTag] = u.OriginalURL.String()
 		}
-		acc.AddFields("prometheus", map[string]interface{}{"filtered_lines": filteredlines}, tags, time.Now())
-		acc.AddFields("prometheus", map[string]interface{}{"total_lines": totalLines}, tags, time.Now())
+		acc.AddFields("prometheus", map[string]interface{}{"filtered_response_lines": filteredlines}, tags, time.Now())
+		acc.AddFields("prometheus", map[string]interface{}{"total_response_lines": totalLines}, tags, time.Now())
 	}
 
 	if err != nil {
