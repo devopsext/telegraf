@@ -169,3 +169,32 @@ func TestPrometheusGeneratesGaugeMetricsV2(t *testing.T) {
 	assert.True(t, acc.TagValue("prometheus", "url") == ts.URL+"/metrics")
 	assert.True(t, acc.HasTimestamp("prometheus", time.Unix(1490802350, 0)))
 }
+
+func TestPrometheusGeneratesMetricsRegexFilter(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintln(w, sampleTextFormat)
+	}))
+	defer ts.Close()
+
+	p := &Prometheus{
+		URLs:          []string{ts.URL},
+		FilterMetrics: []string{"^go_gc_duration_seconds", "test_metric"}}
+
+	var acc testutil.Accumulator
+
+	p.Start(&acc)
+	require.NoError(t, acc.GatherError(p.Gather))
+	require.False(t, acc.HasMeasurement("go_gc_duration_seconds"))
+	require.False(t, acc.HasMeasurement("test_metric"))
+
+	pNoFilter := &Prometheus{
+		URLs: []string{ts.URL}}
+
+	var accNoFilter testutil.Accumulator
+
+	pNoFilter.Start(&accNoFilter)
+	require.NoError(t, accNoFilter.GatherError(pNoFilter.Gather))
+	require.True(t, accNoFilter.HasMeasurement("go_gc_duration_seconds"))
+	require.True(t, accNoFilter.HasMeasurement("test_metric"))
+
+}

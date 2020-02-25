@@ -1,6 +1,7 @@
 package prometheus
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
@@ -8,6 +9,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"regexp"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,6 +25,9 @@ const acceptHeader = `application/vnd.google.protobuf;proto=io.prometheus.client
 type Prometheus struct {
 	// An array of urls to scrape metrics from.
 	URLs []string `toml:"urls"`
+
+	FilterMetrics      []string `toml:"filter_metrics"`
+	filterMetricsRegex []*regexp.Regexp
 
 	// An array of Kubernetes services to scrape metrics from.
 	KubernetesServices []string
@@ -70,9 +76,13 @@ var sampleConfig = `
   ##   example: metric_version = 1; deprecated in 1.13
   ##            metric_version = 2; recommended version
   # metric_version = 1
-
-  ## Url tag name (tag containing scrapped url. optional, default is "url")
-  # url_tag = "scrapeUrl"
+ 
+  ## Filter metrics from response body. If specified, then response body
+  ## is filtered before metrics will be parsed.
+  ## If filtering enabled, then additional 2 metrics emitted: 
+  ## Measurment 'prometheus', field: 'filtered_response_lines', 'total_response_lines'
+  ## filter_metrics = ["regex1","regex2",...]
+   
 
   ## An array of Kubernetes services to scrape metrics from.
   # kubernetes_services = ["http://my-service-dns.my-namespace:9100/metrics"]
@@ -304,15 +314,59 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 		return fmt.Errorf("%s returned HTTP status %s", u.URL, resp.Status)
 	}
 
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return fmt.Errorf("error reading body: %s", err)
-	}
-
-	if p.MetricVersion == 2 {
-		metrics, err = ParseV2(body, resp.Header)
+	if len(p.filterMetricsRegex) == 0 {
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("error reading body: %s", err)
+		}
+		if p.MetricVersion == 2 {
+			metrics, err = ParseV2(body, resp.Header)
+		} else {
+			metrics, err = Parse(body, resp.Header)
+		}
 	} else {
-		metrics, err = Parse(body, resp.Header)
+		//Filter body:
+		filteredlines := 0
+		totalLines := 0
+		filteredBody := strings.Builder{}
+		filteredBody.Grow(int(resp.ContentLength)) //Avoid further allocations
+		scanner := bufio.NewScanner(resp.Body)
+		for scanner.Scan() {
+			totalLines++
+			line := scanner.Text() + "\n"
+			if strings.HasPrefix(line, "#") {
+				filteredBody.WriteString(line)
+				continue
+			}
+			skipMetric := false
+			for _, filterRegex := range p.filterMetricsRegex {
+				if skipMetric = filterRegex.MatchString(line); skipMetric {
+					filteredlines++
+					break
+				}
+
+			}
+
+			if !skipMetric {
+				filteredBody.WriteString(line)
+			}
+
+		}
+
+		if p.MetricVersion == 2 {
+			metrics, err = ParseV2([]byte(filteredBody.String()), resp.Header)
+		} else {
+			metrics, err = Parse([]byte(filteredBody.String()), resp.Header)
+		}
+
+		//Adding metric with filtering stat
+		tags := map[string]string{}
+		u.OriginalURL.User = nil
+		if p.URLTag != "" {
+			tags[p.URLTag] = u.OriginalURL.String()
+		}
+		acc.AddFields("prometheus", map[string]interface{}{"filtered_response_lines": filteredlines}, tags, time.Now())
+		acc.AddFields("prometheus", map[string]interface{}{"total_response_lines": totalLines}, tags, time.Now())
 	}
 
 	if err != nil {
@@ -358,6 +412,13 @@ func (p *Prometheus) Start(a telegraf.Accumulator) error {
 		ctx, p.cancel = context.WithCancel(context.Background())
 		return p.start(ctx)
 	}
+
+	//Compile regex
+	for _, regexString := range p.FilterMetrics {
+		filterMetricsRegex, _ := regexp.Compile(regexString)
+		p.filterMetricsRegex = append(p.filterMetricsRegex, filterMetricsRegex)
+	}
+
 	return nil
 }
 
@@ -371,9 +432,9 @@ func (p *Prometheus) Stop() {
 func init() {
 	inputs.Add("prometheus", func() telegraf.Input {
 		return &Prometheus{
-			ResponseTimeout: internal.Duration{Duration: time.Second * 3},
-			kubernetesPods:  map[string]URLAndAddress{},
-			URLTag:          "url",
-		}
+			ResponseTimeout:    internal.Duration{Duration: time.Second * 3},
+			kubernetesPods:     map[string]URLAndAddress{},
+			URLTag:             "url",
+			filterMetricsRegex: []*regexp.Regexp{}}
 	})
 }

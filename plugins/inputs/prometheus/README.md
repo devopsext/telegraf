@@ -19,6 +19,13 @@ in Prometheus format.
   ##   example: metric_version = 1; deprecated in 1.13
   ##            metric_version = 2; recommended version
   # metric_version = 1
+ 
+  ## Filter metrics from response body. If specified, then response body
+  ## is filtered before metrics will be parsed.
+  ## If filtering enabled, then additional 2 metrics emitted: 
+  ## Measurment 'prometheus', field: 'filtered_response_lines', 'total_response_lines'
+  ## filter_metrics = ["regex1","regex2",...]
+   
 
   ## An array of Kubernetes services to scrape metrics from.
   # kubernetes_services = ["http://my-service-dns.my-namespace:9100/metrics"]
