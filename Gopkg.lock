@@ -1132,7 +1132,7 @@
 
 [[projects]]
   branch = "process-disk-fix_2.19.11"
-  digest = "1:32dbe65d2664cb7a0973708b713437406f9cae56bb632d3dbfb959b8d2a0fbe7"
+  digest = "1:d0731ea3310da4788b35a35d31a869452379796f4b6b65d87642ead569e40a73"
   name = "github.com/shirou/gopsutil"
   packages = [
     "cpu",
