@@ -331,6 +331,7 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 		filteredBody := strings.Builder{}
 		filteredBody.Grow(int(resp.ContentLength)) //Avoid further allocations
 		scanner := bufio.NewScanner(resp.Body)
+	Metrics:
 		for scanner.Scan() {
 			totalLines++
 			line := scanner.Text() + "\n"
@@ -338,19 +339,14 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 				filteredBody.WriteString(line)
 				continue
 			}
-			skipMetric := false
+
 			for _, filterRegex := range p.filterMetricsRegex {
-				if skipMetric = filterRegex.MatchString(line); skipMetric {
+				if filterRegex.MatchString(line) {
 					filteredlines++
-					break
+					continue Metrics
 				}
-
 			}
-
-			if !skipMetric {
-				filteredBody.WriteString(line)
-			}
-
+			filteredBody.WriteString(line)
 		}
 
 		if p.MetricVersion == 2 {
