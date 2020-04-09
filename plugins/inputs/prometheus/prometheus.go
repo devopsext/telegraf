@@ -315,7 +315,9 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 	}
 
 	if len(p.filterMetricsRegex) == 0 {
-		body, err := ioutil.ReadAll(resp.Body)
+		body := []byte{}
+		body, err = ioutil.ReadAll(resp.Body)
+		//fmt.Printf("Body:\n'%s'\n\n", body)
 		if err != nil {
 			return fmt.Errorf("error reading body: %s", err)
 		}
@@ -329,7 +331,9 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 		filteredlines := 0
 		totalLines := 0
 		filteredBody := strings.Builder{}
-		filteredBody.Grow(int(resp.ContentLength)) //Avoid further allocations
+		if resp.ContentLength != -1 {
+			filteredBody.Grow(int(resp.ContentLength)) //Avoid further allocations
+		}
 		scanner := bufio.NewScanner(resp.Body)
 	Metrics:
 		for scanner.Scan() {
@@ -348,6 +352,8 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 			}
 			filteredBody.WriteString(line)
 		}
+
+		//fmt.Printf("FilteredBody:\n'%s'\n\n", filteredBody.String())
 
 		if p.MetricVersion == 2 {
 			metrics, err = ParseV2([]byte(filteredBody.String()), resp.Header)
