@@ -1,4 +1,4 @@
-# Boosted Procstat Input Plugin (optimized for *nix based OSes)
+# Boosted Procstat Input Plugin (optimized for Linux)
 The primary motivation of this plugin is to eliminate side-effects and issues of gopsutil (see below in detail) and ineffective design
 to reduce CPU load. This plugin was optimized to scrap 1000+ pid (simultaneously) with high fork rate under *nix OSes.
 Tested in the following production environments:
