@@ -331,7 +331,7 @@ func (p *Prometheus) gatherURL(u URLAndAddress, acc telegraf.Accumulator) error 
 		filteredlines := 0
 		totalLines := 0
 		filteredBody := strings.Builder{}
-		if resp.ContentLength != -1 {
+		if resp.ContentLength > 0 {
 			filteredBody.Grow(int(resp.ContentLength)) //Avoid further allocations
 		}
 		scanner := bufio.NewScanner(resp.Body)
