@@ -3,3 +3,4 @@
 /telegraf.exe
 /telegraf.gz
 /vendor
+/plugins/inputs/aliyuncms/dev

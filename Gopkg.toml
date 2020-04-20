@@ -317,4 +317,22 @@
 
 [[override]]
   name = "github.com/satori/go.uuid"
-  revision = "b2ce2384e17bbe0c6d34077efa39dbab3e09123b"
+  #revision = "b2ce2384e17bbe0c6d34077efa39dbab3e09123b" #Changed for testing aliyuncms input
+  revision = "f58768cc1a7a7e77a3bd49e98cdd21419399b6a3" #=> 1.2.0
+
+#Dependencies for aliyuncms input
+[[constraint]]
+  name = "github.com/aliyun/alibaba-cloud-sdk-go"
+  version = "v1.61.113"
+
+#[[constraint]]
+#  name = "github.com/aliyun/aliyun-oss-go-sdk"
+#  version = "v2.0.8"
+
+[[constraint]]
+  name = "github.com/aliyun/aliyun-openapi-meta"
+  version = "master"
+
+[[override]]
+  name = "github.com/jmespath/go-jmespath"
+  revision = "0b12d6b5"
