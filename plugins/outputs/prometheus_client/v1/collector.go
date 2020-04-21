@@ -60,9 +60,10 @@ type Collector struct {
 	fam map[string]*MetricFamily
 }
 
-func NewCollector(expire time.Duration, stringsAsLabel bool, logger telegraf.Logger) *Collector {
+func NewCollector(expire time.Duration, stringsAsLabel bool, exportTimeStamp bool,logger telegraf.Logger) *Collector {
 	return &Collector{
 		ExpirationInterval: expire,
+		ExportTimestamp:    exportTimeStamp,
 		StringAsLabel:      stringsAsLabel,
 		Log:                logger,
 		fam:                make(map[string]*MetricFamily),
