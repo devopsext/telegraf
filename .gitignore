@@ -5,3 +5,4 @@
 /vendor
 /plugins/inputs/aliyuncms/dev
 /plugins/outputs/prometheus_client/dev
+/plugins/inputs/cloudwatch/dev
