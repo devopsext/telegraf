@@ -100,7 +100,7 @@
   version = "v0.4.9"
 
 [[projects]]
-  digest = "0:"
+  digest = "1:33f56caa9ab45fedc63d3d1d3e342d9f9d00726071f22c67d06b0cd26d49a55e"
   name = "github.com/Shopify/sarama"
   packages = ["."]
   pruneopts = ""
@@ -158,25 +158,15 @@
     "sdk/requests",
     "sdk/responses",
     "sdk/utils",
-    "services/cdn",
     "services/cms",
     "services/ecs",
     "services/rds",
     "services/slb",
+    "services/vpc",
   ]
   pruneopts = ""
   revision = "d1bba9816be02fb7c894d3732e3463d0ecb45df0"
   version = "v1.61.113"
-
-#[[projects]]
-#  name = "github.com/aliyun/aliyun-oss-go-sdk"
-#  packages = [
-#    "oss"
-#  ]
-#  pruneopts = ""
-#  revision = "4f2a0d5e89bdad3f1b3b994d6ab08fe081952092"
-#  version = "v2.0.8"
-
 
 [[projects]]
   branch = "master"
@@ -1819,11 +1809,11 @@
     "github.com/aliyun/alibaba-cloud-sdk-go/sdk/auth/credentials/providers",
     "github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests",
     "github.com/aliyun/alibaba-cloud-sdk-go/sdk/responses",
-    "github.com/aliyun/alibaba-cloud-sdk-go/services/cdn",
     "github.com/aliyun/alibaba-cloud-sdk-go/services/cms",
     "github.com/aliyun/alibaba-cloud-sdk-go/services/ecs",
     "github.com/aliyun/alibaba-cloud-sdk-go/services/rds",
     "github.com/aliyun/alibaba-cloud-sdk-go/services/slb",
+    "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc",
     "github.com/amir/raidman",
     "github.com/apache/thrift/lib/go/thrift",
     "github.com/aws/aws-sdk-go/aws",

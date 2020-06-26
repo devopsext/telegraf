@@ -9,6 +9,7 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/slb"
+	"github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
 	"github.com/influxdata/telegraf/internal/limiter"
 	"github.com/pkg/errors"
 	"reflect"
@@ -112,8 +113,8 @@ func NewDiscoveryTool(regions []string, project string, credential auth.Credenti
 			//}
 			//req.InitWithApiInfo("oss", "2014-08-15", "DescribeDBInstances", "oss", "openAPI")
 		case "acs_vpc_eip":
-			disReq[region] = ecs.CreateDescribeEipAddressesRequest()
-			responseObjectIdKey = "EipAddressId"
+			disReq[region] = vpc.CreateDescribeEipAddressesRequest()
+			responseObjectIdKey = "AllocationId"
 		case "acs_kvstore":
 			return nil, errors.Errorf("no discovery support for project %q", project)
 		case "acs_mns_new":
