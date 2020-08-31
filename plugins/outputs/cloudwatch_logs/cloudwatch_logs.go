@@ -345,6 +345,10 @@ func (c *CloudWatchLogs) Write(metrics []telegraf.Metric) error {
 	//Sorting out log events by TS and sending them to cloud watch logs
 	for logStream, elem := range c.ls {
 		for index, batch := range elem.messageBatches {
+			if len(batch.logEvents) == 0 { //can't push empty batch
+				log.Printf("W! Empty batch detected, skipping...")
+				continue
+			}
 			sort.Slice(batch.logEvents[:], func(i, j int) bool {
 				return *batch.logEvents[i].Timestamp < *batch.logEvents[j].Timestamp
 			})
