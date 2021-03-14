@@ -367,7 +367,7 @@ func TestGatherWithDiscovery(t *testing.T) {
 			require.Empty(t, acc.GatherError(plugin.Gather))
 			require.Equal(t, acc.HasMeasurement("aliyuncms_acs_slb_dashboard"), tt.hasMeasurment)
 			if tt.hasMeasurment {
-git 				acc.AssertContainsTaggedFields(t, "aliyuncms_acs_slb_dashboard", tt.expected[0].Fields(), tt.expected[0].Tags())
+				acc.AssertContainsTaggedFields(t, "aliyuncms_acs_slb_dashboard", tt.expected[0].Fields(), tt.expected[0].Tags())
 			}
 		})
 	}
