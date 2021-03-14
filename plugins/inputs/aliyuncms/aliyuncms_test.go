@@ -260,11 +260,12 @@ func TestGatherMetric(t *testing.T) {
 	}
 }
 
-func TestGather(t *testing.T) {
-
+func TestGatherWithDiscovery(t *testing.T) {
+	var err error
 	metric := &Metric{
-		MetricNames: []string{},
-		Dimensions:  `{"instanceId": "i-abcdefgh123456"}`,
+		MetricNames:   []string{},
+		Dimensions:    `{"instanceId": "i-abcdefgh123456"}`,
+		TagsQueryPath: []string{"name:LoadBalancerName"},
 	}
 	plugin := &AliyunCMS{
 		AccessKeyID:      "my_access_key_id",
@@ -276,6 +277,45 @@ func TestGather(t *testing.T) {
 		DiscoveryRegions: []string{"cn-shanghai"},
 		client:           new(mockGatherAliyunCMSClient),
 		Log:              testutil.Logger{Name: inputTitle},
+	}
+
+	//Prepare discovery
+	plugin.dt, err = getDiscoveryTool("acs_slb_dashboard", plugin.DiscoveryRegions)
+	if err != nil {
+		t.Fatalf("Can't create discovery tool object: %v", err)
+	}
+
+	httpResp := &http.Response{
+		StatusCode: 200,
+		Body: ioutil.NopCloser(bytes.NewBufferString(
+			`{
+				"LoadBalancers":
+				 {
+				  "LoadBalancer": [ 
+					 {
+						"LoadBalancerId":"i-abcdefgh123456",
+						"LoadBalancerName":"ArbitraryName",
+						"RegionId": "cn-shanghai"
+					 }
+				   ]
+				 },
+				"TotalCount": 1,
+				"PageSize": 1,
+				"PageNumber": 1
+				}`)),
+	}
+	mockCli, err := getMockSdkCli(httpResp)
+	if err != nil {
+		t.Fatalf("Can't create mock sdk cli: %v", err)
+	}
+	plugin.dt.cli = map[string]aliyunSdkClient{plugin.DiscoveryRegions[0]: &mockCli}
+
+	plugin.discoveryData, err = plugin.dt.getDiscoveryDataAllRegions(nil)
+	if err != nil {
+		plugin.Log.Errorf("Discovery tool is not activated: %v", err)
+		t.Fail()
+	} else {
+		plugin.Log.Infof("%d object(s) discovered...", len(plugin.discoveryData))
 	}
 
 	//test table:
@@ -306,6 +346,8 @@ func TestGather(t *testing.T) {
 					map[string]string{
 						"instanceId": "i-abcdefgh123456",
 						"userId":     "1234567898765432",
+						"name":       "ArbitraryName", //this comes from discovery
+						"RegionId":   "cn-shanghai",   //this comes from discovery (default tag)
 					},
 					map[string]interface{}{
 						"instance_active_connection_minimum": float64(100),
@@ -325,7 +367,7 @@ func TestGather(t *testing.T) {
 			require.Empty(t, acc.GatherError(plugin.Gather))
 			require.Equal(t, acc.HasMeasurement("aliyuncms_acs_slb_dashboard"), tt.hasMeasurment)
 			if tt.hasMeasurment {
-				acc.AssertContainsTaggedFields(t, "aliyuncms_acs_slb_dashboard", tt.expected[0].Fields(), tt.expected[0].Tags())
+git 				acc.AssertContainsTaggedFields(t, "aliyuncms_acs_slb_dashboard", tt.expected[0].Fields(), tt.expected[0].Tags())
 			}
 		})
 	}

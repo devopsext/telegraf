@@ -441,14 +441,13 @@ func (s *AliyunCMS) prepareTagsAndDimensions(metric *Metric) {
 	}
 
 	//Reading all data from buffered channel
-L:
-	for {
+	for readAll := false; !readAll; {
 		select {
 		case s.discoveryData = <-s.dt.dataChan:
 			newData = true
 			continue
 		default:
-			break L
+			readAll = true
 		}
 	}
 
