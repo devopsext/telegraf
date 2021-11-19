@@ -329,12 +329,14 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.2.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
+	github.com/gosimple/slug v1.1.1 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
 	github.com/jcmturner/gokrb5/v8 v8.4.2 // indirect
 	github.com/jcmturner/rpc/v2 v2.0.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/pierrec/lz4/v4 v4.1.8 // indirect
+	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
 	github.com/rogpeppe/go-internal v1.6.2 // indirect
 	go.opentelemetry.io/otel v1.0.0-RC3 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.23.0 // indirect
@@ -344,6 +346,10 @@ require (
 	go.opentelemetry.io/otel/trace v1.0.0-RC3 // indirect
 	go.opentelemetry.io/proto/otlp v0.9.0 // indirect
 )
+
+require github.com/grafana-tools/sdk v0.0.0-20211109141249-6856e1821d44
+
+replace github.com/grafana-tools/sdk => /home/tsv/github.com/devopsext/sdk
 
 // replaced due to https://github.com/satori/go.uuid/issues/73
 replace github.com/satori/go.uuid => github.com/gofrs/uuid v3.2.0+incompatible

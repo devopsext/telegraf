@@ -9,3 +9,5 @@ process.yml
 /.vscode
 /*.toml
 /*.conf
+vscode.sh
+/.vscode
