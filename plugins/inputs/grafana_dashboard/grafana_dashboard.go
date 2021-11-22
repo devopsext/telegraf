@@ -16,6 +16,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
+	"text/template"
 	"time"
 
 	"github.com/grafana-tools/sdk"
@@ -24,16 +26,22 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
 
+// GrafanaDashboardMetric
+type GrafanaDashboardMetric struct {
+	Panels    []string
+	Period    config.Duration
+	Tags      map[string]string
+	templates map[string]*template.Template
+}
+
 // GrafanaDashboardAvailability struct
 type GrafanaDashboardAvailability struct {
-	Panels []string
-	Period config.Duration
+	GrafanaDashboardMetric
 }
 
 // GrafanaDashboardLatency struct
 type GrafanaDashboardLatency struct {
-	Panels []string
-	Period config.Duration
+	GrafanaDashboardMetric
 }
 
 // GrafanaDashboardMetrics struct
@@ -47,15 +55,15 @@ type GrafanaDashboard struct {
 	URL          string
 	APIKey       string
 	Dashboards   []string
-	Panels       []string
-	Availability []GrafanaDashboardAvailability
-	Latency      []GrafanaDashboardLatency
+	Availability []*GrafanaDashboardAvailability
+	Latency      []*GrafanaDashboardLatency
 	Period       config.Duration
 	Timeout      config.Duration
-	Log          telegraf.Logger `toml:"-"`
-	acc          telegraf.Accumulator
-	client       *http.Client
-	ctx          context.Context
+
+	Log    telegraf.Logger `toml:"-"`
+	acc    telegraf.Accumulator
+	client *http.Client
+	ctx    context.Context
 }
 
 type GrafanaPrometheusResponseDataResult struct {
@@ -182,7 +190,7 @@ func (g *GrafanaDashboard) findAvailability(name string) *GrafanaDashboardAvaila
 	for _, a := range g.Availability {
 		for _, s := range a.Panels {
 			if b, _ := regexp.MatchString(s, name); b {
-				return &a
+				return a
 			}
 		}
 	}
@@ -194,7 +202,7 @@ func (g *GrafanaDashboard) findLatency(name string) *GrafanaDashboardLatency {
 	for _, l := range g.Latency {
 		for _, s := range l.Panels {
 			if b, _ := regexp.MatchString(s, name); b {
-				return &l
+				return l
 			}
 		}
 	}
@@ -217,6 +225,7 @@ func (g *GrafanaDashboard) getPeriod(ms GrafanaDashboardMetrics) (config.Duratio
 	periods := time.Duration(period).String()
 	return period, periods
 }
+
 func (g *GrafanaDashboard) setVariables(vars map[string]string, query string) string {
 
 	s := query
@@ -224,6 +233,41 @@ func (g *GrafanaDashboard) setVariables(vars map[string]string, query string) st
 		s = strings.ReplaceAll(s, k, v)
 	}
 	return s
+}
+
+func (g *GrafanaDashboard) setExtraMetricTag(t *template.Template, tag string, tags map[string]string) {
+
+	if t == nil || tag == "" {
+		return
+	}
+
+	var b strings.Builder
+	err := t.Execute(&b, &tags)
+	if err != nil {
+		g.Log.Errorf("failed to execute template: %v", err)
+		return
+	}
+	tags[tag] = b.String()
+}
+
+func (g *GrafanaDashboard) setExtraMetricTags(tags map[string]string, m *GrafanaDashboardMetric) {
+
+	if m.templates == nil {
+		return
+	}
+	for v, t := range m.templates {
+		g.setExtraMetricTag(t, v, tags)
+	}
+}
+
+func (g *GrafanaDashboard) setExtraTags(tags map[string]string, ms GrafanaDashboardMetrics) {
+
+	if ms.Availability != nil {
+		g.setExtraMetricTags(tags, &ms.Availability.GrafanaDashboardMetric)
+	}
+	if ms.Latency != nil {
+		g.setExtraMetricTags(tags, &ms.Latency.GrafanaDashboardMetric)
+	}
 }
 
 func (g *GrafanaDashboard) httpDoRequest(method, query string, params url.Values, buf io.Reader) ([]byte, int, error) {
@@ -354,6 +398,7 @@ func (g *GrafanaDashboard) setPrometheusData(b *sdk.Board, p *sdk.Panel, ds *sdk
 		for k, m := range d.Metric {
 			tags[k] = m
 		}
+		g.setExtraTags(tags, ms)
 
 		for _, v := range d.Values {
 			if len(v) == 2 {
@@ -450,6 +495,7 @@ func (g *GrafanaDashboard) setInfluxDBData(sb *sdk.Board, p *sdk.Panel, ds *sdk.
 			for k, t := range s.Tags {
 				tags[k] = t
 			}
+			g.setExtraTags(tags, ms)
 
 			for _, v := range s.Values {
 				if len(v) == 2 {
@@ -485,6 +531,8 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 
 	if p.GraphPanel != nil {
 
+		var wg sync.WaitGroup
+
 		for _, t := range p.GraphPanel.Targets {
 
 			d := ds
@@ -503,15 +551,23 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 				continue
 			}
 
-			switch d.Type {
-			case "prometheus":
-				g.setPrometheusData(b, p, d, &t, metrics)
-			case "influxdb":
-				g.setInfluxDBData(b, p, d, &t, metrics)
-			default:
-				g.setPrometheusData(b, p, d, &t, metrics)
-			}
+			wg.Add(1)
+
+			go func(w *sync.WaitGroup, dt string, t *sdk.Target) {
+
+				defer w.Done()
+
+				switch dt {
+				case "prometheus":
+					g.setPrometheusData(b, p, d, t, metrics)
+				case "influxdb":
+					g.setInfluxDBData(b, p, d, t, metrics)
+				default:
+					g.setPrometheusData(b, p, d, t, metrics)
+				}
+			}(&wg, d.Type, &t)
 		}
+		wg.Wait()
 	}
 }
 
@@ -580,6 +636,30 @@ func (g *GrafanaDashboard) GrafanaGather() error {
 	return nil
 }
 
+func (g *GrafanaDashboard) getDefaultTemplate(name, tagName, tagValue string) *template.Template {
+
+	if tagName == "" || tagValue == "" {
+		return nil
+	}
+
+	t, err := template.New(fmt.Sprintf("%s_%s_template", name, tagName)).Parse(tagValue)
+	if err != nil {
+		g.Log.Error(err)
+		return nil
+	}
+	return t
+}
+
+func (g *GrafanaDashboard) setDefaultMetric(name string, m *GrafanaDashboardMetric) {
+
+	if len(m.Tags) > 0 {
+		m.templates = make(map[string]*template.Template)
+	}
+	for k, v := range m.Tags {
+		m.templates[k] = g.getDefaultTemplate(name, k, v)
+	}
+}
+
 // Gather is called by telegraf when the plugin is executed on its interval.
 // It will call TelnetGather based on the configuration and
 // also fill an Accumulator that is supplied.
@@ -592,10 +672,14 @@ func (g *GrafanaDashboard) Gather(acc telegraf.Accumulator) error {
 	if g.Timeout == 0 {
 		g.Timeout = config.Duration(time.Second) * 5
 	}
-	if len(g.Panels) == 0 {
-		g.Panels = append(g.Panels, ".*")
-	}
 	g.acc = acc
+
+	for _, a := range g.Availability {
+		g.setDefaultMetric("availability", &a.GrafanaDashboardMetric)
+	}
+	for _, l := range g.Latency {
+		g.setDefaultMetric("latency", &l.GrafanaDashboardMetric)
+	}
 
 	// Gather data
 	err := g.GrafanaGather()
