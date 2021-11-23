@@ -347,7 +347,10 @@ require (
 	go.opentelemetry.io/proto/otlp v0.9.0 // indirect
 )
 
-require github.com/grafana-tools/sdk v0.0.0-20211109141249-6856e1821d44
+require (
+	github.com/blues/jsonata-go v1.5.4
+	github.com/grafana-tools/sdk v0.0.0-20211109141249-6856e1821d44
+)
 
 replace github.com/grafana-tools/sdk => /home/tsv/github.com/devopsext/sdk
 

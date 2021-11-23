@@ -20,7 +20,9 @@ import (
 	"text/template"
 	"time"
 
+	jsonata "github.com/blues/jsonata-go"
 	"github.com/grafana-tools/sdk"
+
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/config"
 	"github.com/influxdata/telegraf/plugins/inputs"
@@ -209,7 +211,7 @@ func (g *GrafanaDashboard) findLatency(name string) *GrafanaDashboardLatency {
 	return nil
 }
 
-func (g *GrafanaDashboard) getPeriod(ms GrafanaDashboardMetrics) (config.Duration, string) {
+func (g *GrafanaDashboard) getPeriod(ms *GrafanaDashboardMetrics) (config.Duration, string) {
 
 	period := g.Period
 	if ms.Availability != nil {
@@ -230,7 +232,8 @@ func (g *GrafanaDashboard) setVariables(vars map[string]string, query string) st
 
 	s := query
 	for k, v := range vars {
-		s = strings.ReplaceAll(s, k, v)
+		s = strings.ReplaceAll(s, fmt.Sprintf("$%s", k), v)
+		s = strings.ReplaceAll(s, fmt.Sprintf("${%s}", k), v)
 	}
 	return s
 }
@@ -260,7 +263,7 @@ func (g *GrafanaDashboard) setExtraMetricTags(tags map[string]string, m *Grafana
 	}
 }
 
-func (g *GrafanaDashboard) setExtraTags(tags map[string]string, ms GrafanaDashboardMetrics) {
+func (g *GrafanaDashboard) setExtraTags(tags map[string]string, ms *GrafanaDashboardMetrics) {
 
 	if ms.Availability != nil {
 		g.setExtraMetricTags(tags, &ms.Availability.GrafanaDashboardMetric)
@@ -324,22 +327,24 @@ func (g *GrafanaDashboard) grafanaData(ds *sdk.Datasource, query string, params 
 	return raw, code, err
 }
 
-func (g *GrafanaDashboard) setPrometheusData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasource, t *sdk.Target, ms GrafanaDashboardMetrics) {
+func (g *GrafanaDashboard) setPrometheusData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasource, t *sdk.Target, ms *GrafanaDashboardMetrics) {
 
 	if ms.Availability == nil && ms.Latency == nil {
 		return
 	}
 
 	params := make(url.Values)
+	params.Add("query", t.Expr)
 
-	vars := make(map[string]string)
-	vars["$from"] = b.Time.From
-	vars["$to"] = b.Time.To
-	params.Add("query", g.setVariables(vars, t.Expr))
+	//vars := make(map[string]string)
+	//vars["$from"] = b.Time.From
+	//vars["$to"] = b.Time.To
+	//params.Add("query", g.setVariables(vars, t.Expr))
 
 	period, _ := g.getPeriod(ms)
-	start := int(time.Now().UTC().Unix())
-	end := int(time.Now().Add(time.Duration(period)).UTC().Unix())
+	start := int(time.Now().UTC().Add(time.Duration(-period)).UnixMilli())
+	end := int(time.Now().UTC().UnixMilli())
+
 	params.Add("start", strconv.Itoa(start))
 	params.Add("end", strconv.Itoa(end))
 
@@ -438,7 +443,7 @@ func (g *GrafanaDashboard) setPrometheusData(b *sdk.Board, p *sdk.Panel, ds *sdk
 	}
 }
 
-func (g *GrafanaDashboard) setInfluxDBData(sb *sdk.Board, p *sdk.Panel, ds *sdk.Datasource, t *sdk.Target, ms GrafanaDashboardMetrics) {
+func (g *GrafanaDashboard) setInfluxDBData(sb *sdk.Board, p *sdk.Panel, ds *sdk.Datasource, t *sdk.Target, ms *GrafanaDashboardMetrics) {
 
 	if ms.Availability == nil && ms.Latency == nil {
 		return
@@ -450,8 +455,7 @@ func (g *GrafanaDashboard) setInfluxDBData(sb *sdk.Board, p *sdk.Panel, ds *sdk.
 	vars := make(map[string]string)
 	_, periods := g.getPeriod(ms)
 
-	vars["$timeFilter"] = fmt.Sprintf("time >= now() - %s", periods)
-	vars["$__timeFilter"] = vars["$timeFilter"]
+	vars["timeFilter"] = fmt.Sprintf("time >= now() - %s", periods)
 	params.Add("q", g.setVariables(vars, t.Query))
 
 	params.Add("epoch", "ms")
@@ -481,16 +485,16 @@ func (g *GrafanaDashboard) setInfluxDBData(sb *sdk.Board, p *sdk.Panel, ds *sdk.
 
 	for _, r := range res.Results {
 
+		tags := make(map[string]string)
+		fields := make(map[string]interface{})
+
+		tags["timestamp"] = strconv.Itoa(int(t1))
+		tags["duration_ms"] = strconv.Itoa(int(time.Now().UTC().UnixMilli()) - int(t1))
+		tags["title"] = p.CommonPanel.Title
+		tags["datasource_type"] = ds.Type
+		tags["datasource_name"] = ds.Name
+
 		for _, s := range r.Series {
-
-			tags := make(map[string]string)
-			fields := make(map[string]interface{})
-
-			tags["timestamp"] = strconv.Itoa(int(t1))
-			tags["duration_ms"] = strconv.Itoa(int(time.Now().UTC().UnixMilli()) - int(t1))
-			tags["title"] = p.CommonPanel.Title
-			tags["datasource_type"] = ds.Type
-			tags["datasource_name"] = ds.Name
 
 			for k, t := range s.Tags {
 				tags[k] = t
@@ -527,6 +531,194 @@ func (g *GrafanaDashboard) setInfluxDBData(sb *sdk.Board, p *sdk.Panel, ds *sdk.
 	}
 }
 
+func (g *GrafanaDashboard) setMarcusolssonJsonData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasource, t *sdk.Target, ms *GrafanaDashboardMetrics) {
+
+	if ms.Availability == nil && ms.Latency == nil {
+		return
+	}
+
+	if t.URLPath == nil {
+		return
+	}
+	query, ok := t.URLPath.(string)
+	if !ok {
+		return
+	}
+
+	method := "GET"
+	if t.Method != nil {
+		m, ok := t.Method.(string)
+		if ok {
+			method = m
+		}
+	}
+
+	var body []byte
+	if t.Body != nil {
+		b, ok := t.Body.(string)
+		if ok {
+			body = []byte(b)
+		}
+	}
+
+	params := make(url.Values)
+	vars := make(map[string]string)
+
+	period, _ := g.getPeriod(ms)
+	start := int(time.Now().UTC().Add(time.Duration(-period)).UnixMilli())
+	end := int(time.Now().UTC().UnixMilli())
+
+	vars["__from"] = strconv.Itoa(start)
+	vars["__to"] = strconv.Itoa(end)
+
+	if t.Params != nil {
+		for _, v := range t.Params {
+
+			mm, ok := v.([]interface{})
+			if !ok {
+				continue
+			}
+			if len(mm) != 2 {
+				continue
+			}
+			pn, ok := mm[0].(string)
+			if !ok {
+				continue
+			}
+			pv, ok := mm[1].(string)
+			if !ok {
+				continue
+			}
+			params.Add(pn, g.setVariables(vars, pv))
+		}
+	}
+
+	t1 := time.Now().UTC().UnixMilli()
+
+	URL := fmt.Sprintf("/api/datasources/proxy/%d%s", ds.ID, query)
+	raw, code, err := g.httpDoRequest(method, URL, params, bytes.NewBuffer(body))
+	if err != nil {
+		g.Log.Error(err)
+		return
+	}
+	if code != 200 {
+		g.Log.Error(fmt.Errorf("MarcusolssonJson HTTP error %d: returns %s", code, raw))
+		return
+	}
+	var res map[string]interface{}
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		g.Log.Error(err)
+		return
+	}
+	if t.Fields == nil {
+		g.Log.Error(fmt.Errorf("MarcusolssonJson has no fields"))
+		return
+	}
+
+	var times []float64
+	var series = make(map[string][]float64)
+
+	for _, v := range t.Fields {
+		arr, ok := v.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		jsonPath, ok := arr["jsonPath"].(string)
+		if !ok {
+			continue
+		}
+		language, ok := arr["language"].(string)
+		if !ok {
+			continue
+		}
+		name, ok := arr["name"].(string)
+		if !ok {
+			continue
+		}
+		ftype, ok := arr["type"].(string)
+		if !ok {
+			continue
+		}
+
+		if language == "jsonata" {
+			expr := jsonata.MustCompile(jsonPath)
+			data, err := expr.Eval(res)
+			if err != nil {
+				g.Log.Error(err)
+				return
+			}
+			d, ok := data.([]interface{})
+			if !ok {
+				continue
+			}
+
+			if ftype == "time" {
+				for _, v := range d {
+					ts, ok := v.(float64)
+					if ok {
+						times = append(times, ts)
+						continue
+					}
+					s, ok := v.(string)
+					if !ok {
+						continue
+					}
+					t, err := time.Parse(time.RFC3339, s)
+					if err == nil {
+						ts = float64(t.UTC().UnixMilli())
+						times = append(times, ts)
+					}
+				}
+			} else {
+				for _, v := range d {
+					n, ok := v.(float64)
+					if ok {
+						series[name] = append(series[name], n)
+					}
+				}
+			}
+		}
+	}
+
+	if len(times) == 0 {
+		g.Log.Debug("MarcusolssonJson has no data")
+		return
+	}
+
+	for i, t := range times {
+
+		tags := make(map[string]string)
+		fields := make(map[string]interface{})
+
+		tags["timestamp"] = strconv.Itoa(int(t1))
+		tags["duration_ms"] = strconv.Itoa(int(time.Now().UTC().UnixMilli()) - int(t1))
+		tags["title"] = p.CommonPanel.Title
+		tags["datasource_type"] = ds.Type
+		tags["datasource_name"] = ds.Name
+
+		for k, v := range series {
+
+			tags["alias"] = k
+			g.setExtraTags(tags, ms)
+
+			if len(v) > i {
+
+				ts := int64(t)
+
+				if ms.Availability != nil {
+					fields["availability"] = v[i]
+					g.acc.AddFields("grafana_dashboard", fields, tags, time.UnixMilli(ts))
+				}
+				if ms.Latency != nil {
+					fields["latency"] = v[i]
+					g.acc.AddFields("grafana_dashboard", fields, tags, time.UnixMilli(ts))
+				}
+			}
+		}
+	}
+}
+
 func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasource, dss []sdk.Datasource, metrics GrafanaDashboardMetrics) {
 
 	if p.GraphPanel != nil {
@@ -534,6 +726,10 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 		var wg sync.WaitGroup
 
 		for _, t := range p.GraphPanel.Targets {
+
+			if t.Hide {
+				continue
+			}
 
 			d := ds
 			if t.Datasource != "" {
@@ -546,28 +742,29 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 			if d == nil {
 				continue
 			}
-
 			if d.Access != "proxy" {
 				continue
 			}
 
-			wg.Add(1)
+			//	wg.Add(1)
 
-			go func(w *sync.WaitGroup, dt string, t *sdk.Target) {
+			func(w *sync.WaitGroup, gd string, gds *sdk.Datasource, gt *sdk.Target, gm *GrafanaDashboardMetrics) {
 
-				defer w.Done()
+				//defer w.Done()
 
-				switch dt {
+				switch gd {
 				case "prometheus":
-					g.setPrometheusData(b, p, d, t, metrics)
+					g.setPrometheusData(b, p, gds, gt, gm)
 				case "influxdb":
-					g.setInfluxDBData(b, p, d, t, metrics)
+					g.setInfluxDBData(b, p, gds, gt, gm)
+				case "marcusolsson-json-datasource":
+					g.setMarcusolssonJsonData(b, p, gds, gt, gm)
 				default:
-					g.setPrometheusData(b, p, d, t, metrics)
+					g.setPrometheusData(b, p, gds, gt, gm)
 				}
-			}(&wg, d.Type, &t)
+			}(&wg, d.Type, d, &t, &metrics)
 		}
-		wg.Wait()
+		//	wg.Wait()
 	}
 }
 
