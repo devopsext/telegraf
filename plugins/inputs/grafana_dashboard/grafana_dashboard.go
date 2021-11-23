@@ -98,6 +98,97 @@ type GrafanaInfluxDBResponse struct {
 	Results []GrafanaInfluxDBResponseResult `json:"results,omitempty"`
 }
 
+type GrafanaAlexanderzobninZabbixHostGroupResponseItem struct {
+	GroupID string `json:"groupid"`
+	Name    string `json:"name"`
+}
+
+type GrafanaAlexanderzobninZabbixHostGroupResponse struct {
+	Result []*GrafanaAlexanderzobninZabbixHostGroupResponseItem `json:"result,omitempty"`
+}
+
+type GrafanaAlexanderzobninZabbixHostGroupRequestParams struct {
+	Output    []string `json:"output"`
+	RealHosts bool     `json:"real_hosts"`
+	SortField string   `json:"sortfield"`
+}
+
+type GrafanaAlexanderzobninZabbixHostGroupRequest struct {
+	DatasourceId int                                                `json:"datasourceId"`
+	Method       string                                             `json:"method"`
+	Params       GrafanaAlexanderzobninZabbixHostGroupRequestParams `json:"params"`
+}
+
+type GrafanaAlexanderzobninZabbixHostResponseItem struct {
+	Host   string `json:"host"`
+	HostID string `json:"hostid"`
+	Name   string `json:"name"`
+}
+
+type GrafanaAlexanderzobninZabbixHostResponse struct {
+	Result []*GrafanaAlexanderzobninZabbixHostResponseItem `json:"result,omitempty"`
+}
+
+type GrafanaAlexanderzobninZabbixHostRequestParams struct {
+	GroupIDs  []string `json:"groupids"`
+	Output    []string `json:"output"`
+	SortField string   `json:"sortfield"`
+}
+
+type GrafanaAlexanderzobninZabbixHostRequest struct {
+	DatasourceId int                                           `json:"datasourceId"`
+	Method       string                                        `json:"method"`
+	Params       GrafanaAlexanderzobninZabbixHostRequestParams `json:"params"`
+}
+
+type GrafanaAlexanderzobninZabbixApplicationResponseItem struct {
+	ApplicationID string   `json:"applicationid"`
+	Flags         string   `json:"flags"`
+	HostID        string   `json:"hostid"`
+	Name          string   `json:"name"`
+	TemplateIDs   []string `json:"templateids,omitempty"`
+}
+
+type GrafanaAlexanderzobninZabbixApplicationResponse struct {
+	Result []*GrafanaAlexanderzobninZabbixApplicationResponseItem `json:"result,omitempty"`
+}
+
+type GrafanaAlexanderzobninZabbixApplicationRequestParams struct {
+	HostIDs []string `json:"hostids"`
+	Output  string   `json:"output"`
+}
+
+type GrafanaAlexanderzobninZabbixApplicationRequest struct {
+	DatasourceId int                                                  `json:"datasourceId"`
+	Method       string                                               `json:"method"`
+	Params       GrafanaAlexanderzobninZabbixApplicationRequestParams `json:"params"`
+}
+
+type GrafanaAlexanderzobninZabbixItemResponseItem struct {
+	ItemID string `json:"itemid"`
+	HostID string `json:"hostid"`
+	Name   string `json:"name"`
+}
+
+type GrafanaAlexanderzobninZabbixItemResponse struct {
+	Result []*GrafanaAlexanderzobninZabbixItemResponseItem `json:"result,omitempty"`
+}
+
+type GrafanaAlexanderzobninZabbixItemRequestParams struct {
+	ApplicationIDs []string               `json:"applicationds"`
+	Filter         map[string]interface{} `json:"filter"`
+	Output         []string               `json:"output"`
+	//	SelectHosts    []string               `json:"selectHosts"`
+	SortField string `json:"sortfield"`
+	WebItems  bool   `json:"webitems"`
+}
+
+type GrafanaAlexanderzobninZabbixItemRequest struct {
+	DatasourceId int                                           `json:"datasourceId"`
+	Method       string                                        `json:"method"`
+	Params       GrafanaAlexanderzobninZabbixItemRequestParams `json:"params"`
+}
+
 var description = "Collect Grafana dashboard data"
 
 // Description will return a short string to explain what the plugin does.
@@ -336,14 +427,9 @@ func (g *GrafanaDashboard) setPrometheusData(b *sdk.Board, p *sdk.Panel, ds *sdk
 	params := make(url.Values)
 	params.Add("query", t.Expr)
 
-	//vars := make(map[string]string)
-	//vars["$from"] = b.Time.From
-	//vars["$to"] = b.Time.To
-	//params.Add("query", g.setVariables(vars, t.Expr))
-
 	period, _ := g.getPeriod(ms)
-	start := int(time.Now().UTC().Add(time.Duration(-period)).UnixMilli())
-	end := int(time.Now().UTC().UnixMilli())
+	start := int(time.Now().UTC().Add(time.Duration(-period)).Unix())
+	end := int(time.Now().UTC().Unix())
 
 	params.Add("start", strconv.Itoa(start))
 	params.Add("end", strconv.Itoa(end))
@@ -457,12 +543,347 @@ func (g *GrafanaDashboard) setInfluxDBData(sb *sdk.Board, p *sdk.Panel, ds *sdk.
 
 	vars["timeFilter"] = fmt.Sprintf("time >= now() - %s", periods)
 	params.Add("q", g.setVariables(vars, t.Query))
-
 	params.Add("epoch", "ms")
 
 	t1 := time.Now().UTC().UnixMilli()
 
 	URL := fmt.Sprintf("/api/datasources/proxy/%d/query", ds.ID)
+	raw, code, err := g.grafanaData(ds, URL, params, nil)
+	if err != nil {
+		g.Log.Error(err)
+		return
+	}
+	if code != 200 {
+		g.Log.Error(fmt.Errorf("influxdb HTTP error %d: returns %s", code, raw))
+		return
+	}
+	var res GrafanaInfluxDBResponse
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		g.Log.Error(err)
+		return
+	}
+	if res.Results == nil {
+		g.Log.Debug("InfluxDB has no data")
+		return
+	}
+
+	for _, r := range res.Results {
+
+		tags := make(map[string]string)
+		fields := make(map[string]interface{})
+
+		tags["timestamp"] = strconv.Itoa(int(t1))
+		tags["duration_ms"] = strconv.Itoa(int(time.Now().UTC().UnixMilli()) - int(t1))
+		tags["title"] = p.CommonPanel.Title
+		tags["datasource_type"] = ds.Type
+		tags["datasource_name"] = ds.Name
+
+		for _, s := range r.Series {
+
+			for k, t := range s.Tags {
+				tags[k] = t
+			}
+			g.setExtraTags(tags, ms)
+
+			for _, v := range s.Values {
+				if len(v) == 2 {
+
+					vt, ok := v[0].(float64)
+					if !ok {
+						g.Log.Debug("InfluxDB data key is not float")
+						continue
+					}
+					ts := int64(vt)
+
+					vv, ok := v[1].(float64)
+					if !ok {
+						g.Log.Debug("InfluxDB data value is not float")
+						continue
+					}
+
+					if ms.Availability != nil {
+						fields["availability"] = vv
+						g.acc.AddFields("grafana_dashboard", fields, tags, time.UnixMilli(ts))
+					}
+					if ms.Latency != nil {
+						fields["latency"] = vv
+						g.acc.AddFields("grafana_dashboard", fields, tags, time.UnixMilli(ts))
+					}
+				}
+			}
+		}
+	}
+}
+
+func (g *GrafanaDashboard) getAlexanderzobninZabbixHostGroupIDs(ds *sdk.Datasource, group interface{}) ([]string, *GrafanaAlexanderzobninZabbixHostGroupResponse, error) {
+
+	filter := ""
+	if group != nil {
+		mm, ok := group.(map[string]interface{})
+		if ok {
+			f, ok := mm["filter"].(string)
+			if ok && f != "" {
+				filter = strings.ReplaceAll(f, "/", "")
+			}
+		}
+	}
+
+	request := GrafanaAlexanderzobninZabbixHostGroupRequest{
+		DatasourceId: int(ds.ID),
+		Method:       "hostgroup.get",
+		Params: GrafanaAlexanderzobninZabbixHostGroupRequestParams{
+			Output:    []string{"name"},
+			RealHosts: true,
+			SortField: "name",
+		},
+	}
+
+	b, err := json.Marshal(request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
+	raw, code, err := g.httpPost(URL, nil, b)
+	if err != nil {
+		return nil, nil, err
+	}
+	if code != 200 {
+		return nil, nil, fmt.Errorf("AlexanderzobninZabbix HTTP error %d: returns %s", code, raw)
+	}
+
+	var res GrafanaAlexanderzobninZabbixHostGroupResponse
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var ret []string
+	for _, v := range res.Result {
+		if v != nil {
+			if m, _ := regexp.MatchString(filter, v.Name); m {
+				ret = append(ret, v.GroupID)
+			}
+		}
+	}
+	return ret, &res, nil
+}
+
+func (g *GrafanaDashboard) getAlexanderzobninZabbixHostIDs(ds *sdk.Datasource, hostGroupIDs []string, host interface{}) ([]string, *GrafanaAlexanderzobninZabbixHostResponse, error) {
+
+	filter := ""
+	if host != nil {
+		mm, ok := host.(map[string]interface{})
+		if ok {
+			f, ok := mm["filter"].(string)
+			if ok && f != "" {
+				filter = strings.ReplaceAll(f, "/", "")
+			}
+		}
+	}
+
+	request := GrafanaAlexanderzobninZabbixHostRequest{
+		DatasourceId: int(ds.ID),
+		Method:       "host.get",
+		Params: GrafanaAlexanderzobninZabbixHostRequestParams{
+			GroupIDs:  hostGroupIDs,
+			Output:    []string{"name", "host"},
+			SortField: "name",
+		},
+	}
+
+	b, err := json.Marshal(request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
+	raw, code, err := g.httpPost(URL, nil, b)
+	if err != nil {
+		return nil, nil, err
+	}
+	if code != 200 {
+		return nil, nil, fmt.Errorf("AlexanderzobninZabbix HTTP error %d: returns %s", code, raw)
+	}
+
+	var res GrafanaAlexanderzobninZabbixHostResponse
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var ret []string
+	for _, v := range res.Result {
+		if v != nil {
+			if m, _ := regexp.MatchString(filter, v.Name); m {
+				ret = append(ret, v.HostID)
+			}
+		}
+	}
+	return ret, &res, nil
+}
+
+func (g *GrafanaDashboard) getAlexanderzobninZabbixApplicationIDs(ds *sdk.Datasource, hostIDs []string, application interface{}) ([]string, *GrafanaAlexanderzobninZabbixApplicationResponse, error) {
+
+	filter := ""
+	if application != nil {
+		mm, ok := application.(map[string]interface{})
+		if ok {
+			f, ok := mm["filter"].(string)
+			if ok && f != "" {
+				filter = strings.ReplaceAll(f, "/", "")
+			}
+		}
+	}
+
+	request := GrafanaAlexanderzobninZabbixApplicationRequest{
+		DatasourceId: int(ds.ID),
+		Method:       "application.get",
+		Params: GrafanaAlexanderzobninZabbixApplicationRequestParams{
+			HostIDs: hostIDs,
+			Output:  "extend",
+		},
+	}
+
+	b, err := json.Marshal(request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
+	raw, code, err := g.httpPost(URL, nil, b)
+	if err != nil {
+		return nil, nil, err
+	}
+	if code != 200 {
+		return nil, nil, fmt.Errorf("AlexanderzobninZabbix HTTP error %d: returns %s", code, raw)
+	}
+
+	var res GrafanaAlexanderzobninZabbixApplicationResponse
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var ret []string
+	for _, v := range res.Result {
+		if v != nil {
+			if m, _ := regexp.MatchString(filter, v.Name); m {
+				ret = append(ret, v.HostID)
+			}
+		}
+	}
+	return ret, &res, nil
+}
+
+func (g *GrafanaDashboard) getAlexanderzobninZabbixItemIDs(ds *sdk.Datasource, applicationIDs []string, item interface{}) ([]string, *GrafanaAlexanderzobninZabbixItemResponse, error) {
+
+	filter := ""
+	if item != nil {
+		mm, ok := item.(map[string]interface{})
+		if ok {
+			f, ok := mm["filter"].(string)
+			if ok && f != "" {
+				filter = strings.ReplaceAll(f, "/", "")
+			}
+		}
+	}
+
+	filterMap := make(map[string]interface{})
+	filterMap["value_type"] = []int{0, 3}
+
+	request := GrafanaAlexanderzobninZabbixItemRequest{
+		DatasourceId: int(ds.ID),
+		Method:       "item.get",
+		Params: GrafanaAlexanderzobninZabbixItemRequestParams{
+			ApplicationIDs: applicationIDs,
+			Filter:         filterMap,
+			Output:         []string{"name", "hostid", "units"},
+			//SelectHosts:    []string{"host"},
+			SortField: "name",
+			WebItems:  true,
+		},
+	}
+
+	b, err := json.Marshal(request)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
+	raw, code, err := g.httpPost(URL, nil, b)
+	if err != nil {
+		return nil, nil, err
+	}
+	if code != 200 {
+		return nil, nil, fmt.Errorf("AlexanderzobninZabbix HTTP error %d: returns %s", code, raw)
+	}
+
+	var res GrafanaAlexanderzobninZabbixItemResponse
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var ret []string
+	for _, v := range res.Result {
+		if v != nil {
+			if m, _ := regexp.MatchString(filter, v.Name); m {
+				ret = append(ret, v.HostID)
+			}
+		}
+	}
+	return ret, &res, nil
+}
+
+func (g *GrafanaDashboard) setAlexanderzobninZabbixData(sb *sdk.Board, p *sdk.Panel, ds *sdk.Datasource, t *sdk.Target, ms *GrafanaDashboardMetrics) {
+
+	if ms.Availability == nil && ms.Latency == nil {
+		return
+	}
+
+	params := make(url.Values)
+
+	t1 := time.Now().UTC().UnixMilli()
+
+	hostGroupIDs, _, err := g.getAlexanderzobninZabbixHostGroupIDs(ds, t.Group)
+	if err != nil {
+		g.Log.Error(err)
+		return
+	}
+	if len(hostGroupIDs) == 0 {
+		g.Log.Debug("AlexanderzobninZabbix has no host group IDs")
+	}
+
+	hostIDs, _, err := g.getAlexanderzobninZabbixHostIDs(ds, hostGroupIDs, t.Host)
+	if err != nil {
+		g.Log.Error(err)
+		return
+	}
+	if len(hostIDs) == 0 {
+		g.Log.Debug("AlexanderzobninZabbix has no host IDs")
+	}
+
+	applicationIDs, _, err := g.getAlexanderzobninZabbixApplicationIDs(ds, hostIDs, t.Application)
+	if err != nil {
+		g.Log.Error(err)
+		return
+	}
+	if len(applicationIDs) == 0 {
+		g.Log.Debug("AlexanderzobninZabbix has no application IDs")
+	}
+
+	itemIDs, _, err := g.getAlexanderzobninZabbixItemIDs(ds, applicationIDs, t.Item)
+	if err != nil {
+		g.Log.Error(err)
+		return
+	}
+	if len(itemIDs) == 0 {
+		g.Log.Debug("AlexanderzobninZabbix has no item IDs")
+	}
+
+	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
 	raw, code, err := g.grafanaData(ds, URL, params, nil)
 	if err != nil {
 		g.Log.Error(err)
@@ -572,24 +993,28 @@ func (g *GrafanaDashboard) setMarcusolssonJsonData(b *sdk.Board, p *sdk.Panel, d
 	vars["__to"] = strconv.Itoa(end)
 
 	if t.Params != nil {
-		for _, v := range t.Params {
 
-			mm, ok := v.([]interface{})
-			if !ok {
-				continue
+		ps, ok := t.Params.([]interface{})
+		if ok {
+			for _, v := range ps {
+
+				mm, ok := v.([]interface{})
+				if !ok {
+					continue
+				}
+				if len(mm) != 2 {
+					continue
+				}
+				pn, ok := mm[0].(string)
+				if !ok {
+					continue
+				}
+				pv, ok := mm[1].(string)
+				if !ok {
+					continue
+				}
+				params.Add(pn, g.setVariables(vars, pv))
 			}
-			if len(mm) != 2 {
-				continue
-			}
-			pn, ok := mm[0].(string)
-			if !ok {
-				continue
-			}
-			pv, ok := mm[1].(string)
-			if !ok {
-				continue
-			}
-			params.Add(pn, g.setVariables(vars, pv))
 		}
 	}
 
@@ -619,7 +1044,12 @@ func (g *GrafanaDashboard) setMarcusolssonJsonData(b *sdk.Board, p *sdk.Panel, d
 	var times []float64
 	var series = make(map[string][]float64)
 
-	for _, v := range t.Fields {
+	fs, ok := t.Fields.([]interface{})
+	if !ok {
+		return
+	}
+
+	for _, v := range fs {
 		arr, ok := v.(map[string]interface{})
 		if !ok {
 			continue
@@ -757,10 +1187,12 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 					g.setPrometheusData(b, p, gds, gt, gm)
 				case "influxdb":
 					g.setInfluxDBData(b, p, gds, gt, gm)
+				case "alexanderzobnin-zabbix-datasource":
+					g.setAlexanderzobninZabbixData(b, p, gds, gt, gm)
 				case "marcusolsson-json-datasource":
 					g.setMarcusolssonJsonData(b, p, gds, gt, gm)
 				default:
-					g.setPrometheusData(b, p, gds, gt, gm)
+					g.Log.Debugf("%s is not implemented yet", gd)
 				}
 			}(&wg, d.Type, d, &t, &metrics)
 		}
