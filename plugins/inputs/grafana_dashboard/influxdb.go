@@ -41,6 +41,8 @@ func (idb *InfluxDB) GetData(t *sdk.Target, ds *sdk.Datasource, period *GrafanaD
 	params.Add("q", idb.grafana.setVariables(vars, t.Query))
 	params.Add("epoch", "ms")
 
+	//idb.log.Debugf("Influxdb params => %s", string(params))
+
 	when := time.Now()
 
 	URL := fmt.Sprintf("/api/datasources/proxy/%d/query", ds.ID)
@@ -49,7 +51,7 @@ func (idb *InfluxDB) GetData(t *sdk.Target, ds *sdk.Datasource, period *GrafanaD
 		return err
 	}
 	if code != 200 {
-		return fmt.Errorf("influxdb HTTP error %d: returns %s", code, raw)
+		return fmt.Errorf("Influxdb HTTP error %d: returns %s", code, raw)
 	}
 	var res InfluxDBResponse
 	err = json.Unmarshal(raw, &res)
@@ -63,10 +65,9 @@ func (idb *InfluxDB) GetData(t *sdk.Target, ds *sdk.Datasource, period *GrafanaD
 
 	for _, r := range res.Results {
 
-		tags := make(map[string]string)
-
 		for _, s := range r.Series {
 
+			tags := make(map[string]string)
 			for k, t := range s.Tags {
 				tags[k] = t
 			}

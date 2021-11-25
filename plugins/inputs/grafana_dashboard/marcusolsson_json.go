@@ -79,6 +79,9 @@ func (mj *MarcusolssonJson) GetData(t *sdk.Target, ds *sdk.Datasource, period *G
 		}
 	}
 
+	//idb.log.Debugf("MarcusolssonJson request params is %s", string(params))
+	mj.log.Debugf("MarcusolssonJson request body => %s", body)
+
 	when := time.Now()
 
 	URL := fmt.Sprintf("/api/datasources/proxy/%d%s", ds.ID, query)

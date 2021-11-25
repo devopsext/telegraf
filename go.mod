@@ -329,6 +329,8 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.2.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
+	github.com/elastic/go-elasticsearch/v7 v7.6.0 // indirect
+	github.com/fatih/structs v1.1.0 // indirect
 	github.com/gosimple/slug v1.1.1 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
@@ -348,6 +350,7 @@ require (
 )
 
 require (
+	github.com/aquasecurity/esquery v0.2.0
 	github.com/blues/jsonata-go v1.5.4
 	github.com/grafana-tools/sdk v0.0.0-20211109141249-6856e1821d44
 )

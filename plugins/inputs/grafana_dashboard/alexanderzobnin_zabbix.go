@@ -438,6 +438,8 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 		return err
 	}
 
+	az.log.Debugf("AlexanderzobninZabbix request body => %s", string(b))
+
 	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
 	raw, code, err := az.grafana.httpPost(URL, nil, b)
 	if err != nil {

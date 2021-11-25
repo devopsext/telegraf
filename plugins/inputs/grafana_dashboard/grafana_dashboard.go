@@ -27,6 +27,7 @@ type GrafanaDashboardMetric struct {
 	Panels    []string
 	Period    config.Duration
 	Timeout   config.Duration
+	Interval  config.Duration
 	Tags      map[string]string
 	templates map[string]*template.Template
 }
@@ -223,23 +224,32 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 
 			wg.Add(1)
 
+			if t.Interval == "" {
+				t.Interval = time.Duration(metric.Interval).String()
+			}
+
 			go func(w *sync.WaitGroup, wtt, wdt string, wds *sdk.Datasource, wt *sdk.Target, wm *GrafanaDashboardMetric) {
 
 				defer w.Done()
 
 				var datasource GrafanaDatasource = nil
 
-				var push = func(when time.Time, tags map[string]string, stamp time.Time, value float64) {
+				var push = func(when time.Time, tgs map[string]string, stamp time.Time, value float64) {
 
 					fields := make(map[string]interface{})
 					fields[wm.Name] = value
 
 					millis := when.UTC().UnixMilli()
+					tags := make(map[string]string)
 					tags["timestamp"] = strconv.Itoa(int(millis))
 					tags["duration_ms"] = strconv.Itoa(int(time.Now().UTC().UnixMilli()) - int(millis))
 					tags["title"] = wtt
 					tags["datasource_type"] = wdt
 					tags["datasource_name"] = wds.Name
+
+					for k, t := range tgs {
+						tags[k] = t
+					}
 
 					g.setExtraMetricTags(tags, wm)
 					g.acc.AddFields("grafana_dashboard", fields, tags, stamp)
@@ -257,6 +267,8 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 					datasource = NewAlexanderzobninZabbix(g.Log, grafana)
 				case "marcusolsson-json-datasource":
 					datasource = NewMarcusolssonJson(g.Log, grafana)
+				case "elasticsearch":
+					datasource = NewElasticsearch(g.Log, grafana)
 				default:
 					g.Log.Debugf("%s is not implemented yet", wdt)
 				}

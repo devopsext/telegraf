@@ -55,6 +55,8 @@ func (gp *Prometheus) GetData(t *sdk.Target, ds *sdk.Datasource, period *Grafana
 		}
 	}
 
+	//gp.log.Debugf("Prometheus request params => %s", string(params))
+
 	when := time.Now()
 
 	URL := fmt.Sprintf("/api/datasources/proxy/%d/api/v1/query_range", ds.ID)
@@ -63,7 +65,7 @@ func (gp *Prometheus) GetData(t *sdk.Target, ds *sdk.Datasource, period *Grafana
 		return err
 	}
 	if code != 200 {
-		return fmt.Errorf("prometheus HTTP error %d: returns %s", code, raw)
+		return fmt.Errorf("Prometheus HTTP error %d: returns %s", code, raw)
 	}
 	var res PrometheusResponse
 	err = json.Unmarshal(raw, &res)
@@ -81,7 +83,6 @@ func (gp *Prometheus) GetData(t *sdk.Target, ds *sdk.Datasource, period *Grafana
 	for _, d := range res.Data.Result {
 
 		tags := make(map[string]string)
-
 		for k, m := range d.Metric {
 			tags[k] = m
 		}
