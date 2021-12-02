@@ -355,7 +355,7 @@ require (
 	github.com/grafana-tools/sdk v0.0.0-20211109141249-6856e1821d44
 )
 
-replace github.com/grafana-tools/sdk => /home/tsv/github.com/devopsext/sdk
+replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.0.0-20211109141249-6856e1821d44
 
 // replaced due to https://github.com/satori/go.uuid/issues/73
 replace github.com/satori/go.uuid => github.com/gofrs/uuid v3.2.0+incompatible
