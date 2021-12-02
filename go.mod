@@ -352,10 +352,10 @@ require (
 require (
 	github.com/aquasecurity/esquery v0.2.0
 	github.com/blues/jsonata-go v1.5.4
-	github.com/grafana-tools/sdk v0.0.0-20211109141249-6856e1821d44
+	github.com/grafana-tools/sdk v0.0.0-00010101000000-000000000000
 )
 
-replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.0.0-20211109141249-6856e1821d44
+replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.1
 
 // replaced due to https://github.com/satori/go.uuid/issues/73
 replace github.com/satori/go.uuid => github.com/gofrs/uuid v3.2.0+incompatible
