@@ -14,7 +14,9 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/Masterminds/sprig/v3"
 	"github.com/grafana-tools/sdk"
+	"github.com/jinzhu/copier"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/config"
@@ -24,6 +26,8 @@ import (
 // GrafanaDashboardMetric struct
 type GrafanaDashboardMetric struct {
 	Name      string
+	Transform string
+	template  *template.Template
 	Panels    []string
 	Period    config.Duration
 	Timeout   config.Duration
@@ -159,6 +163,25 @@ func (g *GrafanaDashboard) getMetricPeriod(m *GrafanaDashboardMetric) *GrafanaDa
 	}
 }
 
+func (g *GrafanaDashboard) getTemplateValue(t *template.Template, value float64) (float64, error) {
+
+	if t == nil {
+		return value, nil
+	}
+
+	var b strings.Builder
+	err := t.Execute(&b, value)
+	if err != nil {
+		return value, err
+	}
+	v := b.String()
+	f, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return value, err
+	}
+	return f, nil
+}
+
 func (g *GrafanaDashboard) setExtraMetricTag(t *template.Template, tag string, tags map[string]string) {
 
 	if t == nil || tag == "" {
@@ -222,11 +245,17 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 				continue
 			}
 
-			wg.Add(1)
-
 			if t.Interval == "" {
 				t.Interval = time.Duration(metric.Interval).String()
 			}
+
+			wg.Add(1)
+
+			tnew := sdk.Target{}
+			dsnew := sdk.Datasource{}
+
+			copier.Copy(&dsnew, &ds)
+			copier.Copy(&tnew, &t)
 
 			go func(w *sync.WaitGroup, wtt, wdt string, wds *sdk.Datasource, wt *sdk.Target, wm *GrafanaDashboardMetric) {
 
@@ -236,8 +265,14 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 
 				var push = func(when time.Time, tgs map[string]string, stamp time.Time, value float64) {
 
+					v, err := g.getTemplateValue(wm.template, value)
+					if err != nil {
+						g.Log.Error(err)
+						return
+					}
+
 					fields := make(map[string]interface{})
-					fields[wm.Name] = value
+					fields[wm.Name] = v
 
 					millis := when.UTC().UnixMilli()
 					tags := make(map[string]string)
@@ -280,7 +315,7 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 						g.Log.Error(err)
 					}
 				}
-			}(&wg, title, d.Type, d, &t, metric)
+			}(&wg, title, d.Type, &dsnew, &tnew, metric)
 		}
 		wg.Wait()
 	}
@@ -346,13 +381,13 @@ func (g *GrafanaDashboard) GrafanaGather() error {
 	return nil
 }
 
-func (g *GrafanaDashboard) getDefaultTemplate(name, tagName, tagValue string) *template.Template {
+func (g *GrafanaDashboard) getDefaultTemplate(name, value string) *template.Template {
 
-	if tagName == "" || tagValue == "" {
+	if value == "" {
 		return nil
 	}
 
-	t, err := template.New(fmt.Sprintf("%s_%s_template", name, tagName)).Parse(tagValue)
+	t, err := template.New(fmt.Sprintf("%s_template", name)).Funcs(sprig.TxtFuncMap()).Parse(value)
 	if err != nil {
 		g.Log.Error(err)
 		return nil
@@ -360,16 +395,19 @@ func (g *GrafanaDashboard) getDefaultTemplate(name, tagName, tagValue string) *t
 	return t
 }
 
-func (g *GrafanaDashboard) setDefaultMetric(name string, m *GrafanaDashboardMetric) {
+func (g *GrafanaDashboard) setDefaultMetric(m *GrafanaDashboardMetric) {
 
-	if name == "" {
+	if m.Name == "" {
 		return
+	}
+	if m.Transform != "" {
+		m.template = g.getDefaultTemplate(m.Name, m.Transform)
 	}
 	if len(m.Tags) > 0 {
 		m.templates = make(map[string]*template.Template)
 	}
 	for k, v := range m.Tags {
-		m.templates[k] = g.getDefaultTemplate(name, k, v)
+		m.templates[k] = g.getDefaultTemplate(fmt.Sprintf("%s_%s", m.Name, k), v)
 	}
 }
 
@@ -390,7 +428,7 @@ func (g *GrafanaDashboard) Gather(acc telegraf.Accumulator) error {
 	}
 
 	for _, m := range g.Metrics {
-		g.setDefaultMetric(m.Name, m)
+		g.setDefaultMetric(m)
 	}
 
 	// Gather data
