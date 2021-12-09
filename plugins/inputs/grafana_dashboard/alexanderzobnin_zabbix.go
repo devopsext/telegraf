@@ -416,8 +416,9 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 		return nil
 	}
 
-	start := int(time.Now().UTC().Add(time.Duration(-period.AsDuration)).Unix())
-	end := int(time.Now().UTC().Unix())
+	t1, t2 := period.StartEnd()
+	start := int(t1.UTC().Unix())
+	end := int(t2.UTC().Unix())
 
 	request := AlexanderzobninZabbixHistoryRequest{
 		DatasourceId: ds.ID,

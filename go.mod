@@ -359,6 +359,7 @@ require (
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/aquasecurity/esquery v0.2.0
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/blues/jsonata-go v1.5.4
 	github.com/grafana-tools/sdk v0.0.0-00010101000000-000000000000
 	github.com/jinzhu/copier v0.3.4

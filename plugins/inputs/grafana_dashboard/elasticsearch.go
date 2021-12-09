@@ -131,8 +131,9 @@ func (esqs *ElasticsearchQueryString) Map() map[string]interface{} {
 
 func (es *Elasticsearch) GetData(t *sdk.Target, ds *sdk.Datasource, period *GrafanaDashboardPeriod, push GrafanaDatasourcePushFunc) error {
 
-	start := int(time.Now().UTC().Add(time.Duration(-period.AsDuration)).UnixMilli())
-	end := int(time.Now().UTC().UnixMilli())
+	t1, t2 := period.StartEnd()
+	start := int(t1.UTC().UnixMilli())
+	end := int(t2.UTC().UnixMilli())
 
 	est := ElasticsearchType{
 		SearchType:        "query_then_fetch",

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Masterminds/sprig/v3"
+	"github.com/araddon/dateparse"
 	"github.com/grafana-tools/sdk"
 	"github.com/jinzhu/copier"
 
@@ -29,7 +30,8 @@ type GrafanaDashboardMetric struct {
 	Transform string
 	template  *template.Template
 	Panels    []string
-	Period    config.Duration
+	Duration  config.Duration
+	From      string
 	Timeout   config.Duration
 	Interval  config.Duration
 	Tags      map[string]string
@@ -41,8 +43,8 @@ type GrafanaDatasourcePushFunc = func(when time.Time, tags map[string]string, st
 
 // GrafanaDashboardPeriod struct
 type GrafanaDashboardPeriod struct {
-	AsDuration config.Duration
-	AsString   string
+	duration config.Duration
+	from     string
 }
 
 // GrafanaDatasource interface
@@ -56,7 +58,8 @@ type GrafanaDashboard struct {
 	APIKey     string
 	Dashboards []string
 	Metrics    []*GrafanaDashboardMetric `toml:"metric"`
-	Period     config.Duration
+	Duration   config.Duration
+	From       string
 	Timeout    config.Duration
 
 	Log telegraf.Logger `toml:"-"`
@@ -76,6 +79,36 @@ func (*GrafanaDashboard) Description() string {
 var sampleConfig = `
 #
 `
+
+func (p *GrafanaDashboardPeriod) Duration() config.Duration {
+	return p.duration
+}
+
+func (p *GrafanaDashboardPeriod) DurationHuman() string {
+	return time.Duration(p.duration).String()
+}
+
+func (p *GrafanaDashboardPeriod) From() time.Time {
+	t, err := dateparse.ParseAny(p.from)
+	if err == nil {
+		return t
+	}
+	return time.Now()
+}
+
+func (p *GrafanaDashboardPeriod) StartEnd() (time.Time, time.Time) {
+
+	start := p.From()
+	end := p.From().Add(time.Duration(p.Duration()))
+
+	if start.UnixNano() > end.UnixNano() {
+		t := end
+		end = start
+		start = t
+	}
+
+	return start, end
+}
 
 // SampleConfig will return a complete configuration example with details about each field.
 func (*GrafanaDashboard) SampleConfig() string {
@@ -152,14 +185,20 @@ func (g *GrafanaDashboard) findMetrics(name string) []*GrafanaDashboardMetric {
 
 func (g *GrafanaDashboard) getMetricPeriod(m *GrafanaDashboardMetric) *GrafanaDashboardPeriod {
 
-	period := g.Period
-	if m != nil && m.Period > 0 {
-		period = m.Period
+	duration := g.Duration
+	if m != nil && m.Duration > 0 {
+		duration = m.Duration
 	}
-	periods := time.Duration(period).String()
+
+	from := g.From
+	if m != nil && m.From != "" {
+		from = m.From
+	}
+
 	return &GrafanaDashboardPeriod{
-		AsDuration: period,
-		AsString:   periods,
+
+		duration: duration,
+		from:     from,
 	}
 }
 
@@ -415,8 +454,8 @@ func (g *GrafanaDashboard) setDefaultMetric(m *GrafanaDashboardMetric) {
 func (g *GrafanaDashboard) Gather(acc telegraf.Accumulator) error {
 
 	// Set default values
-	if g.Period == 0 {
-		g.Period = config.Duration(time.Second) * 5
+	if g.Duration == 0 {
+		g.Duration = config.Duration(time.Second) * 5
 	}
 	if g.Timeout == 0 {
 		g.Timeout = config.Duration(time.Second) * 5

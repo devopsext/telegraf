@@ -36,13 +36,14 @@ func (gp *Prometheus) GetData(t *sdk.Target, ds *sdk.Datasource, period *Grafana
 	params := make(url.Values)
 	params.Add("query", t.Expr)
 
-	start := int(time.Now().UTC().Add(time.Duration(-period.AsDuration)).Unix())
-	end := int(time.Now().UTC().Unix())
+	t1, t2 := period.StartEnd()
+	start := int(t1.UTC().Unix())
+	end := int(t2.UTC().Unix())
 
 	params.Add("start", strconv.Itoa(start))
 	params.Add("end", strconv.Itoa(end))
 
-	params.Add("step", "60") // where it should be find?
+	params.Add("step", "60") // where it should be found?
 	params.Add("timeout", gp.grafana.datasourceJSONValue(ds, "queryTimeout"))
 
 	customQueryParameters := gp.grafana.datasourceJSONValue(ds, "customQueryParameters")

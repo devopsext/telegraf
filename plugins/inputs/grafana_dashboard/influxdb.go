@@ -37,7 +37,13 @@ func (idb *InfluxDB) GetData(t *sdk.Target, ds *sdk.Datasource, period *GrafanaD
 
 	vars := make(map[string]string)
 
-	vars["timeFilter"] = fmt.Sprintf("time >= now() - %s", period.AsString)
+	t1, t2 := period.StartEnd()
+	start := t1.UTC().Format("2006-01-02 15:04:05")
+	end := t2.UTC().Format("2006-01-02 15:04:05")
+
+	vars["timeFilter"] = fmt.Sprintf("time >= '%s' and time < '%s'", start, end)
+
+	//vars["timeFilter"] = fmt.Sprintf("time >= now() - %s", period.DurationHuman())
 	params.Add("q", idb.grafana.setVariables(vars, t.Query))
 	params.Add("epoch", "ms")
 

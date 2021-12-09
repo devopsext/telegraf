@@ -47,8 +47,9 @@ func (mj *MarcusolssonJson) GetData(t *sdk.Target, ds *sdk.Datasource, period *G
 	params := make(url.Values)
 	vars := make(map[string]string)
 
-	start := int(time.Now().UTC().Add(time.Duration(-period.AsDuration)).UnixMilli())
-	end := int(time.Now().UTC().UnixMilli())
+	t1, t2 := period.StartEnd()
+	start := int(t1.UTC().UnixMilli())
+	end := int(t2.UTC().UnixMilli())
 
 	vars["__from"] = strconv.Itoa(start)
 	vars["__to"] = strconv.Itoa(end)
