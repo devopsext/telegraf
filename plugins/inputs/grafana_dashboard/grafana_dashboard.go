@@ -254,7 +254,7 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 			tnew := sdk.Target{}
 			dsnew := sdk.Datasource{}
 
-			copier.Copy(&dsnew, &ds)
+			copier.Copy(&dsnew, &d)
 			copier.Copy(&tnew, &t)
 
 			go func(w *sync.WaitGroup, wtt, wdt string, wds *sdk.Datasource, wt *sdk.Target, wm *GrafanaDashboardMetric) {
