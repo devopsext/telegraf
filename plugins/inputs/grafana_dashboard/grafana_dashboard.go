@@ -57,6 +57,7 @@ type GrafanaDashboard struct {
 	URL        string
 	APIKey     string
 	Dashboards []string
+	Rows       []string
 	Metrics    []*GrafanaDashboardMetric `toml:"metric"`
 	Duration   config.Duration
 	From       string
@@ -246,7 +247,7 @@ func (g *GrafanaDashboard) setExtraMetricTags(tags map[string]string, m *Grafana
 	}
 }
 
-func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasource, dss []sdk.Datasource) {
+func (g *GrafanaDashboard) setData(b *sdk.Board, r string, p *sdk.Panel, ds *sdk.Datasource, dss []sdk.Datasource) {
 
 	if p.GraphPanel != nil {
 
@@ -296,7 +297,7 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 			copier.Copy(&dsnew, &d)
 			copier.Copy(&tnew, &t)
 
-			go func(w *sync.WaitGroup, wtt, wdt string, wds *sdk.Datasource, wt *sdk.Target, wm *GrafanaDashboardMetric) {
+			go func(w *sync.WaitGroup, wtt, wr, wdt string, wds *sdk.Datasource, wt *sdk.Target, wm *GrafanaDashboardMetric) {
 
 				defer w.Done()
 
@@ -318,6 +319,9 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 					tags["timestamp"] = strconv.Itoa(int(millis))
 					tags["duration_ms"] = strconv.Itoa(int(time.Now().UTC().UnixMilli()) - int(millis))
 					tags["title"] = wtt
+					if wr != "" {
+						tags["row"] = wr
+					}
 					tags["datasource_type"] = wdt
 					tags["datasource_name"] = wds.Name
 
@@ -354,20 +358,50 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, p *sdk.Panel, ds *sdk.Datasourc
 						g.Log.Error(err)
 					}
 				}
-			}(&wg, title, d.Type, &dsnew, &tnew, metric)
+			}(&wg, title, r, d.Type, &dsnew, &tnew, metric)
 		}
 		wg.Wait()
 	}
 }
 
+func (g *GrafanaDashboard) rowExists(p *sdk.Panel) bool {
+
+	if p == nil {
+		return false
+	}
+	if len(g.Rows) == 0 {
+		return true
+	}
+
+	for _, v := range g.Rows {
+		if b, _ := regexp.MatchString(v, p.CommonPanel.Title); b {
+			return true
+		}
+	}
+	return false
+}
+
 func (g *GrafanaDashboard) processDashboard(c *sdk.Client, b *sdk.Board, dss []sdk.Datasource) {
+
+	var rowPanel *sdk.RowPanel = nil
+	rowExists := false
+	rowTitle := ""
 
 	for _, p := range b.Panels {
 
 		if p.RowPanel != nil {
+			rowPanel = p.RowPanel
+			rowExists = g.rowExists(p)
+			if rowExists {
+				rowTitle = p.CommonPanel.Title
+			}
 			continue
 		}
 		if p.GraphPanel == nil {
+			continue
+		}
+
+		if rowPanel != nil && !rowExists {
 			continue
 		}
 
@@ -384,7 +418,7 @@ func (g *GrafanaDashboard) processDashboard(c *sdk.Client, b *sdk.Board, dss []s
 			ds = g.findDefaultDatasource(dss)
 		}
 
-		g.setData(b, p, ds, dss)
+		g.setData(b, rowTitle, p, ds, dss)
 	}
 }
 
