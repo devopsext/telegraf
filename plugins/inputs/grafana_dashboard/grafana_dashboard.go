@@ -3,8 +3,10 @@ package grafana_dashboard
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"net"
 	"net/http"
 	"regexp"
@@ -330,6 +332,13 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, r string, p *sdk.Panel, ds *sdk
 					}
 
 					g.setExtraMetricTags(tags, wm)
+
+					if math.IsNaN(value) || math.IsInf(value, 0) {
+						bs, _ := json.Marshal(tags)
+						g.Log.Debugf("Skipped NaN/Inf value for: %v[%v]", wm.Name, string(bs))
+						return
+					}
+
 					g.acc.AddFields("grafana_dashboard", fields, tags, stamp)
 				}
 
