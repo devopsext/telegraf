@@ -331,13 +331,14 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, r string, p *sdk.Panel, ds *sdk
 						tags[k] = t
 					}
 
+					g.setExtraMetricTags(tags, wm)
+
 					if math.IsNaN(value) || math.IsInf(value, 0) {
 						bs, _ := json.Marshal(tags)
 						g.Log.Debugf("Skipped NaN/Inf value for: %v[%v]", wm.Name, string(bs))
 						return
 					}
 
-					g.setExtraMetricTags(tags, wm)
 					g.acc.AddFields("grafana_dashboard", fields, tags, stamp)
 				}
 
