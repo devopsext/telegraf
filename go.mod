@@ -365,7 +365,7 @@ require (
 	github.com/jinzhu/copier v0.3.4
 )
 
-replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.1
+replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.2
 
 // replaced due to https://github.com/satori/go.uuid/issues/73
 replace github.com/satori/go.uuid => github.com/gofrs/uuid v3.2.0+incompatible
