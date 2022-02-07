@@ -356,6 +356,8 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, r string, p *sdk.Panel, ds *sdk
 					datasource = NewMarcusolssonJson(g.Log, grafana)
 				case "elasticsearch":
 					datasource = NewElasticsearch(g.Log, grafana)
+				case "vertamedia-clickhouse-datasource":
+					datasource = NewClickhouse(g.Log, grafana)
 				default:
 					g.Log.Debugf("%s is not implemented yet", wdt)
 				}
