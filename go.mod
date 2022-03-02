@@ -328,6 +328,7 @@ require (
 
 require (
 	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Masterminds/semver/v3 v3.1.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.2.3 // indirect
 	github.com/cenkalti/backoff/v4 v4.1.1 // indirect
@@ -357,6 +358,7 @@ require (
 )
 
 require (
+	github.com/Masterminds/sprig v2.22.0+incompatible
 	github.com/Masterminds/sprig/v3 v3.2.2
 	github.com/aquasecurity/esquery v0.2.0
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
