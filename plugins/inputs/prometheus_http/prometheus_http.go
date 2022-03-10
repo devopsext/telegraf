@@ -22,17 +22,17 @@ import (
 
 // PrometheusHttpMetric struct
 type PrometheusHttpMetric struct {
-	Name      string
-	Query     string
-	Transform string
+	Name      string `toml:"name"`
+	Query     string `toml:"query"`
+	Transform string `toml:"transform"`
 	template  *template.Template
-	Duration  config.Duration
-	From      string
-	Step      string
-	Params    string
-	Timeout   config.Duration
-	Interval  config.Duration
-	Tags      map[string]string
+	Duration  config.Duration   `toml:"duration"`
+	From      string            `toml:"from"`
+	Step      string            `toml:"step"`
+	Params    string            `toml:"params"`
+	Timeout   config.Duration   `toml:"timeout"`
+	Interval  config.Duration   `toml:"interval"`
+	Tags      map[string]string `toml:"tags"`
 	templates map[string]*template.Template
 }
 
@@ -44,16 +44,16 @@ type PrometheusHttpPeriod struct {
 
 // PrometheusHttp struct
 type PrometheusHttp struct {
-	URL           string
+	URL           string                  `toml:"url"`
 	Metrics       []*PrometheusHttpMetric `toml:"metric"`
-	Duration      config.Duration
-	From          string
-	Timeout       config.Duration
-	Version       string
-	Step          string
-	Params        string
-	Prefix        string
-	SkipEmptyTags bool `toml:"skip_empty_tags"`
+	Duration      config.Duration         `toml:"duration"`
+	From          string                  `toml:"from"`
+	Timeout       config.Duration         `toml:"timeout"`
+	Version       string                  `toml:"version"`
+	Step          string                  `toml:"step"`
+	Params        string                  `toml:"params"`
+	Prefix        string                  `toml:"prefix"`
+	SkipEmptyTags bool                    `toml:"skip_empty_tags"`
 
 	Log telegraf.Logger `toml:"-"`
 	acc telegraf.Accumulator
