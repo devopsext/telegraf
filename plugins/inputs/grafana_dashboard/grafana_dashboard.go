@@ -135,9 +135,11 @@ func (g *GrafanaDashboard) makeHttpClient(timeout time.Duration) *http.Client {
 }
 
 func (g *GrafanaDashboard) findDashboard(c *sdk.Client, title string) (*sdk.Board, error) {
-	var tags []string
 
-	boards, err := c.SearchDashboards(g.ctx, title, false, tags...)
+	//var tags []string
+	//boards, err := c.SearchDashboards(g.ctx, title, false, tags...)
+
+	boards, err := c.Search(g.ctx, sdk.SearchType(sdk.SearchTypeDashboard), sdk.SearchQuery(title))
 	if err != nil {
 		return nil, err
 	}
@@ -273,8 +275,9 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, r string, p *sdk.Panel, ds *sdk
 			}
 
 			d := ds
-			if t.Datasource != "" {
-				td := g.findDatasource(t.Datasource, dss)
+			dsType := sdk.GetDatasourceType(t.Datasource)
+			if dsType != "" {
+				td := g.findDatasource(dsType, dss)
 				if td != nil {
 					d = td
 				}
@@ -419,8 +422,9 @@ func (g *GrafanaDashboard) processDashboard(c *sdk.Client, b *sdk.Board, dss []s
 		var ds *sdk.Datasource
 
 		if p.CommonPanel.Datasource != nil {
-			if *p.CommonPanel.Datasource != "-- Mixed --" {
-				ds = g.findDatasource(*p.CommonPanel.Datasource, dss)
+			dsType := sdk.GetDatasourceType(p.CommonPanel.Datasource)
+			if dsType != "-- Mixed --" {
+				ds = g.findDatasource(dsType, dss)
 				if ds == nil {
 					continue
 				}
