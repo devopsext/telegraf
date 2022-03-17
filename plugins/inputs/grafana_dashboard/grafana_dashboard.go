@@ -146,7 +146,19 @@ func (g *GrafanaDashboard) findDashboard(c *sdk.Client, title string) (*sdk.Boar
 
 	if len(boards) > 0 {
 
-		board, _, err := c.GetDashboardByUID(g.ctx, boards[0].UID)
+		var b *sdk.FoundBoard
+
+		for _, v := range boards {
+			if v.Title == title {
+				b = &v
+				break
+			}
+		}
+		if b == nil {
+			return nil, errors.New("board not found")
+		}
+
+		board, _, err := c.GetDashboardByUID(g.ctx, b.UID)
 		if err != nil {
 			return nil, err
 		}
