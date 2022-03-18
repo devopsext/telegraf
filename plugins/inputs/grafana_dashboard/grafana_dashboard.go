@@ -170,7 +170,7 @@ func (g *GrafanaDashboard) findDashboard(c *sdk.Client, title string) (*sdk.Boar
 func (g *GrafanaDashboard) findDatasource(name string, dss []sdk.Datasource) *sdk.Datasource {
 
 	for _, ds := range dss {
-		if ds.Name == name {
+		if (ds.UID == name) || (ds.Name == name) {
 			return &ds
 		}
 	}
@@ -287,9 +287,9 @@ func (g *GrafanaDashboard) setData(b *sdk.Board, r string, p *sdk.Panel, ds *sdk
 			}
 
 			d := ds
-			dsType := sdk.GetDatasourceType(t.Datasource)
-			if dsType != "" {
-				td := g.findDatasource(dsType, dss)
+			dsUid := sdk.GetDatasourceUID(t.Datasource)
+			if dsUid != "" {
+				td := g.findDatasource(dsUid, dss)
 				if td != nil {
 					d = td
 				}
@@ -434,9 +434,9 @@ func (g *GrafanaDashboard) processDashboard(c *sdk.Client, b *sdk.Board, dss []s
 		var ds *sdk.Datasource
 
 		if p.CommonPanel.Datasource != nil {
-			dsType := sdk.GetDatasourceType(p.CommonPanel.Datasource)
-			if dsType != "-- Mixed --" {
-				ds = g.findDatasource(dsType, dss)
+			dsUid := sdk.GetDatasourceUID(p.CommonPanel.Datasource)
+			if dsUid != "-- Mixed --" {
+				ds = g.findDatasource(dsUid, dss)
 				if ds == nil {
 					continue
 				}
