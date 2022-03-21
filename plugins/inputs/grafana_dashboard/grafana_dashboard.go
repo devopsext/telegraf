@@ -139,6 +139,11 @@ func (g *GrafanaDashboard) findDashboard(c *sdk.Client, title string) (*sdk.Boar
 	//var tags []string
 	//boards, err := c.SearchDashboards(g.ctx, title, false, tags...)
 
+	board, _, err := c.GetDashboardByUID(g.ctx, title)
+	if err == nil {
+		return &board, nil
+	}
+
 	boards, err := c.Search(g.ctx, sdk.SearchType(sdk.SearchTypeDashboard), sdk.SearchQuery(title))
 	if err != nil {
 		return nil, err
