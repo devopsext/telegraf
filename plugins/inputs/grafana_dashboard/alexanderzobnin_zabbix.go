@@ -482,10 +482,32 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 		}
 
 		if f, err := strconv.ParseFloat(r.Value, 64); err == nil {
+			if len(t.Functions) > 0 {
+				f = applyZabbixFunctions(f, t.Functions)
+			}
 			push(when, tags, time.Unix(ts, 0), f)
 		}
 	}
 	return nil
+}
+
+func applyZabbixFunctions(v float64, functions []sdk.ZabbixFunction) float64 {
+	res := v
+	for _, f := range functions {
+		switch f.Def.Name {
+		case "scale":
+			factor, err := strconv.ParseFloat(f.Params[0], 64)
+			if err != nil {
+				res = res * factor
+			}
+		case "offset":
+			factor, err := strconv.ParseFloat(f.Params[0], 64)
+			if err != nil {
+				res = res + factor
+			}
+		}
+	}
+	return res
 }
 
 func NewAlexanderzobninZabbix(log telegraf.Logger, grafana *Grafana) *AlexanderzobninZabbix {
