@@ -2,6 +2,8 @@ package config
 
 import (
 	"bytes"
+	"crypto/tls"
+	_ "embed"
 	"fmt"
 	"io"
 	"log"
@@ -15,7 +17,10 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
+
+	"github.com/coreos/go-semver/semver"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/internal"
@@ -62,9 +67,10 @@ var (
 // will be logging to, as well as all the plugins that the user has
 // specified
 type Config struct {
-	toml         *toml.Config
-	errs         []error // config load errors.
-	UnusedFields map[string]bool
+	toml              *toml.Config
+	errs              []error // config load errors.
+	UnusedFields      map[string]bool
+	unusedFieldsMutex *sync.Mutex
 
 	Tags          map[string]string
 	InputFilters  []string
@@ -74,9 +80,13 @@ type Config struct {
 	Inputs      []*models.RunningInput
 	Outputs     []*models.RunningOutput
 	Aggregators []*models.RunningAggregator
+	Parsers     []*models.RunningParser
 	// Processors have a slice wrapper type because they need to be sorted
 	Processors    models.RunningProcessors
 	AggProcessors models.RunningProcessors
+
+	Deprecations map[string][]int64
+	version      *semver.Version
 }
 
 // NewConfig creates a new struct to hold the Telegraf config.
@@ -84,7 +94,8 @@ type Config struct {
 // once the configuration is parsed.
 func NewConfig() *Config {
 	c := &Config{
-		UnusedFields: map[string]bool{},
+		UnusedFields:      map[string]bool{},
+		unusedFieldsMutex: &sync.Mutex{},
 
 		// Agent defaults:
 		Agent: &AgentConfig{
@@ -98,11 +109,20 @@ func NewConfig() *Config {
 		Tags:          make(map[string]string),
 		Inputs:        make([]*models.RunningInput, 0),
 		Outputs:       make([]*models.RunningOutput, 0),
+		Parsers:       make([]*models.RunningParser, 0),
 		Processors:    make([]*models.RunningProcessor, 0),
 		AggProcessors: make([]*models.RunningProcessor, 0),
 		InputFilters:  make([]string, 0),
 		OutputFilters: make([]string, 0),
+		Deprecations:  make(map[string][]int64),
 	}
+
+	// Handle unknown version
+	version := internal.Version()
+	if version == "" || version == "unknown" {
+		version = "0.0.0-unknown"
+	}
+	c.version = semver.New(version)
 
 	tomlCfg := &toml.Config{
 		NormFieldName: toml.DefaultConfig.NormFieldName,
@@ -123,10 +143,15 @@ type AgentConfig struct {
 	//     ie, if Interval=10s then always collect on :00, :10, :20, etc.
 	RoundInterval bool
 
+	// Collected metrics are rounded to the precision specified. Precision is
+	// specified as an interval with an integer + unit (e.g. 0s, 10ms, 2us, 4s).
+	// Valid time units are "ns", "us" (or "µs"), "ms", "s".
+	//
 	// By default or when set to "0s", precision will be set to the same
-	// timestamp order as the collection interval, with the maximum being 1s.
+	// timestamp order as the collection interval, with the maximum being 1s:
 	//   ie, when interval = "10s", precision will be "1s"
 	//       when interval = "250ms", precision will be "1ms"
+	//
 	// Precision will NOT be used for service inputs. It is up to each individual
 	// service input to set the timestamp at the appropriate precision.
 	Precision Duration
@@ -136,6 +161,11 @@ type AgentConfig struct {
 	// This can be used to avoid many plugins querying things like sysfs at the
 	// same time, which can have a measurable effect on the system.
 	CollectionJitter Duration
+
+	// CollectionOffset is used to shift the collection by the given amount.
+	// This can be be used to avoid many plugins querying constraint devices
+	// at the same time by manually scheduling them in time.
+	CollectionOffset Duration
 
 	// FlushInterval is the Interval at which to flush data
 	FlushInterval Duration
@@ -160,12 +190,12 @@ type AgentConfig struct {
 	// FlushBufferWhenFull tells Telegraf to flush the metric buffer whenever
 	// it fills up, regardless of FlushInterval. Setting this option to true
 	// does _not_ deactivate FlushInterval.
-	FlushBufferWhenFull bool // deprecated in 0.13; has no effect
+	FlushBufferWhenFull bool `toml:"flush_buffer_when_full" deprecated:"0.13.0;2.0.0;option is ignored"`
 
 	// TODO(cam): Remove UTC and parameter, they are no longer
 	// valid for the agent config. Leaving them here for now for backwards-
 	// compatibility
-	UTC bool `toml:"utc"` // deprecated in 1.0.0; has no effect
+	UTC bool `toml:"utc" deprecated:"1.0.0;option is ignored"`
 
 	// Debug is the option for running in debug mode
 	Debug bool `toml:"debug"`
@@ -199,6 +229,10 @@ type AgentConfig struct {
 
 	Hostname     string
 	OmitHostname bool
+
+	// Method for translating SNMP objects. 'netsnmp' to call external programs,
+	// 'gosmi' to use the built-in library.
+	SnmpTranslator string `toml:"snmp_translator"`
 }
 
 // InputNames returns a list of strings of the configured inputs.
@@ -215,6 +249,15 @@ func (c *Config) AggregatorNames() []string {
 	var name []string
 	for _, aggregator := range c.Aggregators {
 		name = append(name, aggregator.Config.Name)
+	}
+	return PluginNameCounts(name)
+}
+
+// ParserNames returns a list of strings of the configured parsers.
+func (c *Config) ParserNames() []string {
+	var name []string
+	for _, parser := range c.Parsers {
+		name = append(name, parser.Config.DataFormat)
 	}
 	return PluginNameCounts(name)
 }
@@ -296,84 +339,10 @@ var globalTagsConfig = `
   # user = "$USER"
 
 `
-var agentConfig = `
-# Configuration for telegraf agent
-[agent]
-  ## Default data collection interval for all inputs
-  interval = "10s"
-  ## Rounds collection interval to 'interval'
-  ## ie, if interval="10s" then always collect on :00, :10, :20, etc.
-  round_interval = true
 
-  ## Telegraf will send metrics to outputs in batches of at most
-  ## metric_batch_size metrics.
-  ## This controls the size of writes that Telegraf sends to output plugins.
-  metric_batch_size = 1000
-
-  ## Maximum number of unwritten metrics per output.  Increasing this value
-  ## allows for longer periods of output downtime without dropping metrics at the
-  ## cost of higher maximum memory usage.
-  metric_buffer_limit = 10000
-
-  ## Collection jitter is used to jitter the collection by a random amount.
-  ## Each plugin will sleep for a random time within jitter before collecting.
-  ## This can be used to avoid many plugins querying things like sysfs at the
-  ## same time, which can have a measurable effect on the system.
-  collection_jitter = "0s"
-
-  ## Default flushing interval for all outputs. Maximum flush_interval will be
-  ## flush_interval + flush_jitter
-  flush_interval = "10s"
-  ## Jitter the flush interval by a random amount. This is primarily to avoid
-  ## large write spikes for users running a large number of telegraf instances.
-  ## ie, a jitter of 5s and interval 10s means flushes will happen every 10-15s
-  flush_jitter = "0s"
-
-  ## By default or when set to "0s", precision will be set to the same
-  ## timestamp order as the collection interval, with the maximum being 1s.
-  ##   ie, when interval = "10s", precision will be "1s"
-  ##       when interval = "250ms", precision will be "1ms"
-  ## Precision will NOT be used for service inputs. It is up to each individual
-  ## service input to set the timestamp at the appropriate precision.
-  ## Valid time units are "ns", "us" (or "µs"), "ms", "s".
-  precision = ""
-
-  ## Log at debug level.
-  # debug = false
-  ## Log only error level messages.
-  # quiet = false
-
-  ## Log target controls the destination for logs and can be one of "file",
-  ## "stderr" or, on Windows, "eventlog".  When set to "file", the output file
-  ## is determined by the "logfile" setting.
-  # logtarget = "file"
-
-  ## Name of the file to be logged to when using the "file" logtarget.  If set to
-  ## the empty string then logs are written to stderr.
-  # logfile = ""
-
-  ## The logfile will be rotated after the time interval specified.  When set
-  ## to 0 no time based rotation is performed.  Logs are rotated only when
-  ## written to, if there is no log activity rotation may be delayed.
-  # logfile_rotation_interval = "0d"
-
-  ## The logfile will be rotated when it becomes larger than the specified
-  ## size.  When set to 0 no size based rotation is performed.
-  # logfile_rotation_max_size = "0MB"
-
-  ## Maximum number of rotated archives to keep, any older logs are deleted.
-  ## If set to -1, no archives are removed.
-  # logfile_rotation_max_archives = 5
-
-  ## Pick a timezone to use when logging or type 'local' for local time.
-  ## Example: America/Chicago
-  # log_with_timezone = ""
-
-  ## Override default hostname, if empty use os.Hostname()
-  hostname = ""
-  ## If set to true, do no set the "host" tag in the telegraf agent.
-  omit_hostname = false
-`
+// DO NOT REMOVE THE NEXT TWO LINES! This is required to embed the agentConfig data.
+//go:embed agent.conf
+var agentConfig string
 
 var outputHeader = `
 ###############################################################################
@@ -419,7 +388,7 @@ func PrintSampleConfig(
 	processorFilters []string,
 ) {
 	// print headers
-	fmt.Printf(header)
+	fmt.Print(header)
 
 	if len(sectionFilters) == 0 {
 		sectionFilters = sectionDefaults
@@ -430,11 +399,11 @@ func PrintSampleConfig(
 	if sliceContains("outputs", sectionFilters) {
 		if len(outputFilters) != 0 {
 			if len(outputFilters) >= 3 && outputFilters[1] != "none" {
-				fmt.Printf(outputHeader)
+				fmt.Print(outputHeader)
 			}
 			printFilteredOutputs(outputFilters, false)
 		} else {
-			fmt.Printf(outputHeader)
+			fmt.Print(outputHeader)
 			printFilteredOutputs(outputDefaults, false)
 			// Print non-default outputs, commented
 			var pnames []string
@@ -452,11 +421,11 @@ func PrintSampleConfig(
 	if sliceContains("processors", sectionFilters) {
 		if len(processorFilters) != 0 {
 			if len(processorFilters) >= 3 && processorFilters[1] != "none" {
-				fmt.Printf(processorHeader)
+				fmt.Print(processorHeader)
 			}
 			printFilteredProcessors(processorFilters, false)
 		} else {
-			fmt.Printf(processorHeader)
+			fmt.Print(processorHeader)
 			pnames := []string{}
 			for pname := range processors.Processors {
 				pnames = append(pnames, pname)
@@ -470,11 +439,11 @@ func PrintSampleConfig(
 	if sliceContains("aggregators", sectionFilters) {
 		if len(aggregatorFilters) != 0 {
 			if len(aggregatorFilters) >= 3 && aggregatorFilters[1] != "none" {
-				fmt.Printf(aggregatorHeader)
+				fmt.Print(aggregatorHeader)
 			}
 			printFilteredAggregators(aggregatorFilters, false)
 		} else {
-			fmt.Printf(aggregatorHeader)
+			fmt.Print(aggregatorHeader)
 			pnames := []string{}
 			for pname := range aggregators.Aggregators {
 				pnames = append(pnames, pname)
@@ -488,11 +457,11 @@ func PrintSampleConfig(
 	if sliceContains("inputs", sectionFilters) {
 		if len(inputFilters) != 0 {
 			if len(inputFilters) >= 3 && inputFilters[1] != "none" {
-				fmt.Printf(inputHeader)
+				fmt.Print(inputHeader)
 			}
 			printFilteredInputs(inputFilters, false)
 		} else {
-			fmt.Printf(inputHeader)
+			fmt.Print(inputHeader)
 			printFilteredInputs(inputDefaults, false)
 			// Print non-default inputs, commented
 			var pnames []string
@@ -521,7 +490,7 @@ func printFilteredProcessors(processorFilters []string, commented bool) {
 	for _, pname := range pnames {
 		creator := processors.Processors[pname]
 		output := creator()
-		printConfig(pname, output, "processors", commented)
+		printConfig(pname, output, "processors", commented, processors.Deprecations[pname])
 	}
 }
 
@@ -539,7 +508,7 @@ func printFilteredAggregators(aggregatorFilters []string, commented bool) {
 	for _, aname := range anames {
 		creator := aggregators.Aggregators[aname]
 		output := creator()
-		printConfig(aname, output, "aggregators", commented)
+		printConfig(aname, output, "aggregators", commented, aggregators.Deprecations[aname])
 	}
 }
 
@@ -560,20 +529,21 @@ func printFilteredInputs(inputFilters []string, commented bool) {
 
 	// Print Inputs
 	for _, pname := range pnames {
-		if pname == "cisco_telemetry_gnmi" {
+		// Skip inputs that are registered twice for backward compatibility
+		switch pname {
+		case "cisco_telemetry_gnmi", "io", "KNXListener":
 			continue
 		}
 		creator := inputs.Inputs[pname]
 		input := creator()
 
-		switch p := input.(type) {
-		case telegraf.ServiceInput:
+		if p, ok := input.(telegraf.ServiceInput); ok {
 			servInputs[pname] = p
 			servInputNames = append(servInputNames, pname)
 			continue
 		}
 
-		printConfig(pname, input, "inputs", commented)
+		printConfig(pname, input, "inputs", commented, inputs.Deprecations[pname])
 	}
 
 	// Print Service Inputs
@@ -582,9 +552,9 @@ func printFilteredInputs(inputFilters []string, commented bool) {
 	}
 	sort.Strings(servInputNames)
 
-	fmt.Printf(serviceInputHeader)
+	fmt.Print(serviceInputHeader)
 	for _, name := range servInputNames {
-		printConfig(name, servInputs[name], "inputs", commented)
+		printConfig(name, servInputs[name], "inputs", commented, inputs.Deprecations[name])
 	}
 }
 
@@ -602,35 +572,43 @@ func printFilteredOutputs(outputFilters []string, commented bool) {
 	for _, oname := range onames {
 		creator := outputs.Outputs[oname]
 		output := creator()
-		printConfig(oname, output, "outputs", commented)
+		printConfig(oname, output, "outputs", commented, outputs.Deprecations[oname])
 	}
 }
 
 func printFilteredGlobalSections(sectionFilters []string) {
 	if sliceContains("global_tags", sectionFilters) {
-		fmt.Printf(globalTagsConfig)
+		fmt.Print(globalTagsConfig)
 	}
 
 	if sliceContains("agent", sectionFilters) {
-		fmt.Printf(agentConfig)
+		fmt.Print(agentConfig)
 	}
 }
 
-func printConfig(name string, p telegraf.PluginDescriber, op string, commented bool) {
+func printConfig(name string, p telegraf.PluginDescriber, op string, commented bool, di telegraf.DeprecationInfo) {
 	comment := ""
 	if commented {
 		comment = "# "
 	}
-	fmt.Printf("\n%s# %s\n%s[[%s.%s]]", comment, p.Description(), comment,
-		op, name)
+
+	if di.Since != "" {
+		removalNote := ""
+		if di.RemovalIn != "" {
+			removalNote = " and will be removed in " + di.RemovalIn
+		}
+		fmt.Printf("\n%s ## DEPRECATED: The '%s' plugin is deprecated in version %s%s, %s.", comment, name, di.Since, removalNote, di.Notice)
+	}
 
 	config := p.SampleConfig()
 	if config == "" {
+		fmt.Printf("\n#[[%s.%s]]", op, name)
 		fmt.Printf("\n%s  # no configuration\n\n", comment)
 	} else {
 		lines := strings.Split(config, "\n")
+		fmt.Print("\n")
 		for i, line := range lines {
-			if i == 0 || i == len(lines)-1 {
+			if i == len(lines)-1 {
 				fmt.Print("\n")
 				continue
 			}
@@ -650,21 +628,23 @@ func sliceContains(name string, list []string) bool {
 
 // PrintInputConfig prints the config usage of a single input.
 func PrintInputConfig(name string) error {
-	if creator, ok := inputs.Inputs[name]; ok {
-		printConfig(name, creator(), "inputs", false)
-	} else {
-		return fmt.Errorf("Input %s not found", name)
+	creator, ok := inputs.Inputs[name]
+	if !ok {
+		return fmt.Errorf("input %s not found", name)
 	}
+
+	printConfig(name, creator(), "inputs", false, inputs.Deprecations[name])
 	return nil
 }
 
 // PrintOutputConfig prints the config usage of a single output.
 func PrintOutputConfig(name string) error {
-	if creator, ok := outputs.Outputs[name]; ok {
-		printConfig(name, creator(), "outputs", false)
-	} else {
-		return fmt.Errorf("Output %s not found", name)
+	creator, ok := outputs.Outputs[name]
+	if !ok {
+		return fmt.Errorf("output %s not found", name)
 	}
+
+	printConfig(name, creator(), "outputs", false, outputs.Deprecations[name])
 	return nil
 }
 
@@ -796,6 +776,11 @@ func (c *Config) LoadConfigData(data []byte) error {
 		}
 
 		c.Tags["host"] = c.Agent.Hostname
+	}
+
+	// Set snmp agent translator default
+	if c.Agent.SnmpTranslator == "" {
+		c.Agent.SnmpTranslator = "netsnmp"
 	}
 
 	if len(c.UnusedFields) > 0 {
@@ -1004,6 +989,11 @@ func parseConfig(contents []byte) (*ast.Table, error) {
 func (c *Config) addAggregator(name string, table *ast.Table) error {
 	creator, ok := aggregators.Aggregators[name]
 	if !ok {
+		// Handle removed, deprecated plugins
+		if di, deprecated := aggregators.Deprecations[name]; deprecated {
+			printHistoricPluginDeprecationNotice("aggregators", name, di)
+			return fmt.Errorf("plugin deprecated")
+		}
 		return fmt.Errorf("Undefined but requested aggregator: %s", name)
 	}
 	aggregator := creator()
@@ -1017,13 +1007,55 @@ func (c *Config) addAggregator(name string, table *ast.Table) error {
 		return err
 	}
 
+	if err := c.printUserDeprecation("aggregators", name, aggregator); err != nil {
+		return err
+	}
+
 	c.Aggregators = append(c.Aggregators, models.NewRunningAggregator(aggregator, conf))
 	return nil
+}
+
+func (c *Config) probeParser(table *ast.Table) bool {
+	var dataformat string
+	c.getFieldString(table, "data_format", &dataformat)
+
+	_, ok := parsers.Parsers[dataformat]
+	return ok
+}
+
+func (c *Config) addParser(parentname string, table *ast.Table) (*models.RunningParser, error) {
+	var dataformat string
+	c.getFieldString(table, "data_format", &dataformat)
+
+	creator, ok := parsers.Parsers[dataformat]
+	if !ok {
+		return nil, fmt.Errorf("Undefined but requested parser: %s", dataformat)
+	}
+	parser := creator(parentname)
+
+	conf, err := c.buildParser(parentname, table)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.toml.UnmarshalTable(table, parser); err != nil {
+		return nil, err
+	}
+
+	running := models.NewRunningParser(parser, conf)
+	c.Parsers = append(c.Parsers, running)
+
+	return running, nil
 }
 
 func (c *Config) addProcessor(name string, table *ast.Table) error {
 	creator, ok := processors.Processors[name]
 	if !ok {
+		// Handle removed, deprecated plugins
+		if di, deprecated := processors.Deprecations[name]; deprecated {
+			printHistoricPluginDeprecationNotice("processors", name, di)
+			return fmt.Errorf("plugin deprecated")
+		}
 		return fmt.Errorf("Undefined but requested processor: %s", name)
 	}
 
@@ -1065,6 +1097,10 @@ func (c *Config) newRunningProcessor(
 		}
 	}
 
+	if err := c.printUserDeprecation("processors", processorConfig.Name, processor); err != nil {
+		return nil, err
+	}
+
 	rf := models.NewRunningProcessor(processor, processorConfig)
 	return rf, nil
 }
@@ -1075,14 +1111,18 @@ func (c *Config) addOutput(name string, table *ast.Table) error {
 	}
 	creator, ok := outputs.Outputs[name]
 	if !ok {
-		return fmt.Errorf("Undefined but requested output: %s", name)
+		// Handle removed, deprecated plugins
+		if di, deprecated := outputs.Deprecations[name]; deprecated {
+			printHistoricPluginDeprecationNotice("outputs", name, di)
+			return fmt.Errorf("plugin deprecated")
+		}
+		return fmt.Errorf("undefined but requested output: %s", name)
 	}
 	output := creator()
 
 	// If the output has a SetSerializer function, then this means it can write
 	// arbitrary types of output, so build the serializer and set it.
-	switch t := output.(type) {
-	case serializers.SerializerOutput:
+	if t, ok := output.(serializers.SerializerOutput); ok {
 		serializer, err := c.buildSerializer(table)
 		if err != nil {
 			return err
@@ -1099,6 +1139,16 @@ func (c *Config) addOutput(name string, table *ast.Table) error {
 		return err
 	}
 
+	if err := c.printUserDeprecation("outputs", name, output); err != nil {
+		return err
+	}
+
+	if c, ok := interface{}(output).(interface{ TLSConfig() (*tls.Config, error) }); ok {
+		if _, err := c.TLSConfig(); err != nil {
+			return err
+		}
+	}
+
 	ro := models.NewRunningOutput(output, outputConfig, c.Agent.MetricBatchSize, c.Agent.MetricBufferLimit)
 	c.Outputs = append(c.Outputs, ro)
 	return nil
@@ -1108,35 +1158,119 @@ func (c *Config) addInput(name string, table *ast.Table) error {
 	if len(c.InputFilters) > 0 && !sliceContains(name, c.InputFilters) {
 		return nil
 	}
-	// Legacy support renaming io input to diskio
-	if name == "io" {
-		name = "diskio"
-	}
+
+	// For inputs with parsers we need to compute the set of
+	// options that is not covered by both, the parser and the input.
+	// We achieve this by keeping a local book of missing entries
+	// that counts the number of misses. In case we have a parser
+	// for the input both need to miss the entry. We count the
+	// missing entries at the end.
+	missThreshold := 0
+	missCount := make(map[string]int)
+	c.setLocalMissingTomlFieldTracker(missCount)
+	defer c.resetMissingTomlFieldTracker()
 
 	creator, ok := inputs.Inputs[name]
 	if !ok {
+		// Handle removed, deprecated plugins
+		if di, deprecated := inputs.Deprecations[name]; deprecated {
+			printHistoricPluginDeprecationNotice("inputs", name, di)
+			return fmt.Errorf("plugin deprecated")
+		}
+
 		return fmt.Errorf("Undefined but requested input: %s", name)
 	}
 	input := creator()
 
-	// If the input has a SetParser function, then this means it can accept
-	// arbitrary types of input, so build the parser and set it.
-	if t, ok := input.(parsers.ParserInput); ok {
-		parser, err := c.buildParser(name, table)
-		if err != nil {
-			return err
+	// If the input has a SetParser or SetParserFunc function, it can accept
+	// arbitrary data-formats, so build the requested parser and set it.
+	if t, ok := input.(telegraf.ParserInput); ok {
+		missThreshold = 1
+		if parser, err := c.addParser(name, table); err == nil {
+			t.SetParser(parser)
+		} else {
+			missThreshold = 0
+			// Fallback to the old way of instantiating the parsers.
+			config, err := c.getParserConfig(name, table)
+			if err != nil {
+				return err
+			}
+			parser, err := c.buildParserOld(name, config)
+			if err != nil {
+				return err
+			}
+			t.SetParser(parser)
 		}
-		t.SetParser(parser)
+	}
+
+	// Keep the old interface for backward compatibility
+	if t, ok := input.(parsers.ParserInput); ok {
+		// DEPRECATED: Please switch your plugin to telegraf.ParserInput.
+		missThreshold = 1
+		if parser, err := c.addParser(name, table); err == nil {
+			t.SetParser(parser)
+		} else {
+			missThreshold = 0
+			// Fallback to the old way of instantiating the parsers.
+			config, err := c.getParserConfig(name, table)
+			if err != nil {
+				return err
+			}
+			parser, err := c.buildParserOld(name, config)
+			if err != nil {
+				return err
+			}
+			t.SetParser(parser)
+		}
+	}
+
+	if t, ok := input.(telegraf.ParserFuncInput); ok {
+		missThreshold = 1
+		if c.probeParser(table) {
+			t.SetParserFunc(func() (telegraf.Parser, error) {
+				parser, err := c.addParser(name, table)
+				if err != nil {
+					return nil, err
+				}
+				err = parser.Init()
+				return parser, err
+			})
+		} else {
+			missThreshold = 0
+			// Fallback to the old way
+			config, err := c.getParserConfig(name, table)
+			if err != nil {
+				return err
+			}
+			t.SetParserFunc(func() (telegraf.Parser, error) {
+				return c.buildParserOld(name, config)
+			})
+		}
 	}
 
 	if t, ok := input.(parsers.ParserFuncInput); ok {
-		config, err := c.getParserConfig(name, table)
-		if err != nil {
-			return err
+		// DEPRECATED: Please switch your plugin to telegraf.ParserFuncInput.
+		missThreshold = 1
+		if c.probeParser(table) {
+			t.SetParserFunc(func() (parsers.Parser, error) {
+				parser, err := c.addParser(name, table)
+				if err != nil {
+					return nil, err
+				}
+				err = parser.Init()
+				return parser, err
+			})
+		} else {
+			missThreshold = 0
+			// Fallback to the old way
+			config, err := c.getParserConfig(name, table)
+			if err != nil {
+				return err
+			}
+			t.SetParserFunc(func() (parsers.Parser, error) {
+				return c.buildParserOld(name, config)
+			})
 		}
-		t.SetParserFunc(func() (parsers.Parser, error) {
-			return parsers.NewParser(config)
-		})
 	}
 
 	pluginConfig, err := c.buildInput(name, table)
@@ -1148,9 +1282,30 @@ func (c *Config) addInput(name string, table *ast.Table) error {
 		return err
 	}
 
+	if err := c.printUserDeprecation("inputs", name, input); err != nil {
+		return err
+	}
+
+	if c, ok := interface{}(input).(interface{ TLSConfig() (*tls.Config, error) }); ok {
+		if _, err := c.TLSConfig(); err != nil {
+			return err
+		}
+	}
+
 	rp := models.NewRunningInput(input, pluginConfig)
 	rp.SetDefaultTags(c.Tags)
 	c.Inputs = append(c.Inputs, rp)
+
+	// Check the number of misses against the threshold
+	for key, count := range missCount {
+		if count <= missThreshold {
+			continue
+		}
+		if err := c.missingTomlField(nil, key); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -1192,6 +1347,21 @@ func (c *Config) buildAggregator(name string, tbl *ast.Table) (*models.Aggregato
 	if err != nil {
 		return conf, err
 	}
+	return conf, nil
+}
+
+// buildParser parses Parser specific items from the ast.Table,
+// builds the filter and returns a
+// models.ParserConfig to be inserted into models.RunningParser
+func (c *Config) buildParser(name string, tbl *ast.Table) (*models.ParserConfig, error) {
+	var dataformat string
+	c.getFieldString(tbl, "data_format", &dataformat)
+
+	conf := &models.ParserConfig{
+		Parent:     name,
+		DataFormat: dataformat,
+	}
+
 	return conf, nil
 }
 
@@ -1257,6 +1427,7 @@ func (c *Config) buildInput(name string, tbl *ast.Table) (*models.InputConfig, e
 	c.getFieldDuration(tbl, "interval", &cp.Interval)
 	c.getFieldDuration(tbl, "precision", &cp.Precision)
 	c.getFieldDuration(tbl, "collection_jitter", &cp.CollectionJitter)
+	c.getFieldDuration(tbl, "collection_offset", &cp.CollectionOffset)
 	c.getFieldString(tbl, "name_prefix", &cp.MeasurementPrefix)
 	c.getFieldString(tbl, "name_suffix", &cp.MeasurementSuffix)
 	c.getFieldString(tbl, "name_override", &cp.NameOverride)
@@ -1283,14 +1454,10 @@ func (c *Config) buildInput(name string, tbl *ast.Table) (*models.InputConfig, e
 	return cp, nil
 }
 
-// buildParser grabs the necessary entries from the ast.Table for creating
+// buildParserOld grabs the necessary entries from the ast.Table for creating
 // a parsers.Parser object, and creates it, which can then be added onto
 // an Input object.
-func (c *Config) buildParser(name string, tbl *ast.Table) (parsers.Parser, error) {
-	config, err := c.getParserConfig(name, tbl)
-	if err != nil {
-		return nil, err
-	}
+func (c *Config) buildParserOld(name string, config *parsers.Config) (telegraf.Parser, error) {
 	parser, err := parsers.NewParser(config)
 	if err != nil {
 		return nil, err
@@ -1352,30 +1519,18 @@ func (c *Config) getParserConfig(name string, tbl *ast.Table) (*parsers.Config, 
 	c.getFieldString(tbl, "grok_timezone", &pc.GrokTimezone)
 	c.getFieldString(tbl, "grok_unique_timestamp", &pc.GrokUniqueTimestamp)
 
-	//for csv parser
-	c.getFieldStringSlice(tbl, "csv_column_names", &pc.CSVColumnNames)
-	c.getFieldStringSlice(tbl, "csv_column_types", &pc.CSVColumnTypes)
-	c.getFieldStringSlice(tbl, "csv_tag_columns", &pc.CSVTagColumns)
-	c.getFieldString(tbl, "csv_timezone", &pc.CSVTimezone)
-	c.getFieldString(tbl, "csv_delimiter", &pc.CSVDelimiter)
-	c.getFieldString(tbl, "csv_comment", &pc.CSVComment)
-	c.getFieldString(tbl, "csv_measurement_column", &pc.CSVMeasurementColumn)
-	c.getFieldString(tbl, "csv_timestamp_column", &pc.CSVTimestampColumn)
-	c.getFieldString(tbl, "csv_timestamp_format", &pc.CSVTimestampFormat)
-	c.getFieldInt(tbl, "csv_header_row_count", &pc.CSVHeaderRowCount)
-	c.getFieldInt(tbl, "csv_skip_rows", &pc.CSVSkipRows)
-	c.getFieldInt(tbl, "csv_skip_columns", &pc.CSVSkipColumns)
-	c.getFieldBool(tbl, "csv_trim_space", &pc.CSVTrimSpace)
-	c.getFieldStringSlice(tbl, "csv_skip_values", &pc.CSVSkipValues)
-
 	c.getFieldStringSlice(tbl, "form_urlencoded_tag_keys", &pc.FormUrlencodedTagKeys)
 
 	c.getFieldString(tbl, "value_field_name", &pc.ValueFieldName)
+
+	// for influx parser
+	c.getFieldString(tbl, "influx_parser_type", &pc.InfluxParserType)
 
 	//for XPath parser family
 	if choice.Contains(pc.DataFormat, []string{"xml", "xpath_json", "xpath_msgpack", "xpath_protobuf"}) {
 		c.getFieldString(tbl, "xpath_protobuf_file", &pc.XPathProtobufFile)
 		c.getFieldString(tbl, "xpath_protobuf_type", &pc.XPathProtobufType)
+		c.getFieldStringSlice(tbl, "xpath_protobuf_import_paths", &pc.XPathProtobufImportPaths)
 		c.getFieldBool(tbl, "xpath_print_document", &pc.XPathPrintDocument)
 
 		// Determine the actual xpath configuration tables
@@ -1400,6 +1555,10 @@ func (c *Config) getParserConfig(name string, tbl *ast.Table) (*parsers.Config, 
 					c.getFieldBool(subtbl, "field_name_expansion", &subcfg.FieldNameExpand)
 					c.getFieldString(subtbl, "field_name", &subcfg.FieldNameQuery)
 					c.getFieldString(subtbl, "field_value", &subcfg.FieldValueQuery)
+					c.getFieldString(subtbl, "tag_selection", &subcfg.TagSelection)
+					c.getFieldBool(subtbl, "tag_name_expansion", &subcfg.TagNameExpand)
+					c.getFieldString(subtbl, "tag_name", &subcfg.TagNameQuery)
+					c.getFieldString(subtbl, "tag_value", &subcfg.TagValueQuery)
 					pc.XPathConfig[i] = subcfg
 				}
 			}
@@ -1429,6 +1588,7 @@ func (c *Config) getParserConfig(name string, tbl *ast.Table) (*parsers.Config, 
 						for _, objectConfig := range objectconfigs {
 							var o json_v2.JSONObject
 							c.getFieldString(objectConfig, "path", &o.Path)
+							c.getFieldBool(objectConfig, "optional", &o.Optional)
 							c.getFieldString(objectConfig, "timestamp_key", &o.TimestampKey)
 							c.getFieldString(objectConfig, "timestamp_format", &o.TimestampFormat)
 							c.getFieldString(objectConfig, "timestamp_timezone", &o.TimestampTimezone)
@@ -1471,6 +1631,7 @@ func getFieldSubtable(c *Config, metricConfig *ast.Table) []json_v2.DataSet {
 				c.getFieldString(fieldconfig, "path", &f.Path)
 				c.getFieldString(fieldconfig, "rename", &f.Rename)
 				c.getFieldString(fieldconfig, "type", &f.Type)
+				c.getFieldBool(fieldconfig, "optional", &f.Optional)
 				fields = append(fields, f)
 			}
 		}
@@ -1490,6 +1651,7 @@ func getTagSubtable(c *Config, metricConfig *ast.Table) []json_v2.DataSet {
 				c.getFieldString(fieldconfig, "rename", &t.Rename)
 				t.Type = "string"
 				tags = append(tags, t)
+				c.getFieldBool(fieldconfig, "optional", &t.Optional)
 			}
 		}
 	}
@@ -1531,6 +1693,7 @@ func (c *Config) buildSerializer(tbl *ast.Table) (serializers.Serializer, error)
 
 	c.getFieldStringSlice(tbl, "wavefront_source_override", &sc.WavefrontSourceOverride)
 	c.getFieldBool(tbl, "wavefront_use_strict", &sc.WavefrontUseStrict)
+	c.getFieldBool(tbl, "wavefront_disable_prefix_conversion", &sc.WavefrontDisablePrefixConversion)
 
 	c.getFieldBool(tbl, "prometheus_export_timestamp", &sc.PrometheusExportTimestamp)
 	c.getFieldBool(tbl, "prometheus_sort_metrics", &sc.PrometheusSortMetrics)
@@ -1580,15 +1743,13 @@ func (c *Config) missingTomlField(_ reflect.Type, key string) error {
 	switch key {
 	case "alias", "carbon2_format", "carbon2_sanitize_replace_char", "collectd_auth_file",
 		"collectd_parse_multivalue", "collectd_security_level", "collectd_typesdb", "collection_jitter",
-		"csv_column_names", "csv_column_types", "csv_comment", "csv_delimiter", "csv_header_row_count",
-		"csv_measurement_column", "csv_skip_columns", "csv_skip_rows", "csv_tag_columns",
-		"csv_timestamp_column", "csv_timestamp_format", "csv_timezone", "csv_trim_space", "csv_skip_values",
+		"collection_offset",
 		"data_format", "data_type", "delay", "drop", "drop_original", "dropwizard_metric_registry_path",
 		"dropwizard_tag_paths", "dropwizard_tags_path", "dropwizard_time_format", "dropwizard_time_path",
 		"fielddrop", "fieldpass", "flush_interval", "flush_jitter", "form_urlencoded_tag_keys",
 		"grace", "graphite_separator", "graphite_tag_sanitize_mode", "graphite_tag_support",
 		"grok_custom_pattern_files", "grok_custom_patterns", "grok_named_patterns", "grok_patterns",
-		"grok_timezone", "grok_unique_timestamp", "influx_max_line_bytes", "influx_sort_fields",
+		"grok_timezone", "grok_unique_timestamp", "influx_max_line_bytes", "influx_parser_type", "influx_sort_fields",
 		"influx_uint_support", "interval", "json_name_key", "json_query", "json_strict",
 		"json_string_fields", "json_time_format", "json_time_key", "json_timestamp_format", "json_timestamp_units", "json_timezone", "json_v2",
 		"lvm", "metric_batch_size", "metric_buffer_limit", "name_override", "name_prefix",
@@ -1596,15 +1757,31 @@ func (c *Config) missingTomlField(_ reflect.Type, key string) error {
 		"prefix", "prometheus_export_timestamp", "prometheus_ignore_timestamp", "prometheus_sort_metrics", "prometheus_string_as_label",
 		"separator", "splunkmetric_hec_routing", "splunkmetric_multimetric", "tag_keys",
 		"tagdrop", "tagexclude", "taginclude", "tagpass", "tags", "template", "templates",
-		"value_field_name", "wavefront_source_override", "wavefront_use_strict",
-		"xml", "xpath", "xpath_json", "xpath_msgpack", "xpath_protobuf", "xpath_print_document",
-		"xpath_protobuf_file", "xpath_protobuf_type":
+		"value_field_name", "wavefront_source_override", "wavefront_use_strict", "wavefront_disable_prefix_conversion":
 
 		// ignore fields that are common to all plugins.
 	default:
+		c.unusedFieldsMutex.Lock()
 		c.UnusedFields[key] = true
+		c.unusedFieldsMutex.Unlock()
 	}
 	return nil
+}
+
+func (c *Config) setLocalMissingTomlFieldTracker(counter map[string]int) {
+	f := func(_ reflect.Type, key string) error {
+		if c, ok := counter[key]; ok {
+			counter[key] = c + 1
+		} else {
+			counter[key] = 1
+		}
+		return nil
+	}
+	c.toml.MissingField = f
+}
+
+func (c *Config) resetMissingTomlFieldTracker() {
+	c.toml.MissingField = c.missingTomlField
 }
 
 func (c *Config) getFieldString(tbl *ast.Table, fieldName string, target *string) {
@@ -1691,15 +1868,15 @@ func (c *Config) getFieldInt64(tbl *ast.Table, fieldName string, target *int64) 
 func (c *Config) getFieldStringSlice(tbl *ast.Table, fieldName string, target *[]string) {
 	if node, ok := tbl.Fields[fieldName]; ok {
 		if kv, ok := node.(*ast.KeyValue); ok {
-			if ary, ok := kv.Value.(*ast.Array); ok {
-				for _, elem := range ary.Value {
-					if str, ok := elem.(*ast.String); ok {
-						*target = append(*target, str.Value)
-					}
-				}
-			} else {
+			ary, ok := kv.Value.(*ast.Array)
+			if !ok {
 				c.addError(tbl, fmt.Errorf("found unexpected format while parsing %q, expecting string array/slice format", fieldName))
 				return
+			}
+			for _, elem := range ary.Value {
+				if str, ok := elem.(*ast.String); ok {
+					*target = append(*target, str.Value)
+				}
 			}
 		}
 	}
@@ -1710,18 +1887,19 @@ func (c *Config) getFieldTagFilter(tbl *ast.Table, fieldName string, target *[]m
 		if subtbl, ok := node.(*ast.Table); ok {
 			for name, val := range subtbl.Fields {
 				if kv, ok := val.(*ast.KeyValue); ok {
-					tagfilter := models.TagFilter{Name: name}
-					if ary, ok := kv.Value.(*ast.Array); ok {
-						for _, elem := range ary.Value {
-							if str, ok := elem.(*ast.String); ok {
-								tagfilter.Filter = append(tagfilter.Filter, str.Value)
-							}
-						}
-					} else {
+					ary, ok := kv.Value.(*ast.Array)
+					if !ok {
 						c.addError(tbl, fmt.Errorf("found unexpected format while parsing %q, expecting string array/slice format on each entry", fieldName))
 						return
 					}
-					*target = append(*target, tagfilter)
+
+					tagFilter := models.TagFilter{Name: name}
+					for _, elem := range ary.Value {
+						if str, ok := elem.(*ast.String); ok {
+							tagFilter.Filter = append(tagFilter.Filter, str.Value)
+						}
+					}
+					*target = append(*target, tagFilter)
 				}
 			}
 		}
