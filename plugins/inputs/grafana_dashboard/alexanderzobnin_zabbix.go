@@ -28,7 +28,7 @@ type AlexanderzobninZabbixHostGroupRequestParams struct {
 }
 
 type AlexanderzobninZabbixHostGroupRequest struct {
-	DatasourceId uint                                        `json:"datasourceId"`
+	DatasourceID uint                                        `json:"datasourceId"`
 	Method       string                                      `json:"method"`
 	Params       AlexanderzobninZabbixHostGroupRequestParams `json:"params"`
 }
@@ -52,7 +52,7 @@ type AlexanderzobninZabbixHostRequestParams struct {
 }
 
 type AlexanderzobninZabbixHostRequest struct {
-	DatasourceId uint                                   `json:"datasourceId"`
+	DatasourceID uint                                   `json:"datasourceId"`
 	Method       string                                 `json:"method"`
 	Params       AlexanderzobninZabbixHostRequestParams `json:"params"`
 }
@@ -73,7 +73,7 @@ type AlexanderzobninZabbixApplicationRequestParams struct {
 }
 
 type AlexanderzobninZabbixApplicationRequest struct {
-	DatasourceId uint                                          `json:"datasourceId"`
+	DatasourceID uint                                          `json:"datasourceId"`
 	Method       string                                        `json:"method"`
 	Params       AlexanderzobninZabbixApplicationRequestParams `json:"params"`
 }
@@ -91,6 +91,7 @@ type AlexanderzobninZabbixItemResponse struct {
 
 type AlexanderzobninZabbixItemRequestParams struct {
 	ApplicationIDs []string               `json:"applicationids"`
+	HostIDs        []string               `json:"hostids"`
 	Filter         map[string]interface{} `json:"filter"`
 	Output         []string               `json:"output"`
 	SelectHosts    []string               `json:"selectHosts"`
@@ -99,7 +100,7 @@ type AlexanderzobninZabbixItemRequestParams struct {
 }
 
 type AlexanderzobninZabbixItemRequest struct {
-	DatasourceId uint                                   `json:"datasourceId"`
+	DatasourceID uint                                   `json:"datasourceId"`
 	Method       string                                 `json:"method"`
 	Params       AlexanderzobninZabbixItemRequestParams `json:"params"`
 }
@@ -115,7 +116,7 @@ type AlexanderzobninZabbixHistoryRequestParams struct {
 }
 
 type AlexanderzobninZabbixHistoryRequest struct {
-	DatasourceId uint                                      `json:"datasourceId"`
+	DatasourceID uint                                      `json:"datasourceId"`
 	Method       string                                    `json:"method"`
 	Params       AlexanderzobninZabbixHistoryRequestParams `json:"params"`
 }
@@ -137,7 +138,6 @@ type AlexanderzobninZabbix struct {
 }
 
 func (az *AlexanderzobninZabbix) getFilter(s interface{}) string {
-
 	filter := ""
 	if s != nil {
 		mm, ok := s.(map[string]interface{})
@@ -152,11 +152,10 @@ func (az *AlexanderzobninZabbix) getFilter(s interface{}) string {
 }
 
 func (az *AlexanderzobninZabbix) getHostGroupIDs(dsID uint, group interface{}) ([]string, []*AlexanderzobninZabbixHostGroupResponseItem, error) {
-
 	filter := az.getFilter(group)
 
 	request := AlexanderzobninZabbixHostGroupRequest{
-		DatasourceId: dsID,
+		DatasourceID: dsID,
 		Method:       "hostgroup.get",
 		Params: AlexanderzobninZabbixHostGroupRequestParams{
 			Output:    []string{"name"},
@@ -170,8 +169,8 @@ func (az *AlexanderzobninZabbix) getHostGroupIDs(dsID uint, group interface{}) (
 		return nil, nil, err
 	}
 
-	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
-	raw, code, err := az.grafana.httpPost(URL, nil, b)
+	url := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
+	raw, code, err := az.grafana.httpPost(url, nil, b)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -199,11 +198,10 @@ func (az *AlexanderzobninZabbix) getHostGroupIDs(dsID uint, group interface{}) (
 }
 
 func (az *AlexanderzobninZabbix) getHostIDs(dsID uint, hostGroupIDs []string, host interface{}) ([]string, []*AlexanderzobninZabbixHostResponseItem, error) {
-
 	filter := az.getFilter(host)
 
 	request := AlexanderzobninZabbixHostRequest{
-		DatasourceId: dsID,
+		DatasourceID: dsID,
 		Method:       "host.get",
 		Params: AlexanderzobninZabbixHostRequestParams{
 			GroupIDs: hostGroupIDs,
@@ -218,8 +216,8 @@ func (az *AlexanderzobninZabbix) getHostIDs(dsID uint, hostGroupIDs []string, ho
 		return nil, nil, err
 	}
 
-	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
-	raw, code, err := az.grafana.httpPost(URL, nil, b)
+	url := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
+	raw, code, err := az.grafana.httpPost(url, nil, b)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -247,11 +245,18 @@ func (az *AlexanderzobninZabbix) getHostIDs(dsID uint, hostGroupIDs []string, ho
 }
 
 func (az *AlexanderzobninZabbix) getApplicationIDs(dsID uint, hostIDs []string, application interface{}) ([]string, []*AlexanderzobninZabbixApplicationResponseItem, error) {
+	var applicationIDs []string
+	var applications []*AlexanderzobninZabbixApplicationResponseItem
 
 	filter := az.getFilter(application)
 
+	// if filter is empty - do not use applicationIDs to filter Items
+	if filter == "" {
+		return applicationIDs, applications, nil
+	}
+
 	request := AlexanderzobninZabbixApplicationRequest{
-		DatasourceId: dsID,
+		DatasourceID: dsID,
 		Method:       "application.get",
 		Params: AlexanderzobninZabbixApplicationRequestParams{
 			HostIDs: hostIDs,
@@ -264,8 +269,8 @@ func (az *AlexanderzobninZabbix) getApplicationIDs(dsID uint, hostIDs []string, 
 		return nil, nil, err
 	}
 
-	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
-	raw, code, err := az.grafana.httpPost(URL, nil, b)
+	url := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
+	raw, code, err := az.grafana.httpPost(url, nil, b)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -279,8 +284,6 @@ func (az *AlexanderzobninZabbix) getApplicationIDs(dsID uint, hostIDs []string, 
 		return nil, nil, err
 	}
 
-	var applicationIDs []string
-	var applications []*AlexanderzobninZabbixApplicationResponseItem
 	for _, v := range res.Result {
 		if v != nil {
 			if m, _ := regexp.MatchString(filter, v.Name); m {
@@ -292,18 +295,18 @@ func (az *AlexanderzobninZabbix) getApplicationIDs(dsID uint, hostIDs []string, 
 	return applicationIDs, applications, nil
 }
 
-func (az *AlexanderzobninZabbix) getItemIDs(dsID uint, applicationIDs []string, item interface{}) ([]string, []*AlexanderzobninZabbixItemResponseItem, error) {
-
+func (az *AlexanderzobninZabbix) getItemIDs(dsID uint, applicationIDs []string, hostIDs []string, item interface{}) ([]string, []*AlexanderzobninZabbixItemResponseItem, error) {
 	filter := az.getFilter(item)
 
 	filterMap := make(map[string]interface{})
 	filterMap["value_type"] = []int{0, 3}
 
 	request := AlexanderzobninZabbixItemRequest{
-		DatasourceId: dsID,
+		DatasourceID: dsID,
 		Method:       "item.get",
 		Params: AlexanderzobninZabbixItemRequestParams{
 			ApplicationIDs: applicationIDs,
+			HostIDs:        hostIDs,
 			Filter:         filterMap,
 			Output:         []string{"name", "hostid", "units"},
 			//SelectHosts:    []string{"name"},
@@ -317,8 +320,8 @@ func (az *AlexanderzobninZabbix) getItemIDs(dsID uint, applicationIDs []string, 
 		return nil, nil, err
 	}
 
-	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
-	raw, code, err := az.grafana.httpPost(URL, nil, b)
+	url := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
+	raw, code, err := az.grafana.httpPost(url, nil, b)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -336,7 +339,8 @@ func (az *AlexanderzobninZabbix) getItemIDs(dsID uint, applicationIDs []string, 
 	var items []*AlexanderzobninZabbixItemResponseItem
 	for _, v := range res.Result {
 		if v != nil {
-			if m, _ := regexp.MatchString(filter, v.Name); m {
+			// compare through regex AND directly
+			if m, _ := regexp.MatchString(filter, v.Name); m || filter == v.Name {
 				itemIDs = append(itemIDs, v.ItemID)
 				items = append(items, v)
 			}
@@ -345,10 +349,11 @@ func (az *AlexanderzobninZabbix) getItemIDs(dsID uint, applicationIDs []string, 
 	return itemIDs, items, nil
 }
 
-func (az *AlexanderzobninZabbix) getTags(itemID string,
+func (az *AlexanderzobninZabbix) getTags(
+	itemID string,
 	items []*AlexanderzobninZabbixItemResponseItem,
-	hosts []*AlexanderzobninZabbixHostResponseItem) (string, string, string) {
-
+	hosts []*AlexanderzobninZabbixHostResponseItem,
+) (string, string, string) {
 	var (
 		item *AlexanderzobninZabbixItemResponseItem
 		host *AlexanderzobninZabbixHostResponseItem
@@ -377,7 +382,6 @@ func (az *AlexanderzobninZabbix) getTags(itemID string,
 }
 
 func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, period *GrafanaDashboardPeriod, push GrafanaDatasourcePushFunc) error {
-
 	when := time.Now()
 
 	hostGroupIDs, _, err := az.getHostGroupIDs(ds.ID, t.Group)
@@ -386,7 +390,6 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 	}
 	if len(hostGroupIDs) == 0 {
 		az.log.Debug("AlexanderzobninZabbix has no host group IDs")
-		return nil
 	}
 
 	hostIDs, hosts, err := az.getHostIDs(ds.ID, hostGroupIDs, t.Host)
@@ -404,10 +407,9 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 	}
 	if len(applicationIDs) == 0 {
 		az.log.Debug("AlexanderzobninZabbix has no application IDs")
-		return nil
 	}
 
-	itemIDs, items, err := az.getItemIDs(ds.ID, applicationIDs, t.Item)
+	itemIDs, items, err := az.getItemIDs(ds.ID, applicationIDs, hostIDs, t.Item)
 	if err != nil {
 		return err
 	}
@@ -421,7 +423,7 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 	end := int(t2.UTC().Unix())
 
 	request := AlexanderzobninZabbixHistoryRequest{
-		DatasourceId: ds.ID,
+		DatasourceID: ds.ID,
 		Method:       "history.get",
 		Params: AlexanderzobninZabbixHistoryRequestParams{
 			ItemIDs:   itemIDs,
@@ -441,8 +443,8 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 
 	az.log.Debugf("AlexanderzobninZabbix request body => %s", string(b))
 
-	URL := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
-	raw, code, err := az.grafana.httpPost(URL, nil, b)
+	url := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
+	raw, code, err := az.grafana.httpPost(url, nil, b)
 	if err != nil {
 		return nil
 	}
@@ -460,7 +462,6 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 	}
 
 	for _, r := range res.Result {
-
 		tags := make(map[string]string)
 
 		item, units, host := az.getTags(r.ItemID, items, hosts)
@@ -488,7 +489,6 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 }
 
 func NewAlexanderzobninZabbix(log telegraf.Logger, grafana *Grafana) *AlexanderzobninZabbix {
-
 	return &AlexanderzobninZabbix{
 		log:     log,
 		grafana: grafana,
