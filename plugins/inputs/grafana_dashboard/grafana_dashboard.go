@@ -197,7 +197,7 @@ func (g *GrafanaDashboard) findMetrics(name string) []*GrafanaDashboardMetric {
 	var r []*GrafanaDashboardMetric
 	for _, m := range g.Metrics {
 		for _, s := range m.Panels {
-			if b, _ := regexp.MatchString(s, name); b {
+			if b, _ := regexp.MatchString(name, s); b {
 				r = append(r, m)
 			}
 		}
@@ -405,7 +405,7 @@ func (g *GrafanaDashboard) rowExists(p *sdk.Panel) bool {
 	}
 
 	for _, v := range g.Rows {
-		if b, _ := regexp.MatchString(v, p.CommonPanel.Title); b {
+		if b, _ := regexp.MatchString(p.CommonPanel.Title, v); b {
 			return true
 		}
 	}
