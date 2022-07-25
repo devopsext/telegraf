@@ -415,4 +415,4 @@ require (
 	github.com/jinzhu/copier v0.3.4
 )
 
-replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.6-0.20220701074456-edc1154cc5b4
+replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.6

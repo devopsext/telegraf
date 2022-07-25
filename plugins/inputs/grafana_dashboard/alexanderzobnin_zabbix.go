@@ -381,6 +381,44 @@ func (az *AlexanderzobninZabbix) getTags(
 	return item.Name, item.Units, host.Name
 }
 
+func (az *AlexanderzobninZabbix) getHistory(dsID uint, itemIDs []string, history string, start int, end int) (*AlexanderzobninZabbixHistoryResponse, error) {
+	request := AlexanderzobninZabbixHistoryRequest{
+		DatasourceID: dsID,
+		Method:       "history.get",
+		Params: AlexanderzobninZabbixHistoryRequestParams{
+			ItemIDs:   itemIDs,
+			History:   history,
+			Output:    "extend",
+			SortField: "clock",
+			SortOrder: "ASC",
+			TimeFrom:  start,
+			TimeTill:  end,
+		},
+	}
+
+	b, err := json.Marshal(request)
+	if err != nil {
+		return nil, err
+	}
+
+	az.log.Debugf("AlexanderzobninZabbix request body => %s", string(b))
+
+	url := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
+	raw, code, err := az.grafana.httpPost(url, nil, b)
+	if err != nil {
+		return nil, err
+	}
+	if code != 200 {
+		return nil, fmt.Errorf("AlexanderzobninZabbix HTTP error %d: returns %s", code, raw)
+	}
+	var res AlexanderzobninZabbixHistoryResponse
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return nil, err
+	}
+	return &res, nil
+}
+
 func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, period *GrafanaDashboardPeriod, push GrafanaDatasourcePushFunc) error {
 	when := time.Now()
 
@@ -422,42 +460,21 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 	start := int(t1.UTC().Unix())
 	end := int(t2.UTC().Unix())
 
-	request := AlexanderzobninZabbixHistoryRequest{
-		DatasourceID: ds.ID,
-		Method:       "history.get",
-		Params: AlexanderzobninZabbixHistoryRequestParams{
-			ItemIDs:   itemIDs,
-			History:   "0",
-			Output:    "extend",
-			SortField: "clock",
-			SortOrder: "ASC",
-			TimeFrom:  start,
-			TimeTill:  end,
-		},
-	}
-
-	b, err := json.Marshal(request)
-	if err != nil {
-		return err
-	}
-
-	az.log.Debugf("AlexanderzobninZabbix request body => %s", string(b))
-
-	url := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", ds.ID)
-	raw, code, err := az.grafana.httpPost(url, nil, b)
+	res, err := az.getHistory(ds.ID, itemIDs, "0", start, end)
 	if err != nil {
 		return nil
 	}
-	if code != 200 {
-		return fmt.Errorf("AlexanderzobninZabbix HTTP error %d: returns %s", code, raw)
-	}
-	var res AlexanderzobninZabbixHistoryResponse
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return err
-	}
+
 	if len(res.Result) == 0 {
-		az.log.Debug("AlexanderzobninZabbix has no data")
+		az.log.Debug("AlexanderzobninZabbix has no float data. Trying int…")
+		res, err = az.getHistory(ds.ID, itemIDs, "3", start, end)
+		if err != nil {
+			return nil
+		}
+	}
+
+	if len(res.Result) == 0 {
+		az.log.Debug("AlexanderzobninZabbix has no data.")
 		return nil
 	}
 
@@ -497,12 +514,12 @@ func applyZabbixFunctions(v float64, functions []sdk.ZabbixFunction) float64 {
 		switch f.Def.Name {
 		case "scale":
 			factor, err := strconv.ParseFloat(f.Params[0], 64)
-			if err != nil {
+			if err == nil {
 				res = res * factor
 			}
 		case "offset":
 			factor, err := strconv.ParseFloat(f.Params[0], 64)
-			if err != nil {
+			if err == nil {
 				res = res + factor
 			}
 		}
