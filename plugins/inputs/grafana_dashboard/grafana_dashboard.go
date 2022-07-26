@@ -100,7 +100,6 @@ func (p *GrafanaDashboardPeriod) From() time.Time {
 }
 
 func (p *GrafanaDashboardPeriod) StartEnd() (time.Time, time.Time) {
-
 	start := p.From()
 	end := p.From().Add(time.Duration(p.Duration()))
 
