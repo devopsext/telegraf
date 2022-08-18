@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
 	"text/template"
 	"time"
 
-	"github.com/Masterminds/sprig"
+	"github.com/Masterminds/sprig/v3"
 	"github.com/araddon/dateparse"
 
 	"github.com/influxdata/telegraf"
@@ -256,13 +257,45 @@ func (p *PrometheusHttp) gatherMetrics() error {
 	return nil
 }
 
+func (p *PrometheusHttp) fRegexFindSubmatch(regex string, s string) []string {
+	r := regexp.MustCompile(regex)
+	return r.FindStringSubmatch(s)
+}
+
+func (p *PrometheusHttp) fIfDef(o interface{}, def interface{}) interface{} {
+	if o == nil {
+		return def
+	}
+	return o
+}
+
+func (p *PrometheusHttp) fIfElse(o interface{}, vars []interface{}) interface{} {
+
+	if len(vars) == 0 {
+		return o
+	}
+	for k, v := range vars {
+		if k%2 == 0 {
+			if o == v && len(vars) > k+1 {
+				return vars[k+1]
+			}
+		}
+	}
+	return o
+}
+
 func (p *PrometheusHttp) getDefaultTemplate(name, value string) *template.Template {
 
 	if value == "" {
 		return nil
 	}
 
-	t, err := template.New(fmt.Sprintf("%s_template", name)).Funcs(sprig.TxtFuncMap()).Parse(value)
+	funcs := sprig.TxtFuncMap()
+	funcs["regexFindSubmatch"] = p.fRegexFindSubmatch
+	funcs["ifDef"] = p.fIfDef
+	funcs["ifElse"] = p.fIfElse
+
+	t, err := template.New(fmt.Sprintf("%s_template", name)).Funcs(funcs).Parse(value)
 	if err != nil {
 		p.Log.Error(err)
 		return nil
