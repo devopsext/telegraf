@@ -87,14 +87,21 @@ func (g *Grafana) getData(ds *sdk.Datasource, query string, params url.Values, b
 	)
 
 	if g.datasourceProxyIsPost(ds) {
-		if raw, code, err = g.httpPost(query, params, body); err != nil {
-			return raw, code, err
-		}
-	} else {
-		if raw, code, err = g.httpGet(query, params); err != nil {
+		for i := 0; i < 3; i++ {
+			raw, code, err = g.httpPost(query, params, body)
+			if err == nil {
+				break
+			}
 			g.log.Error(err)
-			return raw, code, err
 		}
+		return raw, code, err
+	}
+	for i := 0; i < 3; i++ {
+		raw, code, err = g.httpGet(query, params)
+		if err == nil {
+			break
+		}
+		g.log.Error(err)
 	}
 	return raw, code, err
 }
