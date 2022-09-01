@@ -33,7 +33,7 @@ type Prometheus struct {
 
 func (gp *Prometheus) GetData(t *sdk.Target, ds *sdk.Datasource, period *GrafanaDashboardPeriod, push GrafanaDatasourcePushFunc) error {
 	const gStep int64 = 60
-	const maxPoints int64 = 1000
+	const maxPoints int64 = 60
 
 	params := make(url.Values)
 	params.Add("query", t.Expr)
@@ -120,6 +120,7 @@ func (gp *Prometheus) GetData(t *sdk.Target, ds *sdk.Datasource, period *Grafana
 				}
 			}
 		}
+		time.Sleep(2 * time.Second)
 	}
 
 	return nil
