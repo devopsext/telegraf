@@ -87,7 +87,7 @@ func (g *Grafana) getData(ds *sdk.Datasource, query string, params url.Values, b
 	)
 
 	if g.datasourceProxyIsPost(ds) {
-		for i := 0; i < 3; i++ {
+		for i := 0; i < 5; i++ {
 			raw, code, err = g.httpPost(query, params, body)
 			if err == nil {
 				break
@@ -96,7 +96,7 @@ func (g *Grafana) getData(ds *sdk.Datasource, query string, params url.Values, b
 		}
 		return raw, code, err
 	}
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 5; i++ {
 		raw, code, err = g.httpGet(query, params)
 		if err == nil {
 			break
