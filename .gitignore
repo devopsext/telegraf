@@ -13,5 +13,7 @@ process.yml
 /.vscode
 /*.toml
 /*.conf
+vscode.sh
 resource.syso
 versioninfo.json
+_telegraf.conf
