@@ -28,7 +28,7 @@ require (
 	github.com/antchfx/xmlquery v1.3.12
 	github.com/antchfx/xpath v1.2.1
 	github.com/apache/iotdb-client-go v0.12.2-0.20220722111104-cd17da295b46
-	github.com/apache/thrift v0.16.0
+	github.com/apache/thrift v0.17.0
 	github.com/aristanetworks/goarista v0.0.0-20190325233358-a123909ec740
 	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 	github.com/aws/aws-sdk-go-v2 v1.17.1
