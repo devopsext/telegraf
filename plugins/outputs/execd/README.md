@@ -6,7 +6,7 @@ Telegraf minimum version: Telegraf 1.15.0
 
 ## Configuration
 
-```toml
+```toml @sample.conf
 # Run executable as long-running output plugin
 [[outputs.execd]]
   ## One program to run as daemon.
@@ -21,6 +21,11 @@ Telegraf minimum version: Telegraf 1.15.0
 
   ## Delay before the process is restarted after an unexpected termination
   restart_delay = "10s"
+
+  ## Flag to determine whether execd should throw error when part of metrics is unserializable
+  ## Setting this to true will skip the unserializable metrics and process the rest of metrics
+  ## Setting this to false will throw error when encountering unserializable metrics and none will be processed
+  # ignore_serialization_error = false
 
   ## Data format to export.
   ## Each data format has its own unique set of configuration options, read

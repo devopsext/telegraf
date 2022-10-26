@@ -1,10 +1,11 @@
 # Ethtool Input Plugin
 
-The ethtool input plugin pulls ethernet device stats. Fields pulled will depend on the network device and driver.
+The ethtool input plugin pulls ethernet device stats. Fields pulled will depend
+on the network device and driver.
 
 ## Configuration
 
-```toml
+```toml @sample.conf
 # Returns ethtool statistics for given interfaces
 [[inputs.ethtool]]
   ## List of interfaces to pull metrics for
@@ -12,6 +13,12 @@ The ethtool input plugin pulls ethernet device stats. Fields pulled will depend 
 
   ## List of interfaces to ignore when pulling metrics.
   # interface_exclude = ["eth1"]
+
+  ## Plugin behavior for downed interfaces
+  ## Available choices:
+  ##   - expose: collect & report metrics for down interfaces
+  ##   - skip: ignore interfaces that are marked down
+  # down_interfaces = "expose"
 
   ## Some drivers declare statistics with extra whitespace, different spacing,
   ## and mix cases. This list, when enabled, can be used to clean the keys.

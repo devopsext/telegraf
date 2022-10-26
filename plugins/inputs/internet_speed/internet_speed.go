@@ -1,17 +1,24 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package internet_speed
 
 import (
+	_ "embed"
 	"fmt"
 	"time"
 
+	"github.com/showwin/speedtest-go/speedtest"
+
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/inputs"
-	"github.com/showwin/speedtest-go/speedtest"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 // InternetSpeed is used to store configuration values.
 type InternetSpeed struct {
-	EnableFileDownload bool            `toml:"enable_file_download"`
+	EnableFileDownload bool            `toml:"enable_file_download" deprecated:"1.25.0;use 'memory_saving_mode' instead"`
+	MemorySavingMode   bool            `toml:"memory_saving_mode"`
 	Cache              bool            `toml:"cache"`
 	Log                telegraf.Logger `toml:"-"`
 	serverCache        *speedtest.Server
@@ -19,8 +26,17 @@ type InternetSpeed struct {
 
 const measurement = "internet_speed"
 
-func (is *InternetSpeed) Gather(acc telegraf.Accumulator) error {
+func (*InternetSpeed) SampleConfig() string {
+	return sampleConfig
+}
 
+func (is *InternetSpeed) Init() error {
+	is.MemorySavingMode = is.MemorySavingMode || is.EnableFileDownload
+
+	return nil
+}
+
+func (is *InternetSpeed) Gather(acc telegraf.Accumulator) error {
 	// Get closest server
 	s := is.serverCache
 	if s == nil {
@@ -49,13 +65,15 @@ func (is *InternetSpeed) Gather(acc telegraf.Accumulator) error {
 		return fmt.Errorf("ping test failed: %v", err)
 	}
 	is.Log.Debug("Running Download...")
-	err = s.DownloadTest(is.EnableFileDownload)
+	err = s.DownloadTest(is.MemorySavingMode)
 	if err != nil {
+		is.Log.Debug("try `memory_saving_mode = true` if this fails consistently")
 		return fmt.Errorf("download test failed: %v", err)
 	}
 	is.Log.Debug("Running Upload...")
-	err = s.UploadTest(is.EnableFileDownload)
+	err = s.UploadTest(is.MemorySavingMode)
 	if err != nil {
+		is.Log.Debug("try `memory_saving_mode = true` if this fails consistently")
 		return fmt.Errorf("upload test failed failed: %v", err)
 	}
 

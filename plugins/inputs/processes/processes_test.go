@@ -1,5 +1,4 @@
 //go:build !windows
-// +build !windows
 
 package processes
 
@@ -18,8 +17,8 @@ import (
 func TestProcesses(t *testing.T) {
 	tester := tester{}
 	processes := &Processes{
-		Log: testutil.Logger{},
-		execPS: testExecPS("STAT\n		Ss  \n		S   \n		Z   \n		R   \n		S<  \n		SNs \n		Ss+ \n		\n		\n"),
+		Log:          testutil.Logger{},
+		execPS:       testExecPS("STAT\n		Ss  \n		S   \n		Z   \n		R   \n		S<  \n		SNs \n		Ss+ \n		\n		\n"),
 		readProcFile: tester.testProcFile,
 	}
 	var acc testutil.Accumulator

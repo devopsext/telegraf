@@ -1,9 +1,11 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package unbound
 
 import (
 	"bufio"
 	"bytes"
 	"context"
+	_ "embed"
 	"fmt"
 	"net"
 	"os/exec"
@@ -17,6 +19,9 @@ import (
 	"github.com/influxdata/telegraf/internal"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 type runner func(unbound Unbound) (*bytes.Buffer, error)
 
@@ -87,7 +92,10 @@ func unboundRunner(unbound Unbound) (*bytes.Buffer, error) {
 }
 
 // Gather collects stats from unbound-control and adds them to the Accumulator
-//
+func (*Unbound) SampleConfig() string {
+	return sampleConfig
+}
+
 // All the dots in stat name will replaced by underscores. Histogram statistics will not be collected.
 func (s *Unbound) Gather(acc telegraf.Accumulator) error {
 	// Always exclude histogram statistics

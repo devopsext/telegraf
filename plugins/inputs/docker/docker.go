@@ -1,8 +1,10 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package docker
 
 import (
 	"context"
 	"crypto/tls"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -24,6 +26,9 @@ import (
 	tlsint "github.com/influxdata/telegraf/plugins/common/tls"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 // Docker object
 type Docker struct {
@@ -82,6 +87,10 @@ var (
 	containerMetricClasses = []string{"cpu", "network", "blkio"}
 	now                    = time.Now
 )
+
+func (*Docker) SampleConfig() string {
+	return sampleConfig
+}
 
 func (d *Docker) Init() error {
 	err := choice.CheckSlice(d.PerDeviceInclude, containerMetricClasses)

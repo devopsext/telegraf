@@ -1,17 +1,23 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package file
 
 import (
+	_ "embed"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 
 	"github.com/dimchansky/utfbom"
+
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/internal/globpath"
 	"github.com/influxdata/telegraf/plugins/common/encoding"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 type File struct {
 	Files             []string `toml:"files"`
@@ -21,6 +27,10 @@ type File struct {
 	parserFunc telegraf.ParserFunc
 	filenames  []string
 	decoder    *encoding.Decoder
+}
+
+func (*File) SampleConfig() string {
+	return sampleConfig
 }
 
 func (f *File) Init() error {

@@ -1,11 +1,12 @@
+//go:generate ../../../tools/readme_config_includer/generator
 //go:build !windows
-// +build !windows
 
 package intel_rdt
 
 import (
 	"bufio"
 	"context"
+	_ "embed"
 	"fmt"
 	"io"
 	"os"
@@ -23,6 +24,9 @@ import (
 	"github.com/influxdata/telegraf/internal/choice"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 const (
 	timestampFormat           = "2006-01-02 15:04:05"
@@ -70,6 +74,10 @@ type splitCSVLine struct {
 	timeValue        string
 	metricsValues    []string
 	coreOrPIDsValues []string
+}
+
+func (*IntelRDT) SampleConfig() string {
+	return sampleConfig
 }
 
 // All gathering is done in the Start function

@@ -1,7 +1,9 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package redis_sentinel
 
 import (
 	"bufio"
+	_ "embed"
 	"fmt"
 	"io"
 	"net/url"
@@ -9,12 +11,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/go-redis/redis"
+	"github.com/go-redis/redis/v7"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 type RedisSentinel struct {
 	Servers []string `toml:"servers"`
@@ -37,6 +42,10 @@ func init() {
 	inputs.Add("redis_sentinel", func() telegraf.Input {
 		return &RedisSentinel{}
 	})
+}
+
+func (*RedisSentinel) SampleConfig() string {
+	return sampleConfig
 }
 
 func (r *RedisSentinel) Init() error {

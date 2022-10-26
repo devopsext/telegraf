@@ -1,5 +1,4 @@
 //go:build windows
-// +build windows
 
 package win_perf_counters
 
@@ -766,7 +765,7 @@ func TestGatherInvalidDataIgnore(t *testing.T) {
 	acc1.AssertContainsTaggedFields(t, measurement, fields1, tags1)
 }
 
-//tests with expansion
+// tests with expansion
 func TestGatherRefreshingWithExpansion(t *testing.T) {
 	var err error
 	if testing.Short() {

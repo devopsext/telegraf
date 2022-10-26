@@ -2,17 +2,24 @@ package kafka_consumer
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
 	"github.com/Shopify/sarama"
 	"github.com/stretchr/testify/require"
+	"github.com/testcontainers/testcontainers-go"
+	"github.com/testcontainers/testcontainers-go/wait"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/config"
 	"github.com/influxdata/telegraf/plugins/common/kafka"
 	"github.com/influxdata/telegraf/plugins/common/tls"
+	"github.com/influxdata/telegraf/plugins/outputs"
+	kafkaOutput "github.com/influxdata/telegraf/plugins/outputs/kafka"
+	"github.com/influxdata/telegraf/plugins/parsers/influx"
 	"github.com/influxdata/telegraf/plugins/parsers/value"
+	"github.com/influxdata/telegraf/plugins/serializers"
 	"github.com/influxdata/telegraf/testutil"
 )
 
@@ -133,6 +140,20 @@ func TestInit(t *testing.T) {
 			},
 			check: func(t *testing.T, plugin *KafkaConsumer) {
 				require.False(t, plugin.config.Net.TLS.Enable)
+			},
+		},
+		{
+			name: "enabled tls without tls config",
+			plugin: &KafkaConsumer{
+				ReadConfig: kafka.ReadConfig{
+					Config: kafka.Config{
+						EnableTLS: func(b bool) *bool { return &b }(true),
+					},
+				},
+				Log: testutil.Logger{},
+			},
+			check: func(t *testing.T, plugin *KafkaConsumer) {
+				require.True(t, plugin.config.Net.TLS.Enable)
 			},
 		},
 		{
@@ -271,8 +292,12 @@ func (c *FakeConsumerGroupClaim) Messages() <-chan *sarama.ConsumerMessage {
 
 func TestConsumerGroupHandler_Lifecycle(t *testing.T) {
 	acc := &testutil.Accumulator{}
-	parser := value.NewValueParser("cpu", "int", "", nil)
-	cg := NewConsumerGroupHandler(acc, 1, parser, testutil.Logger{})
+	parser := value.Parser{
+		MetricName: "cpu",
+		DataType:   "int",
+	}
+	require.NoError(t, parser.Init())
+	cg := NewConsumerGroupHandler(acc, 1, &parser, testutil.Logger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -292,8 +317,7 @@ func TestConsumerGroupHandler_Lifecycle(t *testing.T) {
 	// err = cg.ConsumeClaim(session, &claim)
 	//require.NoError(t, err)
 	// So stick with the line below for now.
-	//nolint:errcheck
-	cg.ConsumeClaim(session, &claim)
+	_ = cg.ConsumeClaim(session, &claim)
 
 	err = cg.Cleanup(session)
 	require.NoError(t, err)
@@ -301,8 +325,12 @@ func TestConsumerGroupHandler_Lifecycle(t *testing.T) {
 
 func TestConsumerGroupHandler_ConsumeClaim(t *testing.T) {
 	acc := &testutil.Accumulator{}
-	parser := value.NewValueParser("cpu", "int", "", nil)
-	cg := NewConsumerGroupHandler(acc, 1, parser, testutil.Logger{})
+	parser := value.Parser{
+		MetricName: "cpu",
+		DataType:   "int",
+	}
+	require.NoError(t, parser.Init())
+	cg := NewConsumerGroupHandler(acc, 1, &parser, testutil.Logger{})
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -415,8 +443,12 @@ func TestConsumerGroupHandler_Handle(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			acc := &testutil.Accumulator{}
-			parser := value.NewValueParser("cpu", "int", "", nil)
-			cg := NewConsumerGroupHandler(acc, 1, parser, testutil.Logger{})
+			parser := value.Parser{
+				MetricName: "cpu",
+				DataType:   "int",
+			}
+			require.NoError(t, parser.Init())
+			cg := NewConsumerGroupHandler(acc, 1, &parser, testutil.Logger{})
 			cg.MaxMessageLen = tt.maxMessageLen
 			cg.TopicTag = tt.topicTag
 
@@ -435,4 +467,112 @@ func TestConsumerGroupHandler_Handle(t *testing.T) {
 			testutil.RequireMetricsEqual(t, tt.expected, acc.GetTelegrafMetrics(), testutil.IgnoreTime())
 		})
 	}
+}
+
+func TestKafkaRoundTripIntegration(t *testing.T) {
+	t.Skip("fails race check")
+
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
+
+	t.Logf("rt: starting network")
+	ctx := context.Background()
+	networkName := "telegraf-test-kafka-consumer-network"
+	net, err := testcontainers.GenericNetwork(ctx, testcontainers.GenericNetworkRequest{
+		NetworkRequest: testcontainers.NetworkRequest{
+			Name:           networkName,
+			Attachable:     true,
+			CheckDuplicate: true,
+		},
+	})
+	require.NoError(t, err)
+	defer func() {
+		require.NoError(t, net.Remove(ctx), "terminating network failed")
+	}()
+
+	t.Logf("rt: starting zookeeper")
+	zookeeperName := "telegraf-test-kafka-consumer-zookeeper"
+	zookeeper := testutil.Container{
+		Image:        "wurstmeister/zookeeper",
+		ExposedPorts: []string{"2181:2181"},
+		Networks:     []string{networkName},
+		WaitingFor:   wait.ForLog("binding to port"),
+		Name:         zookeeperName,
+	}
+	err = zookeeper.Start()
+	require.NoError(t, err, "failed to start container")
+	defer func() {
+		require.NoError(t, zookeeper.Terminate(), "terminating container failed")
+	}()
+
+	t.Logf("rt: starting broker")
+	topic := "Test"
+	container := testutil.Container{
+		Name:         "telegraf-test-kafka-consumer",
+		Image:        "wurstmeister/kafka",
+		ExposedPorts: []string{"9092:9092"},
+		Env: map[string]string{
+			"KAFKA_ADVERTISED_HOST_NAME": "localhost",
+			"KAFKA_ADVERTISED_PORT":      "9092",
+			"KAFKA_ZOOKEEPER_CONNECT":    fmt.Sprintf("%s:%s", zookeeperName, zookeeper.Ports["2181"]),
+			"KAFKA_CREATE_TOPICS":        fmt.Sprintf("%s:1:1", topic),
+		},
+		Networks:   []string{networkName},
+		WaitingFor: wait.ForLog("Log loaded for partition Test-0 with initial high watermark 0"),
+	}
+	err = container.Start()
+	require.NoError(t, err, "failed to start container")
+	defer func() {
+		require.NoError(t, container.Terminate(), "terminating container failed")
+	}()
+
+	brokers := []string{
+		fmt.Sprintf("%s:%s", container.Address, container.Ports["9092"]),
+	}
+
+	// Make kafka output
+	t.Logf("rt: starting output plugin")
+	creator := outputs.Outputs["kafka"]
+	output, ok := creator().(*kafkaOutput.Kafka)
+	require.True(t, ok)
+
+	s, _ := serializers.NewInfluxSerializer()
+	output.SetSerializer(s)
+	output.Brokers = brokers
+	output.Topic = topic
+	output.Log = testutil.Logger{}
+
+	require.NoError(t, output.Init())
+	require.NoError(t, output.Connect())
+
+	// Make kafka input
+	t.Logf("rt: starting input plugin")
+	input := KafkaConsumer{
+		Brokers:                brokers,
+		Log:                    testutil.Logger{},
+		Topics:                 []string{topic},
+		MaxUndeliveredMessages: 1,
+	}
+	parser := &influx.Parser{}
+	parser.Init()
+	input.SetParser(parser)
+	err = input.Init()
+	require.NoError(t, err)
+
+	acc := testutil.Accumulator{}
+	err = input.Start(&acc)
+	require.NoError(t, err)
+
+	// Shove some metrics through
+	expected := testutil.MockMetrics()
+	t.Logf("rt: writing")
+	require.NoError(t, output.Write(expected))
+
+	// Check that they were received
+	t.Logf("rt: expecting")
+	acc.Wait(len(expected))
+	testutil.RequireMetricsEqual(t, expected, acc.GetTelegrafMetrics())
+
+	t.Logf("rt: done")
 }

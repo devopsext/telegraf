@@ -2,41 +2,42 @@ package opentelemetry
 
 import (
 	"context"
+	"net"
+	"testing"
+	"time"
+
 	"go.opentelemetry.io/collector/pdata/pcommon"
 	"go.opentelemetry.io/collector/pdata/pmetric"
 	"go.opentelemetry.io/collector/pdata/pmetric/pmetricotlp"
 	"google.golang.org/grpc/credentials/insecure"
-	"net"
-	"strings"
-	"testing"
-	"time"
 
 	"github.com/influxdata/influxdb-observability/common"
 	"github.com/influxdata/influxdb-observability/influx2otel"
-	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/config"
-	"github.com/influxdata/telegraf/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+
+	"github.com/influxdata/telegraf"
+	"github.com/influxdata/telegraf/config"
+	"github.com/influxdata/telegraf/testutil"
 )
 
 func TestOpenTelemetry(t *testing.T) {
 	expect := pmetric.NewMetrics()
 	{
 		rm := expect.ResourceMetrics().AppendEmpty()
-		rm.Resource().Attributes().InsertString("host.name", "potato")
-		rm.Resource().Attributes().InsertString("attr-key", "attr-val")
+		rm.Resource().Attributes().PutString("host.name", "potato")
+		rm.Resource().Attributes().PutString("attr-key", "attr-val")
 		ilm := rm.ScopeMetrics().AppendEmpty()
 		ilm.Scope().SetName("My Library Name")
 		m := ilm.Metrics().AppendEmpty()
 		m.SetName("cpu_temp")
-		m.SetDataType(pmetric.MetricDataTypeGauge)
+		m.SetEmptyGauge()
 		dp := m.Gauge().DataPoints().AppendEmpty()
-		dp.Attributes().InsertString("foo", "bar")
+		dp.Attributes().PutString("foo", "bar")
 		dp.SetTimestamp(pcommon.Timestamp(1622848686000000000))
-		dp.SetDoubleVal(87.332)
+		dp.SetDoubleValue(87.332)
 	}
 	m := newMockOtelService(t)
 	t.Cleanup(m.Cleanup)
@@ -66,13 +67,7 @@ func TestOpenTelemetry(t *testing.T) {
 		time.Unix(0, 1622848686000000000))
 
 	err = plugin.Write([]telegraf.Metric{input})
-	if err != nil {
-		// TODO not sure why the service returns this error, but the data arrives as required by the test
-		// rpc error: code = Internal desc = grpc: error while marshaling: proto: Marshal called with nil
-		if !strings.Contains(err.Error(), "proto: Marshal called with nil") {
-			assert.NoError(t, err)
-		}
-	}
+	require.NoError(t, err)
 
 	got := m.GotMetrics()
 
@@ -85,7 +80,7 @@ func TestOpenTelemetry(t *testing.T) {
 	assert.JSONEq(t, string(expectJSON), string(gotJSON))
 }
 
-var _ pmetricotlp.Server = (*mockOtelService)(nil)
+var _ pmetricotlp.GRPCServer = (*mockOtelService)(nil)
 
 type mockOtelService struct {
 	t          *testing.T
@@ -135,9 +130,10 @@ func (m *mockOtelService) Address() string {
 }
 
 func (m *mockOtelService) Export(ctx context.Context, request pmetricotlp.Request) (pmetricotlp.Response, error) {
-	m.metrics = request.Metrics().Clone()
+	m.metrics = pmetric.NewMetrics()
+	request.Metrics().CopyTo(m.metrics)
 	ctxMetadata, ok := metadata.FromIncomingContext(ctx)
 	assert.Equal(m.t, []string{"header1"}, ctxMetadata.Get("test"))
 	assert.True(m.t, ok)
-	return pmetricotlp.Response{}, nil
+	return pmetricotlp.NewResponse(), nil
 }

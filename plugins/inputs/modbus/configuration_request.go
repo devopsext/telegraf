@@ -1,91 +1,14 @@
 package modbus
 
 import (
+	_ "embed"
+	"errors"
 	"fmt"
 	"hash/maphash"
 )
 
-const sampleConfigPartPerRequest = `
-  ## Per request definition
-  ##
-
-  ## Define a request sent to the device
-  ## Multiple of those requests can be defined. Data will be collated into metrics at the end of data collection.
-  # [[inputs.modbus.request]]
-    ## ID of the modbus slave device to query.
-    ## If you need to query multiple slave-devices, create several "request" definitions.
-    # slave_id = 0
-
-    ## Byte order of the data.
-    ##  |---ABCD or MSW-BE -- Big Endian (Motorola)
-    ##  |---DCBA or LSW-LE -- Little Endian (Intel)
-    ##  |---BADC or MSW-LE -- Big Endian with byte swap
-    ##  |---CDAB or LSW-BE -- Little Endian with byte swap
-    # byte_order = "ABCD"
-
-    ## Type of the register for the request
-    ## Can be "coil", "discrete", "holding" or "input"
-    # register = "holding"
-
-    ## Name of the measurement.
-    ## Can be overriden by the individual field definitions. Defaults to "modbus"
-    # measurement = "modbus"
-
-    ## Field definitions
-    ## Analog Variables, Input Registers and Holding Registers
-    ## address        - address of the register to query. For coil and discrete inputs this is the bit address.
-    ## name *1        - field name
-    ## type *1,2      - type of the modbus field, can be INT16, UINT16, INT32, UINT32, INT64, UINT64 and
-    ##                  FLOAT32, FLOAT64 (IEEE 754 binary representation)
-    ## scale *1,2     - (optional) factor to scale the variable with
-    ## output *1,2    - (optional) type of resulting field, can be INT64, UINT64 or FLOAT64. Defaults to FLOAT64 if
-    ##                  "scale" is provided and to the input "type" class otherwise (i.e. INT* -> INT64, etc).
-    ## measurement *1 - (optional) measurement name, defaults to the setting of the request
-    ## omit           - (optional) omit this field. Useful to leave out single values when querying many registers
-    ##                  with a single request. Defaults to "false".
-    ##
-    ## *1: Those fields are ignored if field is omitted ("omit"=true)
-    ##
-    ## *2: Thise fields are ignored for both "coil" and "discrete"-input type of registers. For those register types
-    ##     the fields are output as zero or one in UINT64 format by default.
-
-    ## Coil / discrete input example
-    # fields = [
-    #   { address=0, name="motor1_run"},
-    #   { address=1, name="jog", measurement="motor"},
-    #   { address=2, name="motor1_stop", omit=true},
-    #   { address=3, name="motor1_overheating"},
-    # ]
-
-    ## Per-request tags
-    ## These tags take precedence over predefined tags.
-    # [[inputs.modbus.request.tags]]
-    #	  name = "value"
-
-    ## Holding / input example
-    ## All of those examples will result in FLOAT64 field outputs
-    # fields = [
-    #   { address=0, name="voltage",      type="INT16",   scale=0.1   },
-    #   { address=1, name="current",      type="INT32",   scale=0.001 },
-    #   { address=3, name="power",        type="UINT32",  omit=true   },
-    #   { address=5, name="energy",       type="FLOAT32", scale=0.001, measurement="W" },
-    #   { address=7, name="frequency",    type="UINT32",  scale=0.1   },
-    #   { address=8, name="power_factor", type="INT64",   scale=0.01  },
-    # ]
-
-    ## Holding / input example with type conversions
-    # fields = [
-    #   { address=0, name="rpm",         type="INT16"                   },  # will result in INT64 field
-    #   { address=1, name="temperature", type="INT16", scale=0.1        },  # will result in FLOAT64 field
-    #   { address=2, name="force",       type="INT32", output="FLOAT64" },  # will result in FLOAT64 field
-    #   { address=4, name="hours",       type="UINT32"                  },  # will result in UIN64 field
-    # ]
-
-    ## Per-request tags
-		## These tags take precedence over predefined tags.
-    # [[inputs.modbus.request.tags]]
-    #	  name = "value"
-`
+//go:embed sample_request.conf
+var sampleConfigPartPerRequest string
 
 type requestFieldDefinition struct {
 	Address     uint16  `toml:"address"`
@@ -142,6 +65,12 @@ func (c *ConfigurationPerRequest) Check() error {
 			def.Measurement = "modbus"
 		}
 
+		// Reject any configuration without fields as it
+		// makes no sense to not define anything but a request.
+		if len(def.Fields) == 0 {
+			return errors.New("found request section without fields")
+		}
+
 		// Check the fields
 		for fidx, f := range def.Fields {
 			// Check the input type for all fields except the bit-field ones.
@@ -181,7 +110,7 @@ func (c *ConfigurationPerRequest) Check() error {
 			def.Fields[fidx] = f
 
 			// Check for duplicate field definitions
-			id, err := c.fieldID(seed, def.SlaveID, def.RegisterType, def.Measurement, f.Name)
+			id, err := c.fieldID(seed, def, f.Name)
 			if err != nil {
 				return fmt.Errorf("cannot determine field id for %q: %v", f.Name, err)
 			}
@@ -324,23 +253,23 @@ func (c *ConfigurationPerRequest) newFieldFromDefinition(def requestFieldDefinit
 	return f, nil
 }
 
-func (c *ConfigurationPerRequest) fieldID(seed maphash.Seed, slave byte, register, measurement, name string) (uint64, error) {
+func (c *ConfigurationPerRequest) fieldID(seed maphash.Seed, def requestDefinition, name string) (uint64, error) {
 	var mh maphash.Hash
 	mh.SetSeed(seed)
 
-	if err := mh.WriteByte(slave); err != nil {
+	if err := mh.WriteByte(def.SlaveID); err != nil {
 		return 0, err
 	}
 	if err := mh.WriteByte(0); err != nil {
 		return 0, err
 	}
-	if _, err := mh.WriteString(register); err != nil {
+	if _, err := mh.WriteString(def.RegisterType); err != nil {
 		return 0, err
 	}
 	if err := mh.WriteByte(0); err != nil {
 		return 0, err
 	}
-	if _, err := mh.WriteString(measurement); err != nil {
+	if _, err := mh.WriteString(def.Measurement); err != nil {
 		return 0, err
 	}
 	if err := mh.WriteByte(0); err != nil {
@@ -348,6 +277,25 @@ func (c *ConfigurationPerRequest) fieldID(seed maphash.Seed, slave byte, registe
 	}
 	if _, err := mh.WriteString(name); err != nil {
 		return 0, err
+	}
+	if err := mh.WriteByte(0); err != nil {
+		return 0, err
+	}
+
+	// Tags
+	for k, v := range def.Tags {
+		if _, err := mh.WriteString(k); err != nil {
+			return 0, err
+		}
+		if err := mh.WriteByte('='); err != nil {
+			return 0, err
+		}
+		if _, err := mh.WriteString(v); err != nil {
+			return 0, err
+		}
+		if err := mh.WriteByte(':'); err != nil {
+			return 0, err
+		}
 	}
 	if err := mh.WriteByte(0); err != nil {
 		return 0, err

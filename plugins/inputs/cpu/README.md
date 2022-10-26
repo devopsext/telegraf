@@ -2,9 +2,22 @@
 
 The `cpu` plugin gather metrics on the system CPUs.
 
+## macOS Support
+
+The [gopsutil][1] library, which is used to collect CPU data, does not support
+gathering CPU metrics without CGO on macOS. The user will see a "not
+implemented" message in this case. Builds provided by InfluxData do not build
+with CGO.
+
+Users can use the builds provided by [Homebrew][2], which build with CGO, to
+produce CPU metrics.
+
+[1]: https://github.com/shirou/gopsutil/blob/master/cpu/cpu_darwin_nocgo.go
+[2]: https://formulae.brew.sh/formula/telegraf
+
 ## Configuration
 
-```toml
+```toml @sample.conf
 # Read metrics about cpu usage
 [[inputs.cpu]]
   ## Whether to report per-cpu stats or not
@@ -15,6 +28,8 @@ The `cpu` plugin gather metrics on the system CPUs.
   collect_cpu_time = false
   ## If true, compute and report the sum of all non-idle CPU states
   report_active = false
+  ## If true and the info is available then add core_id and physical_id tags
+  core_tags = false
 ```
 
 ## Metrics
@@ -52,6 +67,7 @@ On Linux, consult `man proc` for details on the meanings of these values.
 
 On Linux systems the `/proc/stat` file is used to gather CPU times.
 Percentages are based on the last 2 samples.
+Tags core_id and physical_id are read from `/proc/cpuinfo` on Linux systems
 
 ## Example Output
 

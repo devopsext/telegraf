@@ -1,7 +1,9 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package kafka_consumer
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"strings"
 	"sync"
@@ -16,6 +18,9 @@ import (
 	"github.com/influxdata/telegraf/plugins/inputs"
 	"github.com/influxdata/telegraf/plugins/parsers"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 const (
 	defaultMaxUndeliveredMessages = 1000
@@ -37,6 +42,7 @@ type KafkaConsumer struct {
 	BalanceStrategy        string          `toml:"balance_strategy"`
 	Topics                 []string        `toml:"topics"`
 	TopicTag               string          `toml:"topic_tag"`
+	ConsumerFetchDefault   config.Size     `toml:"consumer_fetch_default"`
 
 	kafka.ReadConfig
 
@@ -67,6 +73,10 @@ func (*SaramaCreator) Create(brokers []string, group string, cfg *sarama.Config)
 	return sarama.NewConsumerGroup(brokers, group, cfg)
 }
 
+func (*KafkaConsumer) SampleConfig() string {
+	return sampleConfig
+}
+
 func (k *KafkaConsumer) SetParser(parser parsers.Parser) {
 	k.parser = parser
 }
@@ -88,7 +98,7 @@ func (k *KafkaConsumer) Init() error {
 	cfg.Version = sarama.V0_10_2_0
 
 	if err := k.SetConfig(cfg); err != nil {
-		return err
+		return fmt.Errorf("SetConfig: %w", err)
 	}
 
 	switch strings.ToLower(k.Offset) {
@@ -102,11 +112,11 @@ func (k *KafkaConsumer) Init() error {
 
 	switch strings.ToLower(k.BalanceStrategy) {
 	case "range", "":
-		cfg.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRange
+		cfg.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.BalanceStrategyRange}
 	case "roundrobin":
-		cfg.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategyRoundRobin
+		cfg.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.BalanceStrategyRoundRobin}
 	case "sticky":
-		cfg.Consumer.Group.Rebalance.Strategy = sarama.BalanceStrategySticky
+		cfg.Consumer.Group.Rebalance.GroupStrategies = []sarama.BalanceStrategy{sarama.BalanceStrategySticky}
 	default:
 		return fmt.Errorf("invalid balance strategy %q", k.BalanceStrategy)
 	}
@@ -116,6 +126,10 @@ func (k *KafkaConsumer) Init() error {
 	}
 
 	cfg.Consumer.MaxProcessingTime = time.Duration(k.MaxProcessingTime)
+
+	if k.ConsumerFetchDefault != 0 {
+		cfg.Consumer.Fetch.Default = int32(k.ConsumerFetchDefault)
+	}
 
 	k.config = cfg
 	return nil
@@ -129,7 +143,7 @@ func (k *KafkaConsumer) Start(acc telegraf.Accumulator) error {
 		k.config,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("create consumer: %w", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -145,7 +159,7 @@ func (k *KafkaConsumer) Start(acc telegraf.Accumulator) error {
 			handler.TopicTag = k.TopicTag
 			err := k.consumer.Consume(ctx, k.Topics, handler)
 			if err != nil {
-				acc.AddError(err)
+				acc.AddError(fmt.Errorf("consume: %w", err))
 				// Ignore returned error as we cannot do anything about it anyway
 				//nolint:errcheck,revive
 				internal.SleepContext(ctx, reconnectDelay)
@@ -153,7 +167,7 @@ func (k *KafkaConsumer) Start(acc telegraf.Accumulator) error {
 		}
 		err = k.consumer.Close()
 		if err != nil {
-			acc.AddError(err)
+			acc.AddError(fmt.Errorf("close: %w", err))
 		}
 	}()
 
@@ -161,7 +175,7 @@ func (k *KafkaConsumer) Start(acc telegraf.Accumulator) error {
 	go func() {
 		defer k.wg.Done()
 		for err := range k.consumer.Errors() {
-			acc.AddError(err)
+			acc.AddError(fmt.Errorf("channel: %w", err))
 		}
 	}()
 

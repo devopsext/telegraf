@@ -1,8 +1,10 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package statsd
 
 import (
 	"bufio"
 	"bytes"
+	_ "embed"
 	"fmt"
 	"net"
 	"regexp"
@@ -21,6 +23,9 @@ import (
 	"github.com/influxdata/telegraf/plugins/parsers/graphite"
 	"github.com/influxdata/telegraf/selfstat"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 const (
 	// UDPMaxPacketSize is the UDP packet limit, see
@@ -144,7 +149,7 @@ type Statsd struct {
 	// Max duration for each metric to stay cached without being updated.
 	MaxTTL config.Duration `toml:"max_ttl"`
 
-	graphiteParser *graphite.GraphiteParser
+	graphiteParser *graphite.Parser
 
 	acc telegraf.Accumulator
 
@@ -219,6 +224,10 @@ type cacheddistributions struct {
 	tags  map[string]string
 }
 
+func (*Statsd) SampleConfig() string {
+	return sampleConfig
+}
+
 func (s *Statsd) Gather(acc telegraf.Accumulator) error {
 	s.Lock()
 	defer s.Unlock()
@@ -243,6 +252,7 @@ func (s *Statsd) Gather(acc telegraf.Accumulator) error {
 				prefix = fieldName + "_"
 			}
 			fields[prefix+"mean"] = stats.Mean()
+			fields[prefix+"median"] = stats.Median()
 			fields[prefix+"stddev"] = stats.Stddev()
 			fields[prefix+"sum"] = stats.Sum()
 			fields[prefix+"upper"] = stats.Upper()
@@ -504,15 +514,19 @@ func (s *Statsd) parser() error {
 				case line == "":
 				case s.DataDogExtensions && strings.HasPrefix(line, "_e"):
 					if err := s.parseEventMessage(in.Time, line, in.Addr); err != nil {
-						return err
+						// Log the line causing the parsing error and continue
+						// with the next line to not stop the whole gathering
+						// process.
+						s.Log.Errorf("Parsing line failed: %v", err)
+						s.Log.Debugf("  line was: %s", line)
 					}
 				default:
 					if err := s.parseStatsdLine(line); err != nil {
-						if errors.Cause(err) == errParsing {
-							// parsing errors log when the error occurs
-							continue
+						if errors.Cause(err) != errParsing {
+							// Ignore parsing errors but error out on
+							// everything else...
+							return err
 						}
-						return err
 					}
 				}
 			}
@@ -703,7 +717,8 @@ func (s *Statsd) parseName(bucket string) (name string, field string, tags map[s
 	var err error
 
 	if p == nil || s.graphiteParser.Separator != s.MetricSeparator {
-		p, err = graphite.NewGraphiteParser(s.MetricSeparator, s.Templates, nil)
+		p = &graphite.Parser{Separator: s.MetricSeparator, Templates: s.Templates}
+		err = p.Init()
 		s.graphiteParser = p
 	}
 

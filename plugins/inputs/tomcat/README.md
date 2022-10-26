@@ -1,12 +1,16 @@
 # Tomcat Input Plugin
 
-The Tomcat plugin collects statistics available from the tomcat manager status page from the `http://<host>/manager/status/all?XML=true URL.` (`XML=true` will return only xml data).
+The Tomcat plugin collects statistics available from the tomcat manager status
+page from the `http://<host>/manager/status/all?XML=true URL.` (`XML=true` will
+return only xml data).
 
-See the [Tomcat documentation](https://tomcat.apache.org/tomcat-9.0-doc/manager-howto.html#Server_Status) for details of these statistics.
+See the [Tomcat documentation][1] for details of these statistics.
+
+[1]: https://tomcat.apache.org/tomcat-9.0-doc/manager-howto.html#Server_Status
 
 ## Configuration
 
-```toml
+```toml @sample.conf
 # Gather metrics from the Tomcat server status page.
 [[inputs.tomcat]]
   ## URL of the Tomcat server status
@@ -27,34 +31,29 @@ See the [Tomcat documentation](https://tomcat.apache.org/tomcat-9.0-doc/manager-
   # insecure_skip_verify = false
 ```
 
-## Measurements & Fields
+## Metrics
 
 - tomcat_jvm_memory
   - free
-  - total
   - max
+  - total
 - tomcat_jvm_memorypool
-  - max_threads
-  - current_thread_count
-  - current_threads_busy
-  - max_time
-  - processing_time
-  - request_count
-  - error_count
-  - bytes_received
-  - bytes_sent
+  - committed
+  - init
+  - max
+  - used
 - tomcat_connector
-  - max_threads
-  - current_thread_count
+  - bytes_received
+  - bytes_sent
   - current_thread_busy
+  - current_thread_count
+  - error_count
+  - max_threads
   - max_time
   - processing_time
   - request_count
-  - error_count
-  - bytes_received
-  - bytes_sent
 
-## Tags
+### Tags
 
 - tomcat_jvm_memorypool has the following tags:
   - name

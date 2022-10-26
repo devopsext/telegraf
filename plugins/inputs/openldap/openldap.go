@@ -1,6 +1,8 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package openldap
 
 import (
+	_ "embed"
 	"fmt"
 	"strconv"
 	"strings"
@@ -11,6 +13,9 @@ import (
 	"github.com/influxdata/telegraf/plugins/common/tls"
 	"github.com/influxdata/telegraf/plugins/inputs"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 type Openldap struct {
 	Host               string
@@ -55,6 +60,10 @@ func NewOpenldap() *Openldap {
 		BindPassword:       "",
 		ReverseMetricNames: false,
 	}
+}
+
+func (*Openldap) SampleConfig() string {
+	return sampleConfig
 }
 
 // gather metrics

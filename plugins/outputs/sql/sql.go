@@ -1,9 +1,12 @@
+//go:generate ../../../tools/readme_config_includer/generator
 package sql
 
 import (
 	gosql "database/sql"
+	_ "embed"
 	"fmt"
 	"strings"
+	"time"
 
 	//Register sql drivers
 	_ "github.com/ClickHouse/clickhouse-go" // clickhouse
@@ -15,6 +18,9 @@ import (
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/outputs"
 )
+
+//go:embed sample.conf
+var sampleConfig string
 
 type ConvertStruct struct {
 	Integer         string
@@ -28,17 +34,25 @@ type ConvertStruct struct {
 }
 
 type SQL struct {
-	Driver              string
-	DataSourceName      string
-	TimestampColumn     string
-	TableTemplate       string
-	TableExistsTemplate string
-	InitSQL             string `toml:"init_sql"`
-	Convert             ConvertStruct
+	Driver                string
+	DataSourceName        string
+	TimestampColumn       string
+	TableTemplate         string
+	TableExistsTemplate   string
+	InitSQL               string `toml:"init_sql"`
+	Convert               ConvertStruct
+	ConnectionMaxIdleTime time.Duration
+	ConnectionMaxLifetime time.Duration
+	ConnectionMaxIdle     int
+	ConnectionMaxOpen     int
 
 	db     *gosql.DB
 	Log    telegraf.Logger `toml:"-"`
 	tables map[string]bool
+}
+
+func (*SQL) SampleConfig() string {
+	return sampleConfig
 }
 
 func (p *SQL) Connect() error {
@@ -51,6 +65,11 @@ func (p *SQL) Connect() error {
 	if err != nil {
 		return err
 	}
+
+	db.SetConnMaxIdleTime(p.ConnectionMaxIdleTime)
+	db.SetConnMaxLifetime(p.ConnectionMaxLifetime)
+	db.SetMaxIdleConns(p.ConnectionMaxIdle)
+	db.SetMaxOpenConns(p.ConnectionMaxOpen)
 
 	if p.InitSQL != "" {
 		_, err = db.Exec(p.InitSQL)
@@ -194,8 +213,8 @@ func (p *SQL) Write(metrics []telegraf.Metric) error {
 			if err != nil {
 				return err
 			}
-			p.tables[tablename] = true
 		}
+		p.tables[tablename] = true
 
 		var columns []string
 		var values []interface{}
@@ -267,5 +286,11 @@ func newSQL() *SQL {
 			Bool:            "BOOL",
 			ConversionStyle: "unsigned_suffix",
 		},
+		// Defaults for the connection settings (ConnectionMaxIdleTime,
+		// ConnectionMaxLifetime, ConnectionMaxIdle, and ConnectionMaxOpen)
+		// mirror the golang defaults. As of go 1.18 all of them default to 0
+		// except max idle connections which is 2. See
+		// https://pkg.go.dev/database/sql#DB.SetMaxIdleConns
+		ConnectionMaxIdle: 2,
 	}
 }

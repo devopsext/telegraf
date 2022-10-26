@@ -29,7 +29,7 @@ The IAM user needs only the `cloudwatch:PutMetricData` permission.
 
 ## Configuration
 
-```toml
+```toml @sample.conf
 # Configuration for AWS CloudWatch output.
 [[outputs.cloudwatch]]
   ## Amazon REGION
@@ -58,6 +58,10 @@ The IAM user needs only the `cloudwatch:PutMetricData` permission.
   ## default.
   ##   ex: endpoint_url = "http://localhost:8000"
   # endpoint_url = ""
+
+  ## Set http_proxy
+  # use_system_proxy = false
+  # http_proxy_url = "http://localhost:8888"
 
   ## Namespace for the CloudWatch MetricDatums
   namespace = "InfluxData/Telegraf"
