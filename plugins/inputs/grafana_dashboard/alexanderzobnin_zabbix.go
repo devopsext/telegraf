@@ -57,27 +57,6 @@ type AlexanderzobninZabbixHostRequest struct {
 	Params       AlexanderzobninZabbixHostRequestParams `json:"params"`
 }
 
-type AlexanderzobninZabbixApplicationResponseItem struct {
-	ApplicationID string `json:"applicationid"`
-	HostID        string `json:"hostid"`
-	Name          string `json:"name"`
-}
-
-type AlexanderzobninZabbixApplicationResponse struct {
-	Result []*AlexanderzobninZabbixApplicationResponseItem `json:"result,omitempty"`
-}
-
-type AlexanderzobninZabbixApplicationRequestParams struct {
-	HostIDs []string `json:"hostids"`
-	Output  []string `json:"output"`
-}
-
-type AlexanderzobninZabbixApplicationRequest struct {
-	DatasourceID uint                                          `json:"datasourceId"`
-	Method       string                                        `json:"method"`
-	Params       AlexanderzobninZabbixApplicationRequestParams `json:"params"`
-}
-
 type AlexanderzobninZabbixItemResponseItem struct {
 	ItemID string `json:"itemid"`
 	HostID string `json:"hostid"`
@@ -90,13 +69,12 @@ type AlexanderzobninZabbixItemResponse struct {
 }
 
 type AlexanderzobninZabbixItemRequestParams struct {
-	ApplicationIDs []string               `json:"applicationids"`
-	HostIDs        []string               `json:"hostids"`
-	Filter         map[string]interface{} `json:"filter"`
-	Output         []string               `json:"output"`
-	SelectHosts    []string               `json:"selectHosts"`
-	SortField      string                 `json:"sortfield"`
-	WebItems       bool                   `json:"webitems"`
+	HostIDs     []string               `json:"hostids"`
+	Filter      map[string]interface{} `json:"filter"`
+	Output      []string               `json:"output"`
+	SelectHosts []string               `json:"selectHosts"`
+	SortField   string                 `json:"sortfield"`
+	WebItems    bool                   `json:"webitems"`
 }
 
 type AlexanderzobninZabbixItemRequest struct {
@@ -244,58 +222,7 @@ func (az *AlexanderzobninZabbix) getHostIDs(dsID uint, hostGroupIDs []string, ho
 	return hostIDs, hosts, nil
 }
 
-func (az *AlexanderzobninZabbix) getApplicationIDs(dsID uint, hostIDs []string, application interface{}) ([]string, []*AlexanderzobninZabbixApplicationResponseItem, error) {
-	var applicationIDs []string
-	var applications []*AlexanderzobninZabbixApplicationResponseItem
-
-	filter := az.getFilter(application)
-
-	// if filter is empty - do not use applicationIDs to filter Items
-	if filter == "" {
-		return applicationIDs, applications, nil
-	}
-
-	request := AlexanderzobninZabbixApplicationRequest{
-		DatasourceID: dsID,
-		Method:       "application.get",
-		Params: AlexanderzobninZabbixApplicationRequestParams{
-			HostIDs: hostIDs,
-			Output:  []string{"name", "hostid"},
-		},
-	}
-
-	b, err := json.Marshal(request)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	url := fmt.Sprintf("/api/datasources/%d/resources/zabbix-api", dsID)
-	raw, code, err := az.grafana.httpPost(url, nil, b)
-	if err != nil {
-		return nil, nil, err
-	}
-	if code != 200 {
-		return nil, nil, fmt.Errorf("AlexanderzobninZabbix HTTP error %d: returns %s", code, raw)
-	}
-
-	var res AlexanderzobninZabbixApplicationResponse
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	for _, v := range res.Result {
-		if v != nil {
-			if m, _ := regexp.MatchString(filter, v.Name); m {
-				applicationIDs = append(applicationIDs, v.ApplicationID)
-				applications = append(applications, v)
-			}
-		}
-	}
-	return applicationIDs, applications, nil
-}
-
-func (az *AlexanderzobninZabbix) getItemIDs(dsID uint, applicationIDs []string, hostIDs []string, item interface{}) ([]string, []*AlexanderzobninZabbixItemResponseItem, error) {
+func (az *AlexanderzobninZabbix) getItemIDs(dsID uint, hostIDs []string, item interface{}) ([]string, []*AlexanderzobninZabbixItemResponseItem, error) {
 	filter := az.getFilter(item)
 
 	filterMap := make(map[string]interface{})
@@ -305,11 +232,9 @@ func (az *AlexanderzobninZabbix) getItemIDs(dsID uint, applicationIDs []string, 
 		DatasourceID: dsID,
 		Method:       "item.get",
 		Params: AlexanderzobninZabbixItemRequestParams{
-			ApplicationIDs: applicationIDs,
-			HostIDs:        hostIDs,
-			Filter:         filterMap,
-			Output:         []string{"name", "hostid", "units"},
-			//SelectHosts:    []string{"name"},
+			HostIDs:   hostIDs,
+			Filter:    filterMap,
+			Output:    []string{"name", "hostid", "units"},
 			SortField: "name",
 			WebItems:  true,
 		},
@@ -439,15 +364,7 @@ func (az *AlexanderzobninZabbix) GetData(t *sdk.Target, ds *sdk.Datasource, peri
 		return nil
 	}
 
-	applicationIDs, _, err := az.getApplicationIDs(ds.ID, hostIDs, t.Application)
-	if err != nil {
-		return nil
-	}
-	if len(applicationIDs) == 0 {
-		az.log.Debug("AlexanderzobninZabbix has no application IDs")
-	}
-
-	itemIDs, items, err := az.getItemIDs(ds.ID, applicationIDs, hostIDs, t.Item)
+	itemIDs, items, err := az.getItemIDs(ds.ID, hostIDs, t.Item)
 	if err != nil {
 		return err
 	}
