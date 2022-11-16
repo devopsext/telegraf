@@ -3,8 +3,7 @@
 The apiip processor plugin enhance each metric passing through it with the location tags received from external API [https://apiip.net/](https://apiip.net/documentation).
 
 `api_key` is required to use the API.
-
-By default, external IP uses origin IP address of the metric. You can 
+By default, external IP uses origin IP address of the metric. You can
 override it by taking the IP address from a tag using `ip_tag` option
 or hardcode ip with `ip` option.
 
@@ -14,11 +13,11 @@ By default, the plugin will add the following tags to the metric:
 - `country` - country code (e.g. *CY*)
 - `city` - city name (e.g. *Nicosia*)
 
-Tag names can be changed using `region_tag`, `country_tag` and `city_tag` 
+Tag names can be changed using `region_tag`, `country_tag` and `city_tag`
 options.
 
-In case of external API failure, the plugin will use non-empty 
-`default_region`, `default_country` and `default_city` options as fallback to 
+In case of external API failure, the plugin will use non-empty
+`default_region`, `default_country` and `default_city` options as fallback to
 set the tags.
 
 Select the metrics to modify using the standard [metric
