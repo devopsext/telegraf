@@ -36,6 +36,7 @@ type PrometheusHttpMetric struct {
 	Timeout   config.Duration   `toml:"timeout"`
 	Interval  config.Duration   `toml:"interval"`
 	Tags      map[string]string `toml:"tags"`
+	UniqueBy  []string          `toml:"unique_by"`
 	templates map[string]*template.Template
 	uniques   map[uint64]bool
 }
@@ -58,7 +59,6 @@ type PrometheusHttp struct {
 	Params        string                  `toml:"params"`
 	Prefix        string                  `toml:"prefix"`
 	SkipEmptyTags bool                    `toml:"skip_empty_tags"`
-	UniqueBy      []string                `toml:"unique_by"`
 
 	Log telegraf.Logger `toml:"-"`
 	acc telegraf.Accumulator
@@ -190,9 +190,9 @@ func byteSha512(b []byte) []byte {
 	return hasher.Sum(nil)
 }
 
-func (p *PrometheusHttp) uniqueHash(tgs map[string]string, stamp time.Time) uint64 {
+func (p *PrometheusHttp) uniqueHash(pm *PrometheusHttpMetric, tgs map[string]string, stamp time.Time) uint64 {
 
-	if len(p.UniqueBy) == 0 {
+	if len(pm.UniqueBy) == 0 {
 		return 0
 	}
 
@@ -201,13 +201,14 @@ func (p *PrometheusHttp) uniqueHash(tgs map[string]string, stamp time.Time) uint
 	}
 
 	s := ""
-	for _, t := range p.UniqueBy {
+	for _, t := range pm.UniqueBy {
 		v1 := ""
 		flag := false
 		for k, v := range tgs {
 			if k == t {
 				v1 = v
 				flag = true
+				break
 			}
 		}
 		if flag {
@@ -248,7 +249,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric)
 	defer w.Done()
 	var push = func(when time.Time, tgs map[string]string, stamp time.Time, value float64) {
 
-		hash := p.uniqueHash(tgs, stamp)
+		hash := p.uniqueHash(pm, tgs, stamp)
 		if hash > 0 {
 			if pm.uniques[hash] {
 				return
@@ -380,7 +381,7 @@ func (p *PrometheusHttp) setDefaultMetric(m *PrometheusHttpMetric) {
 	for k, v := range m.Tags {
 		m.templates[k] = p.getDefaultTemplate(fmt.Sprintf("%s_%s", m.Name, k), v)
 	}
-	if len(p.UniqueBy) > 0 {
+	if m.uniques == nil {
 		m.uniques = make(map[uint64]bool)
 	}
 }
