@@ -2,9 +2,11 @@ package prometheus_http
 
 import (
 	"context"
+	"crypto/sha512"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"regexp"
 	"strconv"
@@ -35,6 +37,7 @@ type PrometheusHttpMetric struct {
 	Interval  config.Duration   `toml:"interval"`
 	Tags      map[string]string `toml:"tags"`
 	templates map[string]*template.Template
+	uniques   map[uint64]bool
 }
 
 // PrometheusHttpPeriod struct
@@ -55,6 +58,7 @@ type PrometheusHttp struct {
 	Params        string                  `toml:"params"`
 	Prefix        string                  `toml:"prefix"`
 	SkipEmptyTags bool                    `toml:"skip_empty_tags"`
+	UniqueBy      []string                `toml:"unique_by"`
 
 	Log telegraf.Logger `toml:"-"`
 	acc telegraf.Accumulator
@@ -174,6 +178,56 @@ func (p *PrometheusHttp) setExtraMetricTags(tags map[string]string, m *Prometheu
 	}
 }
 
+func byteHash64(b []byte) uint64 {
+	h := fnv.New64()
+	h.Write(b)
+	return h.Sum64()
+}
+
+func byteSha512(b []byte) []byte {
+	hasher := sha512.New()
+	hasher.Write(b)
+	return hasher.Sum(nil)
+}
+
+func (p *PrometheusHttp) uniqueHash(tgs map[string]string, stamp time.Time) uint64 {
+
+	if len(p.UniqueBy) == 0 {
+		return 0
+	}
+
+	if len(tgs) == 0 {
+		return 0
+	}
+
+	s := ""
+	for _, t := range p.UniqueBy {
+		v1 := ""
+		flag := false
+		for k, v := range tgs {
+			if k == t {
+				v1 = v
+				flag = true
+			}
+		}
+		if flag {
+			s1 := fmt.Sprintf("%s=%s", t, v1)
+			if s == "" {
+				s = s1
+			} else {
+				s = fmt.Sprintf("%s,%s", s, s1)
+			}
+		}
+	}
+
+	if s == "" {
+		return 0
+	}
+
+	hash := fmt.Sprintf("%d:%s", stamp.UnixNano(), s)
+	return byteHash64(byteSha512([]byte(hash)))
+}
+
 func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric) {
 
 	timeout := pm.Timeout
@@ -193,6 +247,15 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric)
 
 	defer w.Done()
 	var push = func(when time.Time, tgs map[string]string, stamp time.Time, value float64) {
+
+		hash := p.uniqueHash(tgs, stamp)
+		if hash > 0 {
+			if pm.uniques[hash] {
+				return
+			} else {
+				pm.uniques[hash] = true
+			}
+		}
 
 		v, err := p.getTemplateValue(pm.template, value)
 		if err != nil {
@@ -316,6 +379,9 @@ func (p *PrometheusHttp) setDefaultMetric(m *PrometheusHttpMetric) {
 	}
 	for k, v := range m.Tags {
 		m.templates[k] = p.getDefaultTemplate(fmt.Sprintf("%s_%s", m.Name, k), v)
+	}
+	if len(p.UniqueBy) > 0 {
+		m.uniques = make(map[uint64]bool)
 	}
 }
 

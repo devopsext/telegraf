@@ -6,11 +6,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/influxdata/telegraf/config"
-	"github.com/jellydator/ttlcache/v3"
 	"net"
 	"net/http"
 	"time"
+
+	"github.com/influxdata/telegraf/config"
+	"github.com/jellydator/ttlcache/v3"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/plugins/processors"
