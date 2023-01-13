@@ -59,8 +59,8 @@ func (p *PrometheusHttpV1) httpDoRequest(method, query string, params url.Values
 	if err != nil {
 		return nil, 0, err
 	}
+	defer resp.Body.Close()
 	data, err := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
 	return data, resp.StatusCode, err
 }
 
