@@ -55,6 +55,7 @@ func (p *PrometheusHttpV1) httpDoRequest(method, query string, params url.Values
 	req = req.WithContext(p.ctx)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Connection", "close")
 	resp, err := p.client.Do(req)
 	if err != nil {
 		return nil, 0, err
