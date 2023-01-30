@@ -390,9 +390,10 @@ func (p *PrometheusHttp) setDefaultMetric(m *PrometheusHttpMetric) {
 func (p *PrometheusHttp) Gather(acc telegraf.Accumulator) error {
 
 	// Set default values
-	if p.Duration == 0 {
-		p.Duration = config.Duration(time.Second) * 5
-	}
+	//if p.Duration == 0 => should be last value
+	//if p.Duration == 0 {
+	//	p.Duration = config.Duration(time.Second) * 5
+	//}
 	if p.Timeout == 0 {
 		p.Timeout = config.Duration(time.Second) * 5
 	}

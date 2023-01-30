@@ -19,6 +19,7 @@ import (
 
 type PrometheusHttpV1ResponseDataResult struct {
 	Metric map[string]string `json:"metric"`
+	Value  []interface{}     `json:"value"`
 	Values [][]interface{}   `json:"values"`
 }
 
@@ -65,10 +66,9 @@ func (p *PrometheusHttpV1) httpDoRequest(method, query string, params url.Values
 	return data, resp.StatusCode, err
 }
 
-func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, push PrometheusHttpPushFunc) error {
+func (p *PrometheusHttpV1) getQueryRangeData(query string, period *PrometheusHttpPeriod, params *url.Values) string {
 
-	params := make(url.Values)
-	params.Add("query", query)
+	path := "/api/v1/query_range"
 
 	t1, t2 := period.StartEnd()
 	start := int(t1.UTC().Unix())
@@ -78,39 +78,16 @@ func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, p
 	params.Add("end", strconv.Itoa(end))
 	params.Add("step", p.step)
 
-	vls, err := url.ParseQuery(p.params)
-	if err == nil {
-		for k, arr := range vls {
-			for _, v := range arr {
-				params.Add(k, v)
-			}
-		}
-	}
+	return path
+}
 
-	when := time.Now()
-
-	raw, code, err := p.httpDoRequest("GET", "/api/v1/query_range", params, nil)
-	if err != nil {
-		return err
-	}
-	if code != 200 {
-		return fmt.Errorf("prometheus HTTP error %d: returns %s", code, raw)
-	}
-
-	var res PrometheusHttpV1Response
-	err = json.Unmarshal(raw, &res)
-	if err != nil {
-		return err
-	}
-	if res.Status != "success" {
-		return fmt.Errorf("prometheus status %s", res.Status)
-	}
-	if res.Data == nil {
-		p.log.Debug("Prometheus has no data")
-		return nil
-	}
+func (p *PrometheusHttpV1) processMatrix(res *PrometheusHttpV1Response, when time.Time, push PrometheusHttpPushFunc) {
 
 	for _, d := range res.Data.Result {
+
+		if len(d.Values) == 0 {
+			continue
+		}
 
 		tags := make(map[string]string)
 		for k, m := range d.Metric {
@@ -135,6 +112,88 @@ func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, p
 				}
 			}
 		}
+	}
+}
+
+func (p *PrometheusHttpV1) processVector(res *PrometheusHttpV1Response, when time.Time, push PrometheusHttpPushFunc) {
+
+	for _, d := range res.Data.Result {
+
+		if len(d.Value) != 2 {
+			continue
+		}
+
+		tags := make(map[string]string)
+		for k, m := range d.Metric {
+			tags[k] = m
+		}
+
+		vt, ok := d.Value[0].(float64)
+		if !ok {
+			continue
+		}
+		ts := int64(vt)
+
+		vv, ok := d.Value[1].(string)
+		if !ok {
+			continue
+		}
+		if f, err := strconv.ParseFloat(vv, 64); err == nil {
+			push(when, tags, time.Unix(ts, 0), f)
+		}
+	}
+}
+
+func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, push PrometheusHttpPushFunc) error {
+
+	params := make(url.Values)
+	params.Add("query", query)
+
+	path := "/api/v1/query"
+	duration := period.Duration()
+	if duration != 0 {
+		path = p.getQueryRangeData(query, period, &params)
+	}
+
+	vls, err := url.ParseQuery(p.params)
+	if err == nil {
+		for k, arr := range vls {
+			for _, v := range arr {
+				params.Add(k, v)
+			}
+		}
+	}
+
+	when := time.Now()
+
+	raw, code, err := p.httpDoRequest("GET", path, params, nil)
+	if err != nil {
+		return err
+	}
+	if code != 200 {
+		return fmt.Errorf("prometheus HTTP error %d: returns %s", code, raw)
+	}
+
+	var res PrometheusHttpV1Response
+	err = json.Unmarshal(raw, &res)
+	if err != nil {
+		return err
+	}
+	if res.Status != "success" {
+		return fmt.Errorf("prometheus status %s", res.Status)
+	}
+	if res.Data == nil {
+		p.log.Debug("Prometheus has no data")
+		return nil
+	}
+
+	switch res.Data.ResultType {
+	case "matrix":
+		p.processMatrix(&res, when, push)
+	case "vector":
+		p.processVector(&res, when, push)
+	default:
+		return fmt.Errorf("prometheus result type %s is not supported", res.Data.ResultType)
 	}
 	return nil
 }
