@@ -153,29 +153,34 @@ func (p *PrometheusHttp) getTemplateValue(t *template.Template, value float64) (
 	return f, nil
 }
 
-func (p *PrometheusHttp) setExtraMetricTag(t *template.Template, tag string, tags map[string]string) {
+func (p *PrometheusHttp) setExtraMetricTag(t *template.Template, tags map[string]string) string {
 
-	if t == nil || tag == "" {
-		return
+	if t == nil {
+		return ""
 	}
 
 	var b strings.Builder
 	err := t.Execute(&b, &tags)
 	if err != nil {
 		p.Log.Errorf("failed to execute template: %v", err)
-		return
+		return ""
 	}
-	tags[tag] = b.String()
+	return b.String()
 }
 
-func (p *PrometheusHttp) setExtraMetricTags(tags map[string]string, m *PrometheusHttpMetric) {
+func (p *PrometheusHttp) getExtraMetricTags(tags map[string]string, m *PrometheusHttpMetric) map[string]string {
 
 	if m.templates == nil {
-		return
+		return tags
 	}
+	tgs := make(map[string]string)
 	for v, t := range m.templates {
-		p.setExtraMetricTag(t, v, tags)
+		s := p.setExtraMetricTag(t, tags)
+		if s != "" {
+			tgs[v] = s
+		}
 	}
+	return tgs
 }
 
 func byteHash64(b []byte) uint64 {
@@ -279,7 +284,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric)
 			tags[k] = t
 		}
 
-		p.setExtraMetricTags(tags, pm)
+		tags = p.getExtraMetricTags(tags, pm)
 
 		if math.IsNaN(value) || math.IsInf(value, 0) {
 			bs, _ := json.Marshal(tags)
