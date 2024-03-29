@@ -15,3 +15,15 @@ process.yml
 /*.conf
 resource.syso
 versioninfo.json
+vscode.sh
+issues.json
+test.json
+/.config
+/.clusters
+/cmd/telegraf/__debug_bin
+heap.out
+profile.out
+profile*.png
+test.sh
+metrics
+hosts.json

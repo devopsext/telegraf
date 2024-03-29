@@ -57,6 +57,8 @@ require (
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f
 	github.com/couchbase/go-couchbase v0.1.1
 	github.com/denisenkom/go-mssqldb v0.12.3
+	github.com/devopsext/tools v0.13.8
+	github.com/devopsext/utils v0.3.3
 	github.com/digitalocean/go-libvirt v0.0.0-20220811165305-15feff002086
 	github.com/dimchansky/utfbom v1.1.1
 	github.com/djherbis/times v1.5.0
@@ -107,6 +109,7 @@ require (
 	github.com/jackc/pgtype v1.12.0
 	github.com/jackc/pgx/v4 v4.17.1
 	github.com/james4k/rcon v0.0.0-20120923215419-8fbb8268b60a
+	github.com/jellydator/ttlcache/v3 v3.0.1
 	github.com/jhump/protoreflect v1.8.3-0.20210616212123-6cc1efa697ca
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/kardianos/service v1.2.2
@@ -192,6 +195,16 @@ require (
 	k8s.io/apimachinery v0.25.3
 	k8s.io/client-go v0.25.0
 	modernc.org/sqlite v1.19.2
+)
+
+require (
+	github.com/Masterminds/semver/v3 v3.2.0 // indirect
+	github.com/elastic/go-elasticsearch/v7 v7.6.0 // indirect
+	github.com/fatih/structs v1.1.0 // indirect
+	github.com/gosimple/slug v1.1.1 // indirect
+	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
+	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/spf13/cast v1.5.0 // indirect
 )
 
 require (
@@ -307,7 +320,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/packer-plugin-sdk v0.3.1 // indirect
 	github.com/hashicorp/serf v0.10.1 // indirect
-	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
@@ -430,7 +443,7 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/errgo.v1 v1.0.1 // indirect
 	gopkg.in/fatih/pool.v2 v2.0.0 // indirect
-	gopkg.in/fsnotify.v1 v1.4.7 // indirect
+	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/httprequest.v1 v1.2.1 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
@@ -438,7 +451,7 @@ require (
 	gopkg.in/macaroon.v2 v2.1.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.2.2 // indirect
 	k8s.io/klog/v2 v2.70.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20220803164354-a70c9af30aea // indirect
@@ -456,3 +469,14 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
+
+// fork
+require (
+	github.com/Masterminds/sprig/v3 v3.2.3
+	github.com/aquasecurity/esquery v0.2.0
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/grafana-tools/sdk v0.0.0-00010101000000-000000000000
+	github.com/jinzhu/copier v0.3.5
+)
+
+replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.6
