@@ -35,7 +35,10 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   aggregates = {"count" = {"tag_name_for_count" = "tag_value_for_count"}, "mean" = {"mean_tag" = "mean_value"}}
 
   ## Name of fields or tags for collapse metrics
-  # group_by = ["instance", "incoming"]
+  group_by = ["instance", "incoming"]
+
+  ## Add suffix for aggregate metric or no, default = false 
+  stats_suffix_add = true 
 ```
 
 - stats

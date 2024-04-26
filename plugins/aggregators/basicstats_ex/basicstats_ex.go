@@ -34,8 +34,9 @@ const (
 )
 
 type BasicStats struct {
-	Stats       []string          `toml:"stats"`
-	StatsSuffix map[string]string `toml:"stats_suffix"`
+	Stats          []string          `toml:"stats"`
+	StatsSuffix    map[string]string `toml:"stats_suffix"`
+	StatsSuffixAdd bool              `toml:"stats_suffix_add"`
 
 	Aggregates map[string]map[string]string `toml:"aggregates"`
 
@@ -225,33 +226,35 @@ func (b *BasicStats) addSpecialAggregateTag(agg aggregate, aggTagName string) (m
 	return fields, tags
 }
 
+func (b *BasicStats) addFieldsToAcc(nameAggregate, nameMetric string, valueMetric any, acc telegraf.Accumulator, aggregate aggregate) {
+	fields, tags := b.addSpecialAggregateTag(aggregate, nameAggregate)
+
+	_, ok := b.Aggregates[nameAggregate]
+	if !b.StatsSuffixAdd && ok { // if we will not add suffix, then aggregate metric must have aggregate tag
+		fields[nameMetric] = valueMetric
+	} else { // else if we set add suffix or not special aggregate tag metric create with suffix
+		fields[nameMetric+"_"+b.StatsSuffix[nameAggregate]] = valueMetric
+	}
+	acc.AddFields(aggregate.name, fields, tags)
+}
+
 func (b *BasicStats) Push(acc telegraf.Accumulator) {
 	for _, aggregate := range b.cache {
 		for k, v := range aggregate.fields {
 			if b.statsConfig.count {
-				fields, tags := b.addSpecialAggregateTag(aggregate, count)
-				fields[k+"_"+b.StatsSuffix[count]] = v.count
-				acc.AddFields(aggregate.name, fields, tags)
+				b.addFieldsToAcc(count, k, v.count, acc, aggregate)
 			}
 			if b.statsConfig.min {
-				fields, tags := b.addSpecialAggregateTag(aggregate, min_)
-				fields[k+"_"+b.StatsSuffix[min_]] = v.min
-				acc.AddFields(aggregate.name, fields, tags)
+				b.addFieldsToAcc(min_, k, v.min, acc, aggregate)
 			}
 			if b.statsConfig.max {
-				fields, tags := b.addSpecialAggregateTag(aggregate, max_)
-				fields[k+"_"+b.StatsSuffix[max_]] = v.max
-				acc.AddFields(aggregate.name, fields, tags)
+				b.addFieldsToAcc(max_, k, v.max, acc, aggregate)
 			}
 			if b.statsConfig.mean {
-				fields, tags := b.addSpecialAggregateTag(aggregate, mean)
-				fields[k+"_"+b.StatsSuffix[mean]] = v.mean
-				acc.AddFields(aggregate.name, fields, tags)
+				b.addFieldsToAcc(mean, k, v.mean, acc, aggregate)
 			}
 			if b.statsConfig.sum {
-				fields, tags := b.addSpecialAggregateTag(aggregate, sum)
-				fields[k+"_"+b.StatsSuffix[sum]] = v.sum
-				acc.AddFields(aggregate.name, fields, tags)
+				b.addFieldsToAcc(sum, k, v.sum, acc, aggregate)
 			}
 
 			//v.count always >=1
@@ -259,44 +262,28 @@ func (b *BasicStats) Push(acc telegraf.Accumulator) {
 				variance := v.M2 / (v.count - 1)
 
 				if b.statsConfig.variance {
-					fields, tags := b.addSpecialAggregateTag(aggregate, s2)
-					fields[k+"_"+b.StatsSuffix[s2]] = variance
-					acc.AddFields(aggregate.name, fields, tags)
+					b.addFieldsToAcc(s2, k, variance, acc, aggregate)
 				}
 				if b.statsConfig.stdev {
-					fields, tags := b.addSpecialAggregateTag(aggregate, stDev)
-					fields[k+"_"+b.StatsSuffix[stDev]] = math.Sqrt(variance)
-					acc.AddFields(aggregate.name, fields, tags)
+					b.addFieldsToAcc(stDev, k, math.Sqrt(variance), acc, aggregate)
 				}
 				if b.statsConfig.diff {
-					fields, tags := b.addSpecialAggregateTag(aggregate, diff)
-					fields[k+"_"+b.StatsSuffix[diff]] = v.diff
-					acc.AddFields(aggregate.name, fields, tags)
+					b.addFieldsToAcc(diff, k, v.diff, acc, aggregate)
 				}
 				if b.statsConfig.nonNegativeDiff && v.diff >= 0 {
-					fields, tags := b.addSpecialAggregateTag(aggregate, nonNegativeDiff)
-					fields[k+"_"+b.StatsSuffix[nonNegativeDiff]] = v.diff
-					acc.AddFields(aggregate.name, fields, tags)
+					b.addFieldsToAcc(nonNegativeDiff, k, v.diff, acc, aggregate)
 				}
 				if b.statsConfig.rate {
-					fields, tags := b.addSpecialAggregateTag(aggregate, rate)
-					fields[k+"_"+b.StatsSuffix[rate]] = v.rate
-					acc.AddFields(aggregate.name, fields, tags)
+					b.addFieldsToAcc(rate, k, v.rate, acc, aggregate)
 				}
 				if b.statsConfig.percentChange {
-					fields, tags := b.addSpecialAggregateTag(aggregate, percentChange)
-					fields[k+"_"+b.StatsSuffix[percentChange]] = v.diff / v.LAST * 100
-					acc.AddFields(aggregate.name, fields, tags)
+					b.addFieldsToAcc(percentChange, k, v.diff/v.LAST*100, acc, aggregate)
 				}
 				if b.statsConfig.nonNegativeRate && v.diff >= 0 {
-					fields, tags := b.addSpecialAggregateTag(aggregate, nonNegativeRate)
-					fields[k+"_"+b.StatsSuffix[nonNegativeRate]] = v.rate
-					acc.AddFields(aggregate.name, fields, tags)
+					b.addFieldsToAcc(nonNegativeRate, k, v.rate, acc, aggregate)
 				}
 				if b.statsConfig.interval {
-					fields, tags := b.addSpecialAggregateTag(aggregate, interval)
-					fields[k+"_"+b.StatsSuffix[interval]] = v.interval.Nanoseconds()
-					acc.AddFields(aggregate.name, fields, tags)
+					b.addFieldsToAcc(interval, k, v.interval.Nanoseconds(), acc, aggregate)
 				}
 			}
 			//if count == 1 StdDev = infinite => so I won't send data
