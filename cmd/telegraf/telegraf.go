@@ -7,6 +7,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -145,6 +147,7 @@ func (t *Telegraf) reloadLoop() error {
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGHUP,
 			syscall.SIGTERM, syscall.SIGINT)
+
 		if t.watchConfig != "" {
 			for _, fConfig := range t.configFiles {
 				if _, err := os.Stat(fConfig); err == nil {
@@ -153,15 +156,16 @@ func (t *Telegraf) reloadLoop() error {
 					log.Printf("W! Cannot watch config %s: %s", fConfig, err)
 				}
 			}
-			// watch config dirs
+			// watch config dirs by tsv
 			for _, dir := range t.configDir {
 				if _, err := os.Stat(dir); err == nil {
-					go t.watchLocalConfigDir(signals, dir)
+					go t.watchLocalConfigDir(signals, dir, "\\.watchman-cookie.*")
 				} else {
 					log.Printf("W! Cannot watch config dir %s: %s", dir, err)
 				}
 			}
 		}
+
 		go func() {
 			select {
 			case sig := <-signals:
@@ -189,14 +193,16 @@ func (t *Telegraf) reloadLoop() error {
 	return nil
 }
 
-// watch config directory for new/deleted files
-func (t *Telegraf) watchLocalConfigDir(signals chan os.Signal, dir string) {
+// tsv: watch config directory for new files
+func (t *Telegraf) watchLocalConfigDir(signals chan os.Signal, dir, exclusion string) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Printf("E! Error watching config dir: %s\n", err)
 		return
 	}
 	defer watcher.Close()
+
+	re := regexp.MustCompile(exclusion)
 
 	done := make(chan bool)
 	go func() {
@@ -207,9 +213,9 @@ func (t *Telegraf) watchLocalConfigDir(signals chan os.Signal, dir string) {
 					return
 				}
 				log.Printf("I! Event watching config dir: %s\n", event)
-				if (event.Op&fsnotify.Remove == fsnotify.Remove) ||
-					(event.Op&fsnotify.Create == fsnotify.Create) ||
-					(event.Op&fsnotify.Rename == fsnotify.Rename) {
+				basename := filepath.Base(event.Name)
+				if (event.Op&fsnotify.Create == fsnotify.Create) &&
+					!re.MatchString(basename) {
 					signals <- syscall.SIGHUP
 					return
 				}
@@ -250,14 +256,15 @@ func (t *Telegraf) watchLocalConfig(signals chan os.Signal, fConfig string) {
 		// deleted can mean moved. wait a bit a check existence
 		<-time.After(time.Second)
 		if _, err := os.Stat(fConfig); err == nil {
-			log.Println("I! Config file overwritten")
+			log.Printf("I! Config file overwritten %s\n", fConfig)
 		} else {
-			log.Println("W! Config file deleted")
-			if err := watcher.BlockUntilExists(&mytomb); err != nil {
+			log.Printf("W! Config file deleted %s\n", fConfig)
+			// tsv: issue here if several renames happended
+			/*if err := watcher.BlockUntilExists(&mytomb); err != nil {
 				log.Printf("E! Cannot watch for config: %s\n", err.Error())
 				return
 			}
-			log.Println("I! Config file appeared")
+			log.Println("I! Config file appeared")*/
 		}
 	case <-changes.Truncated:
 		log.Println("I! Config file truncated")
