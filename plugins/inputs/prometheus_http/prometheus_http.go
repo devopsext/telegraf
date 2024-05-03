@@ -91,7 +91,8 @@ type PrometheusHttp struct {
 
 	requests *RateCounter
 	errors   *RateCounter
-	cache    map[uint64]map[string]interface{}
+	//cache    map[uint64]map[string]interface{}
+	cache *sync.Map
 }
 
 type PrometheusHttpPushFunc = func(when time.Time, tags map[string]string, stamp time.Time, value float64)
@@ -582,23 +583,18 @@ func (ptt *PrometheusHttpTextTemplate) FCacheRegexMatchObjectNameByField(obj map
 		return ""
 	}
 	name := fmt.Sprintf("%s.%s", ptt.name, field)
-	if ptt.input.cache != nil {
-		v := ptt.input.cache[ptt.hash][name]
-		if v != nil {
-			return fmt.Sprintf("%v", v)
-		}
+	key := fmt.Sprintf("%d-%s", ptt.hash, name)
+
+	v1, ok := ptt.input.cache.Load(key)
+	if ok {
+		return fmt.Sprintf("%v", v1)
 	}
+
 	r := ""
-	v := ptt.template.RegexMatchFindKey(obj, field, value)
-	//v := ptt.template.RegexMatchObjectNameByField(obj, field, value)
-	if v != nil && ptt.input.cache != nil {
-		m := ptt.input.cache[ptt.hash]
-		if m == nil {
-			m = make(map[string]interface{})
-		}
-		m[name] = v
-		ptt.input.cache[ptt.hash] = m
-		r = fmt.Sprintf("%v", v)
+	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
+	if v2 != nil {
+		ptt.input.cache.Store(key, v2)
+		return fmt.Sprintf("%v", v2)
 	}
 	return r
 }
@@ -613,7 +609,6 @@ func (p *PrometheusHttp) getDefaultTemplate(m *PrometheusHttpMetric, name, value
 
 	funcs := make(map[string]any)
 	funcs["renderMetricTag"] = p.fRenderMetricTag
-	//funcs["regexMatchObjectNameByField"] = ptt.FCacheRegexMatchObjectNameByField
 	funcs["regexMatchFindKey"] = ptt.FCacheRegexMatchObjectNameByField
 
 	tpl, err := toolsRender.NewTextTemplate(toolsRender.TemplateOptions{
@@ -847,7 +842,8 @@ func (p *PrometheusHttp) Init() error {
 
 	p.Log.Debugf("[%d] %s metrics amount: %d", gid, p.Name, len(p.Metrics))
 
-	p.cache = make(map[uint64]map[string]interface{})
+	//p.cache = make(map[uint64]map[string]interface{})
+	p.cache = &sync.Map{}
 	for _, m := range p.Metrics {
 		p.setDefaultMetric(gid, m)
 	}
