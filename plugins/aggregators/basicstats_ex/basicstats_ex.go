@@ -117,14 +117,22 @@ func (b *BasicStats) hashID(m telegraf.Metric) (uint64, map[string]string) {
 	h.Write([]byte(m.Name()))
 	h.Write([]byte("\n"))
 
-	generateHashID(m.Tags(), h, b)
+	foundByTags := generateHashID(m.Tags(), h, b)
 	foundFields := generateHashID(m.Fields(), h, b)
 
-	return h.Sum64(), foundFields
+	foundByTagsAndFields := map[string]string{}
+	maps.Copy(foundByTagsAndFields, foundByTags)
+	maps.Copy(foundByTagsAndFields, foundFields)
+
+	return h.Sum64(), foundByTagsAndFields
 }
 
 func (b *BasicStats) Add(in telegraf.Metric) {
-	id, foundFields := b.hashID(in)
+	id, foundTagsAndFields := b.hashID(in)
+	if len(foundTagsAndFields) == 0 {
+		// skip - no tags or fields from group by
+		return
+	}
 	if _, ok := b.cache[id]; !ok {
 		// hit an uncached metric, create caches for first time:
 		getAllTags := func(tags, fields map[string]string) map[string]string {
@@ -133,7 +141,7 @@ func (b *BasicStats) Add(in telegraf.Metric) {
 		}
 		a := aggregate{
 			name:   in.Name(),
-			tags:   getAllTags(in.Tags(), foundFields),
+			tags:   getAllTags(in.Tags(), foundTagsAndFields),
 			fields: make(map[string]basicstats),
 		}
 		for _, field := range in.FieldList() {
