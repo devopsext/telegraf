@@ -135,13 +135,14 @@ func (b *BasicStats) Add(in telegraf.Metric) {
 	}
 	if _, ok := b.cache[id]; !ok {
 		// hit an uncached metric, create caches for first time:
-		getAllTags := func(tags, fields map[string]string) map[string]string {
-			maps.Copy(tags, fields)
-			return tags
-		}
+		//getAllTags := func(tags, fields map[string]string) map[string]string {
+		//	maps.Copy(tags, fields)
+		//	return tags
+		//}
 		a := aggregate{
-			name:   in.Name(),
-			tags:   getAllTags(in.Tags(), foundTagsAndFields),
+			name: in.Name(),
+			//tags:   getAllTags(in.Tags(), foundTagsAndFields),
+			tags:   foundTagsAndFields,
 			fields: make(map[string]basicstats),
 		}
 		for _, field := range in.FieldList() {
