@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/influxdata/telegraf"
@@ -92,6 +93,7 @@ func (ac *accumulator) addMeasurement(
 ) {
 	m := metric.New(measurement, tags, fields, ac.getTime(t), tp)
 	if m := ac.maker.MakeMetric(m); m != nil {
+		fmt.Println(m)
 		ac.metrics <- m
 	}
 }
