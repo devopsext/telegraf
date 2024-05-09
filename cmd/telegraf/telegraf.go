@@ -156,7 +156,7 @@ func (t *Telegraf) reloadLoop() error {
 					log.Printf("W! Cannot watch config %s: %s", fConfig, err)
 				}
 			}
-			// watch config dirs by tsv
+			// tsv: watch config dirs
 			for _, dir := range t.configDir {
 				if _, err := os.Stat(dir); err == nil {
 					go t.watchLocalConfigDir(signals, dir, "\\.watchman-cookie.*")
@@ -210,27 +210,47 @@ func (t *Telegraf) watchLocalConfigDir(signals chan os.Signal, dir, exclusion st
 			select {
 			case event, ok := <-watcher.Events:
 				if !ok {
-					return
+					continue
 				}
 				log.Printf("I! Event watching config dir: %s\n", event)
-				basename := filepath.Base(event.Name)
-				if (event.Op&fsnotify.Create == fsnotify.Create) &&
-					!re.MatchString(basename) {
+
+				if re.MatchString(event.Name) {
+					continue
+				}
+
+				if event.Op&fsnotify.Remove == fsnotify.Remove {
+
 					signals <- syscall.SIGHUP
 					return
 				}
+
+				if event.Op&fsnotify.Create == fsnotify.Create {
+
+					signals <- syscall.SIGHUP
+					return
+				}
+
 			case err, ok := <-watcher.Errors:
 				if !ok {
-					return
+					continue
 				}
 				log.Printf("E! Error watching config dir: %s\n", err)
 			}
 		}
 	}()
 
-	err = watcher.Add(dir)
+	err = filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+
+		if f.IsDir() {
+			err := watcher.Add(path)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 	if err != nil {
-		log.Printf("E! Error watching config dir: %s\n", err)
+		log.Printf("E! Error watching config subdir: %s\n", err)
 	}
 	<-done
 }
