@@ -8,6 +8,7 @@ import (
 	"hash/fnv"
 	"maps"
 	"math"
+	"sort"
 	"time"
 
 	"github.com/influxdata/telegraf"
@@ -96,24 +97,34 @@ func (*BasicStats) SampleConfig() string {
 }
 
 func generateHashID[T interface{}](tagsOrFields map[string]T, h hash.Hash64, b *BasicStats) map[string]string {
-	foundGroupBy := map[string]string{}
+	// pre-allocate result structure, as we know the max length
+	foundGroupBy := make(map[string]string, len(b.groupByConfig))
+	keys := make([]string, 0, len(b.groupByConfig))
+
 	for name, value := range tagsOrFields {
 		if _, ok := b.groupByConfig[name]; ok {
 			convertedValue := fmt.Sprintf("%v", value)
 			// save current value for each group by -> need for adding in tags
 			foundGroupBy[name] = convertedValue
-
-			h.Write([]byte(name))
-			h.Write([]byte("\n"))
-			h.Write([]byte(fmt.Sprintf("%v", convertedValue)))
-			h.Write([]byte("\n"))
 		}
+	}
+
+	// Extract the keys from the map into a slice
+	for k := range foundGroupBy {
+		keys = append(keys, k)
+	}
+
+	// Sort the slice of keys to ensure consistent hash for the same values
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		h.Write([]byte(foundGroupBy[k]))
 	}
 	return foundGroupBy
 }
 
 func (b *BasicStats) hashID(m telegraf.Metric) (uint64, map[string]string) {
-	h := fnv.New64a()
+	h := fnv.New64()
 	h.Write([]byte(m.Name()))
 	h.Write([]byte("\n"))
 
