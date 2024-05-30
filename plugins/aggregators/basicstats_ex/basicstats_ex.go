@@ -124,7 +124,7 @@ func generateHashID[T interface{}](tagsOrFields map[string]T, h hash.Hash64, b *
 }
 
 func (b *BasicStats) hashID(m telegraf.Metric) (uint64, map[string]string) {
-	h := fnv.New64()
+	h := fnv.New64a()
 	h.Write([]byte(m.Name()))
 	h.Write([]byte("\n"))
 
