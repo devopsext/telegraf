@@ -745,6 +745,12 @@ func fetchConfig(u *url.URL, urlRetryAttempts int) ([]byte, error) {
 	req.Header.Add("Accept", "application/toml")
 	req.Header.Set("User-Agent", internal.ProductToken())
 
+	rawQuery, err := AddHostParam(req.URL)
+	if err != nil {
+		return nil, err
+	}
+	req.URL.RawQuery = rawQuery
+
 	var totalAttempts int
 	if urlRetryAttempts == -1 {
 		totalAttempts = -1
@@ -772,6 +778,19 @@ func fetchConfig(u *url.URL, urlRetryAttempts int) ([]byte, error) {
 		time.Sleep(httpLoadConfigRetryInterval)
 		attempt++
 	}
+}
+
+func AddHostParam(url *url.URL) (string, error) {
+
+	val := url.Query()
+
+	host, err := os.Hostname()
+	if err != nil {
+		return "", err
+	}
+
+    val.Add("host", host)
+    return val.Encode(), nil
 }
 
 func requestURLConfig(req *http.Request) ([]byte, error) {

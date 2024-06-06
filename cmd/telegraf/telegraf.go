@@ -330,12 +330,30 @@ func (t *Telegraf) watchRemoteConfigs(signals chan os.Signal, interval time.Dura
 			return
 		case <-ticker.C:
 			for _, configURL := range remoteConfigs {
-				resp, err := http.Head(configURL) //nolint: gosec // user provided URL
+				u, err := url.Parse(configURL)
+				if err != nil {
+					log.Printf("W! Error parsing config URL, %s: %s\n", configURL, err)
+					continue
+				}
+				rawQuery, err := config.AddHostParam(u)
+				if err != nil {
+					log.Printf("W! Error adding params to config URL, %s: %s\n", configURL, err)
+					continue
+				}
+				u.RawQuery = rawQuery
+				URLparam := u.String()
+
+				resp, err := http.Head(URLparam) //nolint: gosec // user provided URL
 				if err != nil {
 					log.Printf("W! Error fetching config URL, %s: %s\n", configURL, err)
 					continue
 				}
 				resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					log.Printf("E! Failed to fetch HTTP config: %s", resp.Status)
+					continue
+				}
 
 				modified := resp.Header.Get("Last-Modified")
 				if modified == "" {
