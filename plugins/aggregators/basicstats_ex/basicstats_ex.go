@@ -38,6 +38,7 @@ type BasicStats struct {
 	Stats          []string          `toml:"stats"`
 	StatsSuffix    map[string]string `toml:"stats_suffix"`
 	StatsSuffixAdd bool              `toml:"stats_suffix_add"`
+	NewFieldName   string            `toml:"new_field_name"`
 
 	Aggregates map[string]map[string]string `toml:"aggregates"`
 
@@ -250,7 +251,9 @@ func (b *BasicStats) addFieldsToAcc(nameAggregate, nameMetric string, valueMetri
 	fields, tags := b.addSpecialAggregateTag(aggregate, nameAggregate)
 
 	_, ok := b.Aggregates[nameAggregate]
-	if !b.StatsSuffixAdd && ok { // if we will not add suffix, then aggregate metric must have aggregate tag
+	if b.NewFieldName != "" {
+		fields[b.NewFieldName] = valueMetric
+	} else if !b.StatsSuffixAdd && ok { // if we will not add suffix, then aggregate metric must have aggregate tag
 		fields[nameMetric] = valueMetric
 	} else { // else if we set add suffix or not special aggregate tag metric create with suffix
 		fields[nameMetric+"_"+b.StatsSuffix[nameAggregate]] = valueMetric
