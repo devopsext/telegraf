@@ -221,19 +221,21 @@ func runApp(args []string, outputBuffer io.Writer, pprof Server, c TelegrafConfi
 		filters := processFilterFlags(cCtx)
 
 		g := GlobalFlags{
-			config:         cCtx.StringSlice("config"),
-			configDir:      cCtx.StringSlice("config-directory"),
-			testWait:       cCtx.Int("test-wait"),
-			watchConfig:    cCtx.String("watch-config"),
-			pidFile:        cCtx.String("pidfile"),
-			plugindDir:     cCtx.String("plugin-directory"),
-			password:       cCtx.String("password"),
-			oldEnvBehavior: cCtx.Bool("old-env-behavior"),
-			test:           cCtx.Bool("test"),
-			debug:          cCtx.Bool("debug"),
-			once:           cCtx.Bool("once"),
-			quiet:          cCtx.Bool("quiet"),
-			unprotected:    cCtx.Bool("unprotected"),
+			config:                 cCtx.StringSlice("config"),
+			configDir:              cCtx.StringSlice("config-directory"),
+			testWait:               cCtx.Int("test-wait"),
+			configURLRetryAttempts: cCtx.Int("config-url-retry-attempts"),
+			configURLWatchInterval: cCtx.Duration("config-url-watch-interval"),
+			watchConfig:            cCtx.String("watch-config"),
+			pidFile:                cCtx.String("pidfile"),
+			plugindDir:             cCtx.String("plugin-directory"),
+			password:               cCtx.String("password"),
+			oldEnvBehavior:         cCtx.Bool("old-env-behavior"),
+			test:                   cCtx.Bool("test"),
+			debug:                  cCtx.Bool("debug"),
+			once:                   cCtx.Bool("once"),
+			quiet:                  cCtx.Bool("quiet"),
+			unprotected:            cCtx.Bool("unprotected"),
 		}
 
 		w := WindowFlags{
@@ -274,6 +276,12 @@ func runApp(args []string, outputBuffer io.Writer, pprof Server, c TelegrafConfi
 				&cli.IntFlag{
 					Name:  "test-wait",
 					Usage: "wait up to this many seconds for service inputs to complete in test mode",
+				},
+				&cli.IntFlag{
+					Name: "config-url-retry-attempts",
+					Usage: "Number of attempts to obtain a remote configuration via a URL during startup. " +
+						"Set to -1 for unlimited attempts.",
+					DefaultText: "3",
 				},
 				//
 				// String flags
@@ -323,6 +331,13 @@ func runApp(args []string, outputBuffer io.Writer, pprof Server, c TelegrafConfi
 					Name: "test",
 					Usage: "enable test mode: gather metrics, print them out, and exit. " +
 						"Note: Test mode only runs inputs, not processors, aggregators, or outputs",
+				},
+				//
+				// Duration flags
+				&cli.DurationFlag{
+					Name:        "config-url-watch-interval",
+					Usage:       "Time duration to check for updates to URL based configuration files",
+					DefaultText: "disabled",
 				},
 				// TODO: Change "deprecation-list, input-list, output-list" flags to become a subcommand "list" that takes
 				// "input,output,aggregator,processor, deprecated" as parameters
