@@ -335,7 +335,7 @@ func (t *Telegraf) watchRemoteConfigs(signals chan os.Signal, interval time.Dura
 					log.Printf("W! Error parsing config URL, %s: %s\n", configURL, err)
 					continue
 				}
-				rawQuery, err := config.AddHostParam(u)
+				rawQuery, err := config.AddHostParams(u)
 				if err != nil {
 					log.Printf("W! Error adding params to config URL, %s: %s\n", configURL, err)
 					continue
