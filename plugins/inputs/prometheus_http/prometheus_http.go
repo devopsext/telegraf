@@ -3,10 +3,13 @@ package prometheus_http
 import (
 	"context"
 	"crypto/sha512"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"hash/fnv"
 	"math"
+	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -15,6 +18,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/allegro/bigcache"
 	"github.com/araddon/dateparse"
 	"gopkg.in/yaml.v3"
 
@@ -29,8 +33,11 @@ import (
 type PrometheusHttpTextTemplate struct {
 	template *toolsRender.TextTemplate
 	input    *PrometheusHttp
+	metric   *PrometheusHttpMetric
 	name     string
-	hash     uint64
+	tag      string
+	value    string
+	//hash     uint64
 }
 
 // PrometheusHttpMetric struct
@@ -52,6 +59,7 @@ type PrometheusHttpMetric struct {
 	dependecies map[string][]string
 	only        map[string]string
 	uniques     map[uint64]bool
+	//cacheKeys   map[uint64]string
 }
 
 // PrometheusHttpFile
@@ -83,25 +91,35 @@ type PrometheusHttp struct {
 	Params        string                  `toml:"params"`
 	Prefix        string                  `toml:"prefix"`
 	SkipEmptyTags bool                    `toml:"skip_empty_tags"`
-	//Availability  config.Duration         `toml:"availability,omitempty"`
-	Files []*PrometheusHttpFile `toml:"file"`
+	CacheDuration config.Duration         `toml:"cache_duration"`
+	CacheSize     int                     `toml:"cache_size"`
+	Files         []*PrometheusHttpFile   `toml:"file"`
 
 	Log telegraf.Logger `toml:"-"`
 	acc telegraf.Accumulator
 
 	requests *RateCounter
 	errors   *RateCounter
-	//cache    map[uint64]map[string]interface{}
-	cache *sync.Map
+	client   *http.Client
+	mtx      *sync.Mutex
+	//files    *sync.Map
+	cache *bigcache.BigCache
 }
 
 type PrometheusHttpPushFunc = func(when time.Time, tags map[string]string, stamp time.Time, value float64)
 
+type PrometheusHttpDatasourceResponse struct {
+	request   time.Duration
+	unmarshal time.Duration
+	process   time.Duration
+}
+
 type PrometheusHttpDatasource interface {
-	GetData(query string, period *PrometheusHttpPeriod, push PrometheusHttpPushFunc) error
+	GetData(query string, period *PrometheusHttpPeriod, push PrometheusHttpPushFunc) (*PrometheusHttpDatasourceResponse, error)
 }
 
 var description = "Collect data from Prometheus http api"
+
 var globalFiles = sync.Map{}
 
 const pluginName = "prometheus_http"
@@ -219,7 +237,7 @@ func (p *PrometheusHttp) getTemplateValue(t *toolsRender.TextTemplate, value flo
 	return f, nil
 }
 
-func (p *PrometheusHttp) fRenderMetricTag(template string, obj interface{}) interface{} {
+/*func (p *PrometheusHttp) fRenderMetricTag(template string, obj interface{}) interface{} {
 
 	t, err := toolsRender.NewTextTemplate(toolsRender.TemplateOptions{
 		Content:     template,
@@ -236,7 +254,7 @@ func (p *PrometheusHttp) fRenderMetricTag(template string, obj interface{}) inte
 		return err
 	}
 	return string(b)
-}
+}*/
 
 func (p *PrometheusHttp) getAllTags(values, metricTags, metricVars map[string]string) map[string]interface{} {
 
@@ -249,7 +267,9 @@ func (p *PrometheusHttp) getAllTags(values, metricTags, metricVars map[string]st
 	m["values"] = values
 	m["tags"] = metricTags
 	m["vars"] = metricVars
+
 	files := make(map[string]interface{})
+
 	globalFiles.Range(func(key, value interface{}) bool {
 		files[fmt.Sprint(key)] = value
 		return true
@@ -447,11 +467,30 @@ func (p *PrometheusHttp) addFields(name string, value interface{}) map[string]in
 	return m
 }
 
+func (p *PrometheusHttp) makeClient(timeout int) *http.Client {
+
+	t := time.Duration(timeout)
+
+	var transport = &http.Transport{
+		Dial:                (&net.Dialer{}).Dial,
+		TLSHandshakeTimeout: t,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+		IdleConnTimeout:     t,
+	}
+
+	p.client = &http.Client{
+		Timeout:   t,
+		Transport: transport,
+	}
+
+	return p.client
+}
+
 func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
-	ds PrometheusHttpDatasource, callback func(err error)) {
+	ds PrometheusHttpDatasource, callback func(*PrometheusHttpDatasourceResponse, error)) {
 
 	gid := utils.GoRoutineID()
-	p.Log.Debugf("[%d] %s start gathering %s...", gid, p.Name, pm.Name)
+	//p.Log.Debugf("[%d] %s start gathering %s...", gid, p.Name, pm.Name)
 
 	timeout := pm.Timeout
 	if timeout == 0 {
@@ -486,10 +525,11 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			return
 		}
 
-		millis := when.UTC().UnixMilli()
 		tags := make(map[string]string)
-		tags["timestamp"] = strconv.Itoa(int(millis))
-		tags["duration_ms"] = strconv.Itoa(int(time.Now().UTC().UnixMilli()) - int(millis))
+
+		//millis := when.UTC().UnixMilli()
+		//tags["timestamp"] = strconv.Itoa(int(millis))
+		//tags["duration_ms"] = strconv.Itoa(int(time.Now().UTC().UnixMilli()) - int(millis))
 
 		for k, t := range tgs {
 			if p.SkipEmptyTags && t == "" {
@@ -516,17 +556,22 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 	if ds == nil {
 		switch p.Version {
 		case "v1":
-			ds = NewPrometheusHttpV1(p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+
+			if p.mtx.TryLock() {
+
+				if p.client == nil {
+					p.client = p.makeClient(int(timeout))
+				}
+
+				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+				p.mtx.Unlock()
+			}
 		}
 	}
 
 	if ds != nil {
 		period := p.getMetricPeriod(pm)
-		err := ds.GetData(pm.Query, period, push)
-		if err != nil {
-			p.Log.Error(err)
-		}
-		callback(err)
+		callback(ds.GetData(pm.Query, period, push))
 	}
 }
 
@@ -538,6 +583,8 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 	tags[fmt.Sprintf("%s_name", pluginName)] = p.Name
 	tags[fmt.Sprintf("%s_url", pluginName)] = p.URL
 
+	when := time.Now()
+
 	for _, m := range p.Metrics {
 
 		if m.Name == "" {
@@ -548,15 +595,23 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 
 		wg.Add(1)
 
-		go p.setMetrics(&wg, m, ds, func(err error) {
+		go p.setMetrics(&wg, m, ds, func(dr *PrometheusHttpDatasourceResponse, err error) {
 
 			p.requests.Incr(1)
+
+			if dr != nil {
+				p.Log.Debugf("[%d] %s %s request: %s, umarshal: %s, process: %s", gid, p.Name, m.Name, dr.request, dr.unmarshal, dr.process)
+			}
+
 			if err != nil {
 				p.errors.Incr(1)
+				p.Log.Error(err)
 			}
 		})
 	}
 	wg.Wait()
+
+	p.Log.Debugf("[%d] %s gathering finished [%s]", gid, p.Name, time.Since(when))
 
 	// availability = (requests - errors) / requests * 100
 	// availability = (100 - 0) / 100 * 100 = 100%
@@ -577,42 +632,73 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 	return nil
 }
 
-func (ptt *PrometheusHttpTextTemplate) FCacheRegexMatchObjectNameByField(obj map[string]interface{}, field, value string) string {
+func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, field, value string) string {
 
 	if obj == nil || utils.IsEmpty(field) || utils.IsEmpty(value) {
 		return ""
 	}
-	name := fmt.Sprintf("%s.%s", ptt.name, field)
-	key := fmt.Sprintf("%d-%s", ptt.hash, name)
+	if ptt.input.cache == nil {
+		return ""
+	}
+	key := fmt.Sprintf("%s.%s.%s.%s", ptt.name, ptt.tag, field, value)
 
-	v1, ok := ptt.input.cache.Load(key)
-	if ok {
-		return fmt.Sprintf("%v", v1)
+	entry, err := ptt.input.cache.Get(key)
+	if err == nil {
+		v1 := string(entry)
+		if !utils.IsEmpty(v1) {
+			return v1
+		}
 	}
 
-	r := ""
 	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
-	if v2 != nil {
-		ptt.input.cache.Store(key, v2)
-		return fmt.Sprintf("%v", v2)
+	if !utils.IsEmpty(v2) {
+		v1 := fmt.Sprintf("%v", v2)
+		ptt.input.cache.Set(key, []byte(v1))
+		return v1
 	}
-	return r
+	return ""
 }
 
-func (p *PrometheusHttp) getDefaultTemplate(m *PrometheusHttpMetric, name, value string) *toolsRender.TextTemplate {
+func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchObjectByField(obj interface{}, field, value string) interface{} {
+
+	if obj == nil {
+		return nil
+	}
+	if ptt.input.cache == nil {
+		return ""
+	}
+	key := ptt.fCacheRegexMatchFindKey(obj, field, value)
+	if utils.IsEmpty(key) {
+		return nil
+	}
+
+	a, ok := obj.([]interface{})
+	ka, err := strconv.Atoi(key)
+	if ok && err == nil {
+		return a[ka]
+	}
+
+	m, ok := obj.(map[string]interface{})
+	if ok {
+		return m[key]
+	}
+	return nil
+}
+
+func (p *PrometheusHttp) getDefaultTemplate(m *PrometheusHttpMetric, name, tag, value string) *toolsRender.TextTemplate {
 
 	if value == "" {
 		return nil
 	}
-
 	ptt := &PrometheusHttpTextTemplate{}
 
 	funcs := make(map[string]any)
-	funcs["renderMetricTag"] = p.fRenderMetricTag
-	funcs["regexMatchFindKey"] = ptt.FCacheRegexMatchObjectNameByField
+	//funcs["renderMetricTag"] = p.fRenderMetricTag
+	funcs["regexMatchFindKey"] = ptt.fCacheRegexMatchFindKey
+	funcs["regexMatchObjectByField"] = ptt.fCacheRegexMatchObjectByField
 
 	tpl, err := toolsRender.NewTextTemplate(toolsRender.TemplateOptions{
-		Name:        fmt.Sprintf("%s_template", name),
+		Name:        fmt.Sprintf("%s_template", fmt.Sprintf("%s_%s", name, tag)),
 		Content:     value,
 		Funcs:       funcs,
 		FilterFuncs: true,
@@ -625,7 +711,10 @@ func (p *PrometheusHttp) getDefaultTemplate(m *PrometheusHttpMetric, name, value
 	ptt.template = tpl
 	ptt.input = p
 	ptt.name = name
-	ptt.hash = byteHash64(byteSha512([]byte(m.Query)))
+	ptt.tag = tag
+	ptt.value = value
+	ptt.metric = m
+	//ptt.hash = byteHash64(byteSha512([]byte(m.Query)))
 	return tpl
 }
 
@@ -675,7 +764,7 @@ func (p *PrometheusHttp) findTagsOnVars(ident, name, value string, tags map[stri
 				return append(r, k)
 			}
 			r = append(r, k)
-			d := p.findTagsOnVars(ident, k, v, tags, append(stack, r...))
+			d := p.findTagsOnVars(ident, v, k, tags, append(stack, r...))
 			if len(d) > 0 {
 				for _, k1 := range d {
 					if !utils.Contains(r, k1) {
@@ -694,7 +783,7 @@ func (p *PrometheusHttp) setDefaultMetric(gid uint64, m *PrometheusHttpMetric) {
 		return
 	}
 	if m.Transform != "" {
-		m.template = p.getDefaultTemplate(m, m.Name, m.Transform)
+		m.template = p.getDefaultTemplate(m, m.Name, "", m.Transform)
 	}
 	if len(m.Tags) > 0 {
 		m.templates = make(map[string]*toolsRender.TextTemplate)
@@ -706,7 +795,6 @@ func (p *PrometheusHttp) setDefaultMetric(gid uint64, m *PrometheusHttpMetric) {
 		b, only := p.ifTemplate(v)
 		if b {
 
-			n := fmt.Sprintf("%s_%s", m.Name, k)
 			d := p.findTagsOnVars(m.Name, k, v, m.Tags, []string{k})
 			if utils.Contains(d, k) {
 				p.Log.Errorf("[%d] %s metric %s: %s dependency contains in %s", gid, p.Name, m.Name, k, d)
@@ -717,7 +805,7 @@ func (p *PrometheusHttp) setDefaultMetric(gid uint64, m *PrometheusHttpMetric) {
 			}
 			m.dependecies[k] = d
 			if only == "" {
-				m.templates[k] = p.getDefaultTemplate(m, n, v)
+				m.templates[k] = p.getDefaultTemplate(m, m.Name, k, v)
 			} else {
 				m.only[k] = only
 			}
@@ -821,7 +909,7 @@ func (p *PrometheusHttp) Init() error {
 	if p.Name == "" {
 		p.Name = "unknown"
 	}
-	if p.Timeout == 0 {
+	if p.Timeout <= 0 {
 		p.Timeout = config.Duration(time.Second) * 5
 	}
 	if p.Version == "" {
@@ -842,11 +930,11 @@ func (p *PrometheusHttp) Init() error {
 
 	p.Log.Debugf("[%d] %s metrics amount: %d", gid, p.Name, len(p.Metrics))
 
-	//p.cache = make(map[uint64]map[string]interface{})
-	p.cache = &sync.Map{}
 	for _, m := range p.Metrics {
 		p.setDefaultMetric(gid, m)
 	}
+
+	//p.files = &sync.Map{}
 
 	if len(p.Files) > 0 {
 		p.readFiles(gid, &globalFiles)
@@ -854,6 +942,29 @@ func (p *PrometheusHttp) Init() error {
 
 	p.requests = NewRateCounter(time.Duration(p.Interval))
 	p.errors = NewRateCounter(time.Duration(p.Interval))
+	p.mtx = &sync.Mutex{}
+
+	if p.CacheDuration <= 0 {
+		p.CacheDuration = config.Duration(time.Second) * p.Interval
+	}
+
+	eviction := time.Duration(p.CacheDuration)
+	seconds := int(math.Round(eviction.Seconds()))
+
+	config := bigcache.DefaultConfig(eviction)
+	config.HardMaxCacheSize = p.CacheSize
+	config.Shards = len(p.Metrics)
+	config.MaxEntriesInWindow = 500 * seconds
+	config.MaxEntrySize = 50
+
+	config.Logger = p
+	config.Verbose = true
+
+	cache, err := bigcache.NewBigCache(config)
+	if err != nil {
+		p.Log.Warnf("[%d] %s cache error: %s", gid, err)
+	}
+	p.cache = cache
 
 	return nil
 }

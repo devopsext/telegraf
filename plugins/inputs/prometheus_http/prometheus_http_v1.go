@@ -43,6 +43,7 @@ type PrometheusHttpV1 struct {
 	password string
 	step     string
 	params   string
+	close    bool
 }
 
 func (p *PrometheusHttpV1) httpDoRequest(method, query string, params url.Values, buf io.Reader) ([]byte, int, error) {
@@ -56,11 +57,18 @@ func (p *PrometheusHttpV1) httpDoRequest(method, query string, params url.Values
 	if err != nil {
 		return nil, 0, err
 	}
-	req = req.WithContext(p.ctx)
-	//	req.Close = true
+
+	ctx, cancel := context.WithTimeout(p.ctx, time.Duration(time.Millisecond*p.client.Timeout))
+	defer cancel()
+
+	req = req.WithContext(ctx)
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Connection", "close")
+
+	if p.close {
+		req.Header.Set("Connection", "close")
+	}
+
 	if p.user != "" || p.password != "" {
 		req.SetBasicAuth(p.user, p.password)
 	}
@@ -152,10 +160,9 @@ func (p *PrometheusHttpV1) processVector(res *PrometheusHttpV1Response, when tim
 	}
 }
 
-func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, push PrometheusHttpPushFunc) error {
+func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, push PrometheusHttpPushFunc) (*PrometheusHttpDatasourceResponse, error) {
 
 	gid := utils.GoRoutineID()
-	p.log.Debugf("[%v] %s prometheus query => %s", gid, p.name, query)
 
 	params := make(url.Values)
 	params.Add("query", query)
@@ -177,54 +184,72 @@ func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, p
 
 	when := time.Now()
 
+	dr := &PrometheusHttpDatasourceResponse{}
+
 	raw, code, err := p.httpDoRequest("GET", path, params, nil)
 	if err != nil {
-		return fmt.Errorf("[%d] %s prometheus HTTP error %s [%s]", gid, p.name, err, time.Since(when))
+		dr.request = time.Since(when)
+		return dr, fmt.Errorf("[%d] %s prometheus HTTP error %s [%s]", gid, p.name, err, time.Since(when))
 	}
 
 	if code != 200 {
-		return fmt.Errorf("[%d] %s prometheus HTTP error %d: returns %s [%s]", gid, p.name, code, raw, time.Since(when))
+		dr.request = time.Since(when)
+		return dr, fmt.Errorf("[%d] %s prometheus HTTP error %d: returns %s [%s]", gid, p.name, code, raw, time.Since(when))
 	}
+
+	dr.request = time.Since(when)
+	when = time.Now()
 
 	var res PrometheusHttpV1Response
 	err = json.Unmarshal(raw, &res)
 	if err != nil {
-		return fmt.Errorf("[%d] %s prometheus unmarshall error %s [%s]", gid, p.name, err, time.Since(when))
+		dr.unmarshal = time.Since(when)
+		return dr, fmt.Errorf("[%d] %s prometheus unmarshall error %s [%s]", gid, p.name, err, time.Since(when))
 	}
 	if res.Status != "success" {
-		return fmt.Errorf("[%d] %s prometheus status %s [%s]", gid, p.name, res.Status, time.Since(when))
+		dr.unmarshal = time.Since(when)
+		return dr, fmt.Errorf("[%d] %s prometheus status %s [%s]", gid, p.name, res.Status, time.Since(when))
 	}
 	if res.Data == nil {
-		p.log.Debugf("[%v] %s prometheus has no data [%s]", gid, p.name, time.Since(when))
-		return nil
+		dr.unmarshal = time.Since(when)
+		return dr, nil
 	}
-	p.log.Debugf("[%d] %s started processing %s %d [%s]", gid, p.name, res.Data.ResultType, len(res.Data.Result), time.Since(when))
+
+	dr.unmarshal = time.Since(when)
+	when = time.Now()
+
 	switch res.Data.ResultType {
 	case "matrix":
 		p.processMatrix(&res, when, push)
 	case "vector":
 		p.processVector(&res, when, push)
 	default:
-		return fmt.Errorf("[%d] %s prometheus result type %s is not supported [%s]", gid, p.name, res.Data.ResultType, time.Since(when))
+		dr.process = time.Since(when)
+		return dr, fmt.Errorf("[%d] %s prometheus result type %s is not supported [%s]", gid, p.name, res.Data.ResultType, time.Since(when))
 	}
-	p.log.Debugf("[%d] %s processed successfully [%s]", gid, p.name, time.Since(when))
-	return nil
+	dr.process = time.Since(when)
+	return dr, nil
 }
 
-func NewPrometheusHttpV1(name string, log telegraf.Logger, ctx context.Context, url string, user string, password string, timeout int, step string, params string) *PrometheusHttpV1 {
+func NewPrometheusHttpV1(client *http.Client, name string, log telegraf.Logger, ctx context.Context, url string, user string, password string, timeout int, step string, params string) *PrometheusHttpV1 {
 
-	t := time.Duration(timeout)
+	close := false
+	if client == nil {
 
-	var transport = &http.Transport{
-		Dial:                (&net.Dialer{}).Dial,
-		TLSHandshakeTimeout: t,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-		IdleConnTimeout:     t,
-	}
+		t := time.Duration(timeout)
 
-	var client = &http.Client{
-		Timeout:   t,
-		Transport: transport,
+		var transport = &http.Transport{
+			Dial:                (&net.Dialer{}).Dial,
+			TLSHandshakeTimeout: t,
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			IdleConnTimeout:     t,
+		}
+
+		client = &http.Client{
+			Timeout:   t,
+			Transport: transport,
+		}
+		close = true
 	}
 
 	if step == "" {
@@ -241,5 +266,6 @@ func NewPrometheusHttpV1(name string, log telegraf.Logger, ctx context.Context, 
 		password: password,
 		step:     step,
 		params:   params,
+		close:    close,
 	}
 }
