@@ -906,6 +906,10 @@ func (p *PrometheusHttp) Init() error {
 
 	gid := utils.GoRoutineID()
 
+	if p.Interval <= 0 {
+		p.Interval = config.Duration(time.Second) * 5
+	}
+
 	if p.Name == "" {
 		p.Name = "unknown"
 	}
@@ -922,13 +926,14 @@ func (p *PrometheusHttp) Init() error {
 		p.Prefix = pluginName
 	}
 
-	if len(p.Metrics) == 0 {
+	lMetrics := len(p.Metrics)
+	if lMetrics == 0 {
 		err := fmt.Errorf("[%d] %s no metrics found", gid, p.Name)
 		p.Log.Error(err)
 		return err
 	}
 
-	p.Log.Debugf("[%d] %s metrics amount: %d", gid, p.Name, len(p.Metrics))
+	p.Log.Debugf("[%d] %s metrics amount: %d", gid, p.Name, lMetrics)
 
 	for _, m := range p.Metrics {
 		p.setDefaultMetric(gid, m)
@@ -945,16 +950,14 @@ func (p *PrometheusHttp) Init() error {
 	p.mtx = &sync.Mutex{}
 
 	if p.CacheDuration <= 0 {
-		p.CacheDuration = config.Duration(time.Second) * p.Interval
+		p.CacheDuration = p.Interval * 3
 	}
 
-	eviction := time.Duration(p.CacheDuration)
-	seconds := int(math.Round(eviction.Seconds()))
+	seconds := int(math.Round(time.Duration(p.Interval).Seconds()))
 
-	config := bigcache.DefaultConfig(eviction)
-	config.HardMaxCacheSize = p.CacheSize
-	config.Shards = len(p.Metrics)
-	config.MaxEntriesInWindow = 500 * seconds
+	config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
+	config.Shards = 1024
+	config.MaxEntriesInWindow = 100 * seconds
 	config.MaxEntrySize = 50
 
 	config.Logger = p
