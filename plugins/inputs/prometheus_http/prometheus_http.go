@@ -949,13 +949,14 @@ func (p *PrometheusHttp) Init() error {
 	p.errors = NewRateCounter(time.Duration(p.Interval))
 	p.mtx = &sync.Mutex{}
 
+	seconds := 60
+
 	if p.CacheDuration <= 0 {
-		p.CacheDuration = p.Interval * 3
+		p.CacheDuration = config.Duration(time.Second * 60)
 	}
 
-	seconds := int(math.Round(time.Duration(p.Interval).Seconds()))
-
 	config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
+	config.CleanWindow = time.Duration(p.CacheDuration) / 2
 	config.Shards = 1024
 	config.MaxEntriesInWindow = 100 * seconds
 	config.MaxEntrySize = 50
