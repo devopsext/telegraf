@@ -58,7 +58,7 @@ func (p *PrometheusHttpV1) httpDoRequest(method, query string, params url.Values
 		return nil, 0, err
 	}
 
-	ctx, cancel := context.WithTimeout(p.ctx, time.Duration(time.Millisecond*p.client.Timeout))
+	ctx, cancel := context.WithTimeout(p.ctx, p.client.Timeout)
 	defer cancel()
 
 	req = req.WithContext(ctx)

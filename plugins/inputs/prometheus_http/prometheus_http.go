@@ -92,7 +92,7 @@ type PrometheusHttp struct {
 	Prefix        string                  `toml:"prefix"`
 	SkipEmptyTags bool                    `toml:"skip_empty_tags"`
 	CacheDuration config.Duration         `toml:"cache_duration"`
-	CacheSize     int                     `toml:"cache_size"`
+	CacheSize     config.Size             `toml:"cache_size"`
 	Files         []*PrometheusHttpFile   `toml:"file"`
 
 	Log telegraf.Logger `toml:"-"`
@@ -103,6 +103,7 @@ type PrometheusHttp struct {
 	client   *http.Client
 	mtx      *sync.Mutex
 	//files    *sync.Map
+	//fileHash map[string]string
 	cache *bigcache.BigCache
 }
 
@@ -121,6 +122,7 @@ type PrometheusHttpDatasource interface {
 var description = "Collect data from Prometheus http api"
 
 var globalFiles = sync.Map{}
+var globalHashes = sync.Map{}
 
 const pluginName = "prometheus_http"
 
@@ -841,19 +843,55 @@ func (p *PrometheusHttp) readYaml(bytes []byte) (interface{}, error) {
 	return v, nil
 }
 
-func (p *PrometheusHttp) readFiles(gid uint64, files *sync.Map) {
+func (p *PrometheusHttp) fileInUse(name string, list []*PrometheusHttpMetric) bool {
 
+	pattern := fmt.Sprintf(".files.%s", name)
+	for _, m := range list {
+		for k, v := range m.Tags {
+
+			t := m.templates[k]
+
+			if t != nil && !utils.IsEmpty(v) && strings.Contains(v, pattern) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func (p *PrometheusHttp) objectHash(obj interface{}) uint64 {
+
+	if obj == nil {
+		return 0
+	}
+
+	bytes, err := json.Marshal(obj)
+	if err != nil {
+		return 0
+	}
+	return byteHash64(bytes)
+}
+
+func (p *PrometheusHttp) readFiles(gid uint64, files *sync.Map, hashes *sync.Map, list []*PrometheusHttpMetric, init bool) (int, int) {
+
+	entries := 0
+	length := 0
 	for _, v := range p.Files {
 
-		_, ok := files.Load(v.Name)
+		cache := false
+		obj, ok := files.Load(v.Name)
 		if ok {
-			p.Log.Debugf("[%d] %s cache file: %s", gid, p.Name, v.Path)
-			continue
+			if init {
+				p.Log.Debugf("[%d] %s cache file: %s", gid, p.Name, v.Path)
+			}
+			cache = true
 		}
 
 		if _, err := os.Stat(v.Path); err == nil {
 
-			p.Log.Debugf("[%d] %s read file: %s", gid, p.Name, v.Path)
+			if init {
+				p.Log.Debugf("[%d] %s read file: %s", gid, p.Name, v.Path)
+			}
 
 			bytes, err := os.ReadFile(v.Path)
 			if err != nil {
@@ -861,29 +899,69 @@ func (p *PrometheusHttp) readFiles(gid uint64, files *sync.Map) {
 				continue
 			}
 
-			tp := strings.Replace(filepath.Ext(v.Path), ".", "", 1)
-			if v.Type != "" {
-				tp = v.Type
+			flag := true
+			hash1 := byteHash64(bytes)
+
+			if cache {
+				hashv, ok := hashes.Load(v.Name)
+				if ok {
+					hash2, ok := hashv.(uint64)
+					if ok && hash1 == hash2 {
+						flag = false
+						// claculate entries
+						m, ok := obj.(map[string]interface{})
+						if ok && p.fileInUse(v.Name, list) {
+							entries = entries + len(m)
+							for k := range m {
+								if len(k) > length {
+									length = len(k)
+								}
+							}
+						}
+					}
+				}
 			}
 
-			var obj interface{}
-			switch {
-			case tp == "json":
-				obj, err = p.readJson(bytes)
-			case tp == "toml":
-				obj, err = p.readToml(bytes)
-			case (tp == "yaml") || (tp == "yml"):
-				obj, err = p.readYaml(bytes)
-			default:
-				obj, err = p.readJson(bytes)
+			if flag {
+
+				hashes.Store(v.Name, hash1)
+
+				tp := strings.Replace(filepath.Ext(v.Path), ".", "", 1)
+				if v.Type != "" {
+					tp = v.Type
+				}
+
+				var obj interface{}
+				switch {
+				case tp == "json":
+					obj, err = p.readJson(bytes)
+				case tp == "toml":
+					obj, err = p.readToml(bytes)
+				case (tp == "yaml") || (tp == "yml"):
+					obj, err = p.readYaml(bytes)
+				default:
+					obj, err = p.readJson(bytes)
+				}
+				if err != nil {
+					p.Log.Error(err)
+					continue
+				}
+				// claculate entries
+				m, ok := obj.(map[string]interface{})
+				if ok && p.fileInUse(v.Name, list) {
+					entries = entries + len(m)
+					for k := range m {
+						if len(k) > length {
+							length = len(k)
+						}
+					}
+				}
+				files.Store(v.Name, obj)
 			}
-			if err != nil {
-				p.Log.Error(err)
-				continue
-			}
-			files.Store(v.Name, obj)
 		}
 	}
+
+	return entries, length
 }
 
 // Gather is called by telegraf when the plugin is executed on its interval.
@@ -893,6 +971,7 @@ func (p *PrometheusHttp) Gather(acc telegraf.Accumulator) error {
 
 	var ds PrometheusHttpDatasource = nil
 	gid := utils.GoRoutineID()
+	p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, false)
 	// Gather data
 	err := p.gatherMetrics(gid, ds)
 	return err
@@ -940,35 +1019,39 @@ func (p *PrometheusHttp) Init() error {
 	}
 
 	//p.files = &sync.Map{}
-
-	if len(p.Files) > 0 {
-		p.readFiles(gid, &globalFiles)
-	}
-
 	p.requests = NewRateCounter(time.Duration(p.Interval))
 	p.errors = NewRateCounter(time.Duration(p.Interval))
 	p.mtx = &sync.Mutex{}
 
-	seconds := 60
+	if len(p.Files) > 0 {
 
-	if p.CacheDuration <= 0 {
-		p.CacheDuration = config.Duration(time.Second * 60)
+		entries, length := p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, true)
+
+		seconds := time.Duration(p.Interval).Seconds()
+
+		if p.CacheDuration <= 0 {
+			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
+		}
+
+		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
+		config.CleanWindow = 0
+		config.MaxEntriesInWindow = entries / int(seconds)
+		config.MaxEntrySize = length
+		if p.CacheSize > 0 {
+			config.HardMaxCacheSize = int(p.CacheSize)
+		} else {
+			config.HardMaxCacheSize = entries * length * int(seconds)
+		}
+
+		config.Logger = p
+		config.Verbose = true
+
+		cache, err := bigcache.NewBigCache(config)
+		if err != nil {
+			p.Log.Warnf("[%d] %s cache error: %s", gid, err)
+		}
+		p.cache = cache
 	}
-
-	config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
-	config.CleanWindow = time.Duration(p.CacheDuration) / 2
-	config.Shards = 1024
-	config.MaxEntriesInWindow = 100 * seconds
-	config.MaxEntrySize = 50
-
-	config.Logger = p
-	config.Verbose = true
-
-	cache, err := bigcache.NewBigCache(config)
-	if err != nil {
-		p.Log.Warnf("[%d] %s cache error: %s", gid, err)
-	}
-	p.cache = cache
 
 	return nil
 }

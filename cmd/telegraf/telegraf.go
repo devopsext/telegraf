@@ -239,13 +239,11 @@ func (t *Telegraf) watchLocalConfigDir(signals chan os.Signal, dir, exclusion st
 				}
 
 				if event.Op&fsnotify.Remove == fsnotify.Remove {
-
 					signals <- syscall.SIGHUP
 					return
 				}
 
 				if event.Op&fsnotify.Create == fsnotify.Create {
-
 					signals <- syscall.SIGHUP
 					return
 				}
