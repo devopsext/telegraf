@@ -324,7 +324,7 @@ func (p *PrometheusHttp) getOnly(gid uint64, only string, values, metricTags, me
 	return e
 }
 
-func (p *PrometheusHttp) getKeys(arr map[string][]string) []string {
+func (p *PrometheusHttp) getIntKeys(arr map[string]int) []string {
 	var keys []string
 	for k := range arr {
 		keys = append(keys, k)
@@ -332,50 +332,50 @@ func (p *PrometheusHttp) getKeys(arr map[string][]string) []string {
 	return keys
 }
 
-func (p *PrometheusHttp) countDependecies(tags []string, deps []string) int {
+// func (p *PrometheusHttp) getStringKeys(arr map[string]string) []string {
+// 	var keys []string
+// 	for k := range arr {
+// 		keys = append(keys, k)
+// 	}
+// 	return keys
+// }
 
-	cnt := 0
-	for _, k := range deps {
-		if !utils.Contains(tags, k) {
-			cnt++
+func (p *PrometheusHttp) countDeps(key string, deps map[string][]string) int {
+
+	r := 0
+	for k, l := range deps {
+		if !utils.Contains(l, key) {
+			continue
 		}
+		c := p.countDeps(k, deps)
+		r = r + 1 + c
 	}
-	return cnt
+	// for _, k := range tags {
+	// 	if len(deps[k]) == 0 || key == k {
+	// 		continue
+	// 	}
+	// 	r = r + p.countDeps(key, deps, deps[k])
+	// }
+	return r
 }
 
 func (p *PrometheusHttp) sortMetricTags(m *PrometheusHttpMetric) []string {
 
-	var tags []string
-	mm := make(map[string][]string)
+	mm := make(map[string]int)
 	for k := range m.Tags {
-		if m.dependecies[k] == nil {
-			if !utils.Contains(tags, k) {
-				tags = append(tags, k)
-			}
-		} else {
-			if len(m.dependecies[k]) > 0 {
-				mm[k] = m.dependecies[k]
-			}
-		}
+
+		mm[k] = mm[k] + p.countDeps(k, m.dependecies)
 	}
-	keys := p.getKeys(mm)
-	// make it ordered
-	sort.SliceStable(keys, func(i, j int) bool {
 
-		l1 := p.countDependecies(tags, mm[keys[i]])
-		l2 := p.countDependecies(tags, mm[keys[j]])
+	kall := p.getIntKeys(mm)
+	sort.SliceStable(kall, func(i, j int) bool {
 
-		return l1 < l2
+		ki := kall[i]
+		kj := kall[j]
+		return mm[ki] > mm[kj]
 	})
 
-	for _, k := range keys {
-		if utils.Contains(tags, k) {
-			continue
-		}
-		tags = append(tags, k)
-	}
-
-	return tags
+	return kall
 }
 
 func (p *PrometheusHttp) getExtraMetricTags(gid uint64, values map[string]string, m *PrometheusHttpMetric) map[string]string {
