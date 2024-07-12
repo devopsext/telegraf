@@ -1035,12 +1035,12 @@ func (p *PrometheusHttp) Init() error {
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
 		config.CleanWindow = 0
-		config.MaxEntriesInWindow = entries / int(seconds)
+		config.MaxEntriesInWindow = entries * len(p.Metrics) / int(seconds)
 		config.MaxEntrySize = length
 		if p.CacheSize > 0 {
-			config.HardMaxCacheSize = int(p.CacheSize)
+			config.HardMaxCacheSize = int(p.CacheSize) / (1024 * 1024)
 		} else {
-			config.HardMaxCacheSize = entries * length * int(seconds)
+			config.HardMaxCacheSize = (entries * len(p.Metrics) * length * int(seconds)) / (1024 * 1024)
 		}
 
 		config.Logger = p
