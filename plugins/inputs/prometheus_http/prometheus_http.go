@@ -1027,21 +1027,35 @@ func (p *PrometheusHttp) Init() error {
 
 		entries, length := p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, true)
 
-		seconds := time.Duration(p.Interval).Seconds()
+		seconds := time.Duration(p.Timeout).Seconds()
 
 		if p.CacheDuration <= 0 {
 			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
+		config.Shards = 256
 		config.CleanWindow = 0
-		config.MaxEntriesInWindow = entries * len(p.Metrics) / int(seconds)
+		/*if seconds > 0 {
+			t := int(math.Round(seconds / 2))
+			if t > 1 {
+				config.CleanWindow = time.Duration(time.Second * time.Duration(t))
+			}
+		}*/
+
+		config.MaxEntriesInWindow = entries
 		config.MaxEntrySize = length
+
+		maxSizeInMb := 0
 		if p.CacheSize > 0 {
-			config.HardMaxCacheSize = int(p.CacheSize) / (1024 * 1024)
+			maxSizeInMb = int(p.CacheSize) / (1024 * 1024)
 		} else {
-			config.HardMaxCacheSize = (entries * len(p.Metrics) * length * int(seconds)) / (1024 * 1024)
+			maxSizeInMb = (entries * length * int(seconds)) / (1024 * 1024)
 		}
+		if maxSizeInMb == 0 {
+			maxSizeInMb = 1
+		}
+		config.HardMaxCacheSize = maxSizeInMb
 
 		config.Logger = p
 		config.Verbose = true
