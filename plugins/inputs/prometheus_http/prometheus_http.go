@@ -653,8 +653,8 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	}
 
 	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
-	if !utils.IsEmpty(v2) {
-		v1 := fmt.Sprintf("%v", v2)
+	v1 := fmt.Sprintf("%v", v2)
+	if !utils.IsEmpty(v1) {
 		ptt.input.cache.Set(key, []byte(v1))
 		return v1
 	}
