@@ -243,6 +243,8 @@ func NewPrometheusHttpV1(client *http.Client, name string, log telegraf.Logger, 
 			TLSHandshakeTimeout: t,
 			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 			IdleConnTimeout:     t,
+			MaxIdleConns:        8,
+			MaxConnsPerHost:     8,
 		}
 
 		client = &http.Client{

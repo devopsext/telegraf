@@ -126,6 +126,13 @@ var globalHashes = sync.Map{}
 
 const pluginName = "prometheus_http"
 
+var transport = &http.Transport{
+	Dial:            (&net.Dialer{}).Dial,
+	TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	MaxIdleConns:    8,
+	MaxConnsPerHost: 8,
+}
+
 // Description will return a short string to explain what the plugin does.
 func (*PrometheusHttp) Description() string {
 	return description
@@ -472,13 +479,8 @@ func (p *PrometheusHttp) addFields(name string, value interface{}) map[string]in
 func (p *PrometheusHttp) makeClient(timeout int) *http.Client {
 
 	t := time.Duration(timeout)
-
-	var transport = &http.Transport{
-		Dial:                (&net.Dialer{}).Dial,
-		TLSHandshakeTimeout: t,
-		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
-		IdleConnTimeout:     t,
-	}
+	transport.TLSHandshakeTimeout = t
+	transport.IdleConnTimeout = t
 
 	p.client = &http.Client{
 		Timeout:   t,
