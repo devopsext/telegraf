@@ -478,6 +478,8 @@ func (p *PrometheusHttp) makeClient(timeout int) *http.Client {
 		TLSHandshakeTimeout: t,
 		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 		IdleConnTimeout:     t,
+		MaxIdleConns:        8,
+		MaxConnsPerHost:     8,
 	}
 
 	p.client = &http.Client{
