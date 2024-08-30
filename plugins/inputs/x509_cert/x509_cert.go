@@ -5,6 +5,7 @@ package x509_cert
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	_ "embed"
@@ -100,6 +101,7 @@ func (c *X509Cert) Gather(acc telegraf.Accumulator) error {
 		certs, ocspresp, err := c.getCert(location, time.Duration(c.Timeout))
 		if err != nil {
 			acc.AddError(fmt.Errorf("cannot get SSL cert %q: %w", location, err))
+			return err
 		}
 
 		// Add all returned certs to the pool of intermediates except for
@@ -154,6 +156,7 @@ func (c *X509Cert) Gather(acc telegraf.Accumulator) error {
 						break
 					}
 				}
+
 				resp, err := ocsp.ParseResponse(*ocspresp, ocspissuer)
 				if err != nil {
 					if ocspissuer == nil {
@@ -164,6 +167,7 @@ func (c *X509Cert) Gather(acc telegraf.Accumulator) error {
 						resp, err = ocsp.ParseResponse(*ocspresp, ocspissuer)
 					}
 				}
+
 				if err != nil {
 					tags["ocsp_stapled"] = "no"
 					fields["ocsp_error"] = err.Error()
@@ -366,7 +370,14 @@ func (c *X509Cert) getCert(u *url.URL, timeout time.Duration) ([]*x509.Certifica
 		conn := tls.Client(ipConn, downloadTLSCfg)
 		defer conn.Close()
 
-		hsErr := conn.Handshake()
+		// tsv: handshake could last forever on wrong addresses
+		//hsErr := conn.Handshake()
+
+		var cancel context.CancelFunc
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		defer cancel()
+
+		hsErr := conn.HandshakeContext(ctx)
 		if hsErr != nil {
 			return nil, nil, hsErr
 		}

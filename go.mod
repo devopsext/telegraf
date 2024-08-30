@@ -2,7 +2,6 @@ module github.com/influxdata/telegraf
 
 go 1.24.0
 
-godebug x509negativeserial=1
 
 require (
 	cloud.google.com/go/bigquery v1.69.0
@@ -38,6 +37,7 @@ require (
 	github.com/alitto/pond v1.9.2
 	github.com/alitto/pond/v2 v2.3.4
 	github.com/aliyun/alibaba-cloud-sdk-go v1.63.107
+	github.com/allegro/bigcache v1.2.1
 	github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9
 	github.com/antchfx/jsonquery v1.3.6
 	github.com/antchfx/xmlquery v1.4.4
@@ -77,6 +77,8 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/couchbase/go-couchbase v0.1.1
 	github.com/datadope-io/go-zabbix/v2 v2.0.1
+	github.com/devopsext/tools v0.15.3
+	github.com/devopsext/utils v0.4.3
 	github.com/digitalocean/go-libvirt v0.0.0-20250417173424-a6a66ef779d6
 	github.com/dimchansky/utfbom v1.1.1
 	github.com/djherbis/times v1.6.0
@@ -131,6 +133,7 @@ require (
 	github.com/jackc/pgio v1.0.0
 	github.com/jackc/pgtype v1.14.4
 	github.com/jackc/pgx/v4 v4.18.3
+	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/jedib0t/go-pretty/v6 v6.6.7
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/jmespath/go-jmespath v0.4.0
@@ -247,6 +250,34 @@ require (
 	layeh.com/radius v0.0.0-20221205141417-e7fbddd11d68
 	modernc.org/sqlite v1.37.0
 	software.sslmate.com/src/go-pkcs12 v0.5.0
+)
+
+require (
+	github.com/elastic/go-elasticsearch/v7 v7.6.0 // indirect
+	github.com/fatih/structs v1.1.0 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
+	github.com/gosimple/slug v1.1.1 // indirect
+	github.com/muhlemmer/gu v0.3.1 // indirect
+	github.com/olivere/elastic v6.2.37+incompatible // indirect
+	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/zitadel/logging v0.6.0 // indirect
+	github.com/zitadel/oidc/v3 v3.26.1 // indirect
+	github.com/zitadel/schema v1.3.0 // indirect
+)
+
+require (
+	github.com/elastic/go-elasticsearch/v7 v7.6.0 // indirect
+	github.com/fatih/structs v1.1.0 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
+	github.com/gosimple/slug v1.1.1 // indirect
+	github.com/muhlemmer/gu v0.3.1 // indirect
+	github.com/olivere/elastic v6.2.37+incompatible // indirect
+	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/zitadel/logging v0.6.0 // indirect
+	github.com/zitadel/oidc/v3 v3.26.1 // indirect
+	github.com/zitadel/schema v1.3.0 // indirect
 )
 
 require (
@@ -452,7 +483,6 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/nats-io/jwt/v2 v2.7.4 // indirect
@@ -556,13 +586,13 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250603155806-513f23925822 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/fatih/pool.v2 v2.0.0 // indirect
-	gopkg.in/fsnotify.v1 v1.4.7 // indirect
+	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.2.2 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
@@ -575,3 +605,14 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	sigs.k8s.io/yaml v1.4.0 // indirect
 )
+
+// fork
+require (
+	github.com/aquasecurity/esquery v0.2.0
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/grafana-tools/sdk v0.0.0-00010101000000-000000000000
+	github.com/jinzhu/copier v0.4.0
+	github.com/lxc/incus/v6 v6.4.0
+)
+
+replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.6
