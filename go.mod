@@ -267,20 +267,6 @@ require (
 )
 
 require (
-	github.com/elastic/go-elasticsearch/v7 v7.6.0 // indirect
-	github.com/fatih/structs v1.1.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
-	github.com/gosimple/slug v1.1.1 // indirect
-	github.com/muhlemmer/gu v0.3.1 // indirect
-	github.com/olivere/elastic v6.2.37+incompatible // indirect
-	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/zitadel/logging v0.6.0 // indirect
-	github.com/zitadel/oidc/v3 v3.26.1 // indirect
-	github.com/zitadel/schema v1.3.0 // indirect
-)
-
-require (
 	cel.dev/expr v0.23.1 // indirect
 	cloud.google.com/go v0.121.1 // indirect
 	cloud.google.com/go/auth v0.16.2 // indirect
