@@ -45,10 +45,6 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   ## from the NUT server ONCE for each UPS.
   ## Please attach this information when reporting issues!
   # log_level = "trace"
-  ## from the NUT server ONCE for each UPS. The output is only available when
-  ## running Telegraf in debug-mode.
-  ## Please attach this information when reporting issues!
-  # dump_raw_variables = false
 ```
 
 ## Pitfalls
