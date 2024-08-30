@@ -155,6 +155,7 @@ require (
 	github.com/newrelic/newrelic-telemetry-sdk-go v0.8.1
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/nwaples/tacplus v0.0.3
+	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/openconfig/gnmi v0.10.0
 	github.com/openconfig/goyang v1.5.0
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
@@ -247,7 +248,6 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
 	github.com/gosimple/slug v1.1.1 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
-	github.com/olivere/elastic v6.2.37+incompatible // indirect
 	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/zitadel/logging v0.6.0 // indirect
