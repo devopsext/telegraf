@@ -9,5 +9,3 @@ This folder contains the plugins for the secret-store functionality:
 * systemd: Secret-store to access systemd secrets
 
 See each plugin's README for additional details.
-* jose: Javascript Object Signing and Encryption
-* os: Native tooling provided on Linux, MacOS, or Windows.
