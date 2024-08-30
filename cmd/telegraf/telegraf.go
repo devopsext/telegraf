@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -16,6 +18,7 @@ import (
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/fatih/color"
 	"github.com/influxdata/tail/watch"
+	"gopkg.in/fsnotify.v1"
 	"gopkg.in/tomb.v1"
 
 	"github.com/influxdata/telegraf"
@@ -145,10 +148,25 @@ func (t *Telegraf) reloadLoop() error {
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt, syscall.SIGHUP,
 			syscall.SIGTERM, syscall.SIGINT)
+
 		if t.watchConfig != "" {
 			for _, fConfig := range t.configFiles {
 				if isURL(fConfig) {
 					continue
+				}
+
+				if _, err := os.Stat(fConfig); err != nil {
+					log.Printf("W! Cannot watch config %s: %s", fConfig, err)
+				} else {
+					go t.watchLocalConfig(signals, fConfig)
+				}
+			}
+			// tsv: watch config dirs
+			for _, dir := range t.configDir {
+				if _, err := os.Stat(dir); err == nil {
+					go t.watchLocalConfigDir(signals, dir, "\\.watchman-cookie.*")
+				} else {
+					log.Printf("W! Cannot watch config dir %s: %s", dir, err)
 				}
 
 				if _, err := os.Stat(fConfig); err != nil {
@@ -176,6 +194,19 @@ func (t *Telegraf) reloadLoop() error {
 				go t.watchRemoteConfigs(ctx, signals, t.configURLWatchInterval, remoteConfigs)
 			}
 		}
+
+		if t.configURLWatchInterval > 0 {
+			remoteConfigs := make([]string, 0)
+			for _, fConfig := range t.configFiles {
+				if isURL(fConfig) {
+					remoteConfigs = append(remoteConfigs, fConfig)
+				}
+			}
+			if len(remoteConfigs) > 0 {
+				go t.watchRemoteConfigs(signals, t.configURLWatchInterval, remoteConfigs)
+			}
+		}
+
 		go func() {
 			select {
 			case sig := <-signals:
@@ -209,7 +240,67 @@ func (t *Telegraf) reloadLoop() error {
 	return nil
 }
 
-func (t *Telegraf) watchLocalConfig(ctx context.Context, signals chan os.Signal, fConfig string) {
+// tsv: watch config directory for new files
+func (t *Telegraf) watchLocalConfigDir(signals chan os.Signal, dir, exclusion string) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Printf("E! Error watching config dir: %s\n", err)
+		return
+	}
+	defer watcher.Close()
+
+	re := regexp.MustCompile(exclusion)
+
+	done := make(chan bool)
+	go func() {
+		for {
+			select {
+			case event, ok := <-watcher.Events:
+				if !ok {
+					continue
+				}
+				log.Printf("I! Event watching config dir: %s\n", event)
+
+				if re.MatchString(event.Name) {
+					continue
+				}
+
+				if event.Op&fsnotify.Remove == fsnotify.Remove {
+					signals <- syscall.SIGHUP
+					return
+				}
+
+				if event.Op&fsnotify.Create == fsnotify.Create {
+					signals <- syscall.SIGHUP
+					return
+				}
+
+			case err, ok := <-watcher.Errors:
+				if !ok {
+					continue
+				}
+				log.Printf("E! Error watching config dir: %s\n", err)
+			}
+		}
+	}()
+
+	err = filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+
+		if f.IsDir() {
+			err := watcher.Add(path)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		log.Printf("E! Error watching config subdir: %s\n", err)
+	}
+	<-done
+}
+
+func (t *Telegraf) watchLocalConfig(signals chan os.Signal, fConfig string) {
 	var mytomb tomb.Tomb
 	var watcher watch.FileWatcher
 	if t.watchConfig == "poll" {
@@ -233,9 +324,15 @@ func (t *Telegraf) watchLocalConfig(ctx context.Context, signals chan os.Signal,
 		// deleted can mean moved. wait a bit a check existence
 		<-time.After(time.Second)
 		if _, err := os.Stat(fConfig); err == nil {
-			log.Printf("I! Config file/directory %q overwritten\n", fConfig)
+			log.Printf("I! Config file overwritten %s\n", fConfig)
 		} else {
-			log.Printf("W! Config file/directory %q deleted\n", fConfig)
+			log.Printf("W! Config file deleted %s\n", fConfig)
+			// tsv: issue here if several renames happended
+			/*if err := watcher.BlockUntilExists(&mytomb); err != nil {
+				log.Printf("E! Cannot watch for config: %s\n", err.Error())
+				return
+			}
+			log.Println("I! Config file appeared")*/
 		}
 	case <-changes.Truncated:
 		log.Printf("I! Config file/directory %q truncated\n", fConfig)
@@ -265,12 +362,30 @@ func (t *Telegraf) watchRemoteConfigs(ctx context.Context, signals chan os.Signa
 			return
 		case <-ticker.C:
 			for _, configURL := range remoteConfigs {
-				resp, err := http.Head(configURL) //nolint: gosec // user provided URL
+				u, err := url.Parse(configURL)
+				if err != nil {
+					log.Printf("W! Error parsing config URL, %s: %s\n", configURL, err)
+					continue
+				}
+				rawQuery, err := config.AddHostParams(u)
+				if err != nil {
+					log.Printf("W! Error adding params to config URL, %s: %s\n", configURL, err)
+					continue
+				}
+				u.RawQuery = rawQuery
+				URLparam := u.String()
+
+				resp, err := http.Head(URLparam) //nolint: gosec // user provided URL
 				if err != nil {
 					log.Printf("W! Error fetching config URL, %s: %s\n", configURL, err)
 					continue
 				}
 				resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					log.Printf("E! Failed to fetch HTTP config: %s", resp.Status)
+					continue
+				}
 
 				modified := resp.Header.Get("Last-Modified")
 				if modified == "" {
@@ -329,6 +444,7 @@ func (t *Telegraf) getConfigFiles() error {
 		configFiles = append(configFiles, defaultFiles...)
 	}
 
+	c.Agent.ConfigURLRetryAttempts = t.configURLRetryAttempts
 	t.configFiles = configFiles
 	return nil
 }

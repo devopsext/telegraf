@@ -785,6 +785,12 @@ func fetchConfig(u *url.URL, urlRetryAttempts int) ([]byte, error) {
 	req.Header.Add("Accept", "application/toml")
 	req.Header.Set("User-Agent", internal.ProductToken())
 
+	rawQuery, err := AddHostParams(req.URL)
+	if err != nil {
+		return nil, err
+	}
+	req.URL.RawQuery = rawQuery
+
 	var totalAttempts int
 	if urlRetryAttempts == -1 {
 		totalAttempts = -1
@@ -812,6 +818,38 @@ func fetchConfig(u *url.URL, urlRetryAttempts int) ([]byte, error) {
 		time.Sleep(httpLoadConfigRetryInterval)
 		attempt++
 	}
+}
+
+func AddHostParams(url *url.URL) (string, error) {
+
+	platform := ""
+	os_name := "unknown"
+	os_version := "unknown"
+
+	val := url.Query()
+
+	host, err := os.Hostname()
+	if err != nil {
+		return "", err
+	}
+
+	platform = runtime.GOOS
+
+	if platform == "linux" {
+
+		LinuxInfo, err := internal.GetLinuxInfo()
+		if err != nil {
+			return "", err
+		}
+		os_name = LinuxInfo.Vendor
+		os_version = LinuxInfo.Version
+	}
+
+	val.Add("host", host)
+	val.Add("platform", platform)
+	val.Add("os", os_name)
+	val.Add("version", os_version)
+	return val.Encode(), nil
 }
 
 func requestURLConfig(req *http.Request) ([]byte, error) {

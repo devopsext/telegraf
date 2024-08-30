@@ -43,6 +43,7 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   ## If the user configures the URL to return JSON (e.g.
   ## http://localhost/status?json), set to JSON. Otherwise, will attempt to
   ## parse line-by-line. The JSON mode will produce additional metrics.
+  ## parse line-by-line. The JSON mode will produce additonal metrics.
   # format = "status"
 
   ## Duration allowed to complete HTTP requests.

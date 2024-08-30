@@ -1,6 +1,8 @@
 module github.com/influxdata/telegraf
 
-go 1.22.0
+go 1.23
+
+toolchain go1.23.0
 
 require (
 	cloud.google.com/go/bigquery v1.62.0
@@ -34,6 +36,7 @@ require (
 	github.com/alecthomas/units v0.0.0-20240626203959-61d1e3462e30
 	github.com/alitto/pond v1.9.0
 	github.com/aliyun/alibaba-cloud-sdk-go v1.62.721
+	github.com/allegro/bigcache v1.2.1
 	github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9
 	github.com/antchfx/jsonquery v1.3.3
 	github.com/antchfx/xmlquery v1.4.1
@@ -70,7 +73,9 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/couchbase/go-couchbase v0.1.1
 	github.com/datadope-io/go-zabbix/v2 v2.0.1
-	github.com/digitalocean/go-libvirt v0.0.0-20240513153900-2d13115a1625
+	github.com/devopsext/tools v0.15.3
+	github.com/devopsext/utils v0.4.3
+	github.com/digitalocean/go-libvirt v0.0.0-20240709142323-d8406205c752
 	github.com/dimchansky/utfbom v1.1.1
 	github.com/djherbis/times v1.6.0
 	github.com/docker/docker v27.1.1+incompatible
@@ -125,6 +130,7 @@ require (
 	github.com/jackc/pgio v1.0.0
 	github.com/jackc/pgtype v1.14.3
 	github.com/jackc/pgx/v4 v4.18.3
+	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/jhump/protoreflect v1.16.0
 	github.com/jmespath/go-jmespath v0.4.0
@@ -136,7 +142,6 @@ require (
 	github.com/leodido/go-syslog/v4 v4.1.0
 	github.com/linkedin/goavro/v2 v2.13.0
 	github.com/logzio/azure-monitor-metrics-receiver v1.1.0
-	github.com/lxc/incus/v6 v6.2.0
 	github.com/mdlayher/apcupsd v0.0.0-20220319200143-473c7b5f3c6a
 	github.com/mdlayher/vsock v1.2.1
 	github.com/microsoft/ApplicationInsights-Go v0.4.4
@@ -150,7 +155,6 @@ require (
 	github.com/newrelic/newrelic-telemetry-sdk-go v0.8.1
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/nwaples/tacplus v0.0.3
-	github.com/olivere/elastic v6.2.37+incompatible
 	github.com/openconfig/gnmi v0.10.0
 	github.com/openconfig/goyang v1.5.0
 	github.com/opensearch-project/opensearch-go/v2 v2.3.0
@@ -210,14 +214,14 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v0.44.0
 	go.opentelemetry.io/otel/sdk/metric v1.27.0
 	go.opentelemetry.io/proto/otlp v1.3.1
-	go.starlark.net v0.0.0-20240520160348-046347dcd104
+	go.starlark.net v0.0.0-20240725214946-42030a7cedce
 	go.step.sm/crypto v0.51.1
 	golang.org/x/crypto v0.26.0
-	golang.org/x/mod v0.19.0
+	golang.org/x/mod v0.20.0
 	golang.org/x/net v0.28.0
-	golang.org/x/oauth2 v0.21.0
+	golang.org/x/oauth2 v0.22.0
 	golang.org/x/sync v0.8.0
-	golang.org/x/sys v0.23.0
+	golang.org/x/sys v0.24.0
 	golang.org/x/term v0.23.0
 	golang.org/x/text v0.17.0
 	golang.zx2c4.com/wireguard/wgctrl v0.0.0-20211230205640-daad0b7ba671
@@ -235,6 +239,20 @@ require (
 	k8s.io/client-go v0.30.1
 	layeh.com/radius v0.0.0-20221205141417-e7fbddd11d68
 	modernc.org/sqlite v1.32.0
+)
+
+require (
+	github.com/elastic/go-elasticsearch/v7 v7.6.0 // indirect
+	github.com/fatih/structs v1.1.0 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
+	github.com/gosimple/slug v1.1.1 // indirect
+	github.com/muhlemmer/gu v0.3.1 // indirect
+	github.com/olivere/elastic v6.2.37+incompatible // indirect
+	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
+	github.com/shopspring/decimal v1.3.1 // indirect
+	github.com/zitadel/logging v0.6.0 // indirect
+	github.com/zitadel/oidc/v3 v3.26.1 // indirect
+	github.com/zitadel/schema v1.3.0 // indirect
 )
 
 require (
@@ -328,9 +346,8 @@ require (
 	github.com/fxamacker/cbor/v2 v2.6.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.3 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.5 // indirect
-	github.com/go-chi/chi/v5 v5.0.12 // indirect
+	github.com/go-chi/chi/v5 v5.1.0 // indirect
 	github.com/go-git/go-billy/v5 v5.5.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.2 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
@@ -422,7 +439,6 @@ require (
 	github.com/montanaflynn/stats v0.7.1 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mwitkow/go-conntrack v0.0.0-20190716064945-2f068394615f // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
@@ -442,7 +458,7 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/sftp v1.13.6 // indirect
-	github.com/pkg/xattr v0.4.9 // indirect
+	github.com/pkg/xattr v0.4.10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20240221224432-82ca36839d55 // indirect
 	github.com/prometheus/common/sigv4 v0.1.0 // indirect
@@ -455,11 +471,10 @@ require (
 	github.com/samber/lo v1.38.1 // indirect
 	github.com/seancfoley/bintree v1.3.1 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/signalfx/com_signalfx_metrics_protobuf v0.0.3 // indirect
 	github.com/signalfx/gohistogram v0.0.0-20160107210732-1ccfd2ff5083 // indirect
 	github.com/signalfx/sapm-proto v0.12.0 // indirect
-	github.com/spf13/cast v1.6.0 // indirect
+	github.com/spf13/cast v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
@@ -481,40 +496,37 @@ require (
 	github.com/yuin/gopher-lua v0.0.0-20200816102855-ee81675732da // indirect
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	github.com/zitadel/logging v0.6.0 // indirect
-	github.com/zitadel/oidc/v3 v3.24.0 // indirect
-	github.com/zitadel/schema v1.3.0 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/collector/consumer v0.101.0 // indirect
 	go.opentelemetry.io/collector/semconv v0.101.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.52.0 // indirect
-	go.opentelemetry.io/otel v1.27.0 // indirect
-	go.opentelemetry.io/otel/metric v1.27.0 // indirect
+	go.opentelemetry.io/otel v1.28.0 // indirect
+	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.27.0 // indirect
-	go.opentelemetry.io/otel/trace v1.27.0 // indirect
+	go.opentelemetry.io/otel/trace v1.28.0 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
-	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
+	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.23.0 // indirect
+	golang.org/x/tools v0.24.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
 	golang.zx2c4.com/wireguard v0.0.0-20211209221555-9c9e7e272434 // indirect
 	google.golang.org/genproto v0.0.0-20240722135656-d784300faade // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240722135656-d784300faade // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240808171019-573a1156607a // indirect
 	gopkg.in/fatih/pool.v2 v2.0.0 // indirect
-	gopkg.in/fsnotify.v1 v1.4.7 // indirect
+	gopkg.in/fsnotify.v1 v1.4.7
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 	gopkg.in/tomb.v2 v2.0.0-20161208151619-d5d1b5820637 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1
 	honnef.co/go/tools v0.2.2 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
-	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0 // indirect
+	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 // indirect
 	modernc.org/gc/v3 v3.0.0-20240107210532-573471604cb6 // indirect
 	modernc.org/libc v1.55.3 // indirect
 	modernc.org/mathutil v1.6.0 // indirect
@@ -525,3 +537,14 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
+
+// fork
+require (
+	github.com/aquasecurity/esquery v0.2.0
+	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
+	github.com/grafana-tools/sdk v0.0.0-00010101000000-000000000000
+	github.com/jinzhu/copier v0.4.0
+	github.com/lxc/incus/v6 v6.4.0
+)
+
+replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.6
