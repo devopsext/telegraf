@@ -45,12 +45,6 @@ Users define a TOML configuration with the plugins and settings they wish to
 use, then pass that configuration to Telegraf. The Telegraf agent then
 collects data from inputs at each interval and sends data to outputs at each
 flush interval.
-- Linux kernel version 2.6.32 or later
-- Windows 10 or later
-- FreeBSD 12 or later
-- macOS 10.15 Catalina or later
-
-[minimum requirements]: https://go.dev/wiki/MinimumRequirements
 
 For a basic walkthrough see [quick start](/docs/QUICK_START.md).
 
@@ -89,7 +83,6 @@ learn more.
 ## ℹ️ Support
 
 [![Slack](https://img.shields.io/badge/slack-join_chat-blue.svg?logo=slack)](https://www.influxdata.com/slack) [![Forums](https://img.shields.io/badge/discourse-join_forums-blue.svg?logo=discourse)](https://community.influxdata.com/)
-Telegraf requires Go version 1.22 or newer and the Makefile requires GNU make.
 
 Please use the [Community Slack](https://influxdata.com/slack) or
 [Community Forums](https://community.influxdata.com/) if you have questions or
