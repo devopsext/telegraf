@@ -42,10 +42,6 @@ See the [CONFIGURATION.md][CONFIGURATION.md] for more details.
   ## Output strategy, supported values:
   ##   timeout  -- output a metric if no new input arrived for `series_timeout`
   ##   periodic -- output the last received metric every `period`
-  ##   timeout  -- output a metric if no new input arrived for `series_timeout`;
-  ##               useful for filling gaps in input data
-  ##   periodic -- output the last received metric every `period`; useful to
-  ##               downsample the input data
   # output_strategy = "timeout"
 ```
 
@@ -57,13 +53,10 @@ will not guarantee a regular output of a `final` metric e.g. if the
 series-timeout is a multiple of the gathering interval for an input. In this
 case metric sporadically arrive in the timeout phase of the period and emitting
 the `final` metric is suppressed.
-This can be helpful to fill in gaps in the data if no input arrived in time.
 
 Contrary to this, `output_strategy = "periodic"` will always output a `final`
 metric at the end of the period irrespectively of when the last metric arrived,
 the `series_timeout` is ignored.
-This is helpful if you for example want to downsample input data arriving at a
-high rate and require a periodic output of the `final` metric.
 
 ## Metrics
 
