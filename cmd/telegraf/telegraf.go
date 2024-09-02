@@ -183,18 +183,6 @@ func (t *Telegraf) reloadLoop() error {
 			}
 		}
 
-		if t.configURLWatchInterval > 0 {
-			remoteConfigs := make([]string, 0)
-			for _, fConfig := range t.configFiles {
-				if isURL(fConfig) {
-					remoteConfigs = append(remoteConfigs, fConfig)
-				}
-			}
-			if len(remoteConfigs) > 0 {
-				go t.watchRemoteConfigs(signals, t.configURLWatchInterval, remoteConfigs)
-			}
-		}
-
 		go func() {
 			select {
 			case sig := <-signals:
@@ -298,16 +286,13 @@ func (t *Telegraf) watchLocalConfig(signals chan os.Signal, fConfig string) {
 	}
 	changes, err := watcher.ChangeEvents(&mytomb, 0)
 	if err != nil {
-		log.Printf("E! Error watching config file/directory %q: %s\n", fConfig, err)
+		log.Printf("E! Error watching config: %s\n", err)
 		return
 	}
 	log.Printf("I! Config watcher started for %s\n", fConfig)
 	select {
-	case <-ctx.Done():
-		mytomb.Done()
-		return
 	case <-changes.Modified:
-		log.Printf("I! Config file/directory %q modified\n", fConfig)
+		log.Println("I! Config file modified")
 	case <-changes.Deleted:
 		// deleted can mean moved. wait a bit a check existence
 		<-time.After(time.Second)
@@ -323,11 +308,9 @@ func (t *Telegraf) watchLocalConfig(signals chan os.Signal, fConfig string) {
 			log.Println("I! Config file appeared")*/
 		}
 	case <-changes.Truncated:
-		log.Printf("I! Config file/directory %q truncated\n", fConfig)
-	case <-changes.Created:
-		log.Printf("I! Config directory %q has new file(s)\n", fConfig)
+		log.Println("I! Config file truncated")
 	case <-mytomb.Dying():
-		log.Printf("I! Config watcher %q ended\n", fConfig)
+		log.Println("I! Config watcher ended")
 		return
 	}
 	mytomb.Done()
@@ -432,7 +415,6 @@ func (t *Telegraf) getConfigFiles() error {
 		configFiles = append(configFiles, defaultFiles...)
 	}
 
-	c.Agent.ConfigURLRetryAttempts = t.configURLRetryAttempts
 	t.configFiles = configFiles
 	return nil
 }
