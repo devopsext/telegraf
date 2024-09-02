@@ -188,18 +188,6 @@ func (t *Telegraf) reloadLoop() error {
 			}
 		}
 
-		if t.configURLWatchInterval > 0 {
-			remoteConfigs := make([]string, 0)
-			for _, fConfig := range t.configFiles {
-				if isURL(fConfig) {
-					remoteConfigs = append(remoteConfigs, fConfig)
-				}
-			}
-			if len(remoteConfigs) > 0 {
-				go t.watchRemoteConfigs(signals, t.configURLWatchInterval, remoteConfigs)
-			}
-		}
-
 		go func() {
 			select {
 			case sig := <-signals:
@@ -307,7 +295,7 @@ func (t *Telegraf) watchLocalConfig(signals chan os.Signal, fConfig string) {
 	}
 	changes, err := watcher.ChangeEvents(&mytomb, 0)
 	if err != nil {
-		log.Printf("E! Error watching config file/directory %q: %s\n", fConfig, err)
+		log.Printf("E! Error watching config: %s\n", err)
 		return
 	}
 	log.Printf("I! Config watcher started for %s\n", fConfig)
@@ -520,7 +508,6 @@ func (t *Telegraf) getConfigFiles() error {
 		configFiles = append(configFiles, defaultFiles...)
 	}
 
-	c.Agent.ConfigURLRetryAttempts = t.configURLRetryAttempts
 	t.configFiles = configFiles
 	return nil
 }
