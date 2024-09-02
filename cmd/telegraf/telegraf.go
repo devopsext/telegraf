@@ -169,18 +169,6 @@ func (t *Telegraf) reloadLoop() error {
 					log.Printf("W! Cannot watch config dir %s: %s", dir, err)
 				}
 
-				if _, err := os.Stat(fConfig); err != nil {
-					log.Printf("W! Cannot watch config %s: %s", fConfig, err)
-				} else {
-					go t.watchLocalConfig(ctx, signals, fConfig)
-				}
-			}
-			for _, fConfigDirectory := range t.configDir {
-				if _, err := os.Stat(fConfigDirectory); err != nil {
-					log.Printf("W! Cannot watch config directory %s: %s", fConfigDirectory, err)
-				} else {
-					go t.watchLocalConfig(ctx, signals, fConfigDirectory)
-				}
 			}
 		}
 		if t.configURLWatchInterval > 0 {
