@@ -213,6 +213,13 @@ func installService(name string, cfg *serviceConfig) error {
 	if cfg.configURLWatchInterval > 0 {
 		args = append(args, "--config-url-watch-interval", cfg.configURLWatchInterval.String())
 	}
+	if cfg.autoRestart {
+		args = append(args, "--service-auto-restart")
+	}
+	if cfg.restartDelay != "" {
+		args = append(args, "--service-restart-delay", cfg.restartDelay)
+	}
+
 	// colixxxx: end
 
 	// Pass the service name to the command line, to have a custom name when relaunching as a service
