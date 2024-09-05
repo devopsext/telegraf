@@ -219,7 +219,6 @@ func installService(name string, cfg *serviceConfig) error {
 	if cfg.restartDelay != "" {
 		args = append(args, "--service-restart-delay", cfg.restartDelay)
 	}
-
 	// colixxxx: end
 
 	// Pass the service name to the command line, to have a custom name when relaunching as a service
