@@ -35,12 +35,14 @@ func (t *Telegraf) Run() error {
 		switch t.service {
 		case "install":
 			cfg := &serviceConfig{
-				displayName:  t.serviceDisplayName,
-				restartDelay: t.serviceRestartDelay,
-				autoRestart:  t.serviceAutoRestart,
-				configs:      t.config,
-				configDirs:   t.configDir,
-				watchConfig:  t.watchConfig,
+				displayName:            t.serviceDisplayName,
+				restartDelay:           t.serviceRestartDelay,
+				autoRestart:            t.serviceAutoRestart,
+				configs:                t.config,
+				configDirs:             t.configDir,
+				watchConfig:            t.watchConfig,
+				configURLRetryAttempts: t.configURLRetryAttempts, // colixxxx: added support for config-url-retry-attempts in windows service
+				configURLWatchInterval: t.configURLWatchInterval, // colixxxx: added support for config-url-retry-attempts in windows service
 			}
 			if err := installService(t.serviceName, cfg); err != nil {
 				return err
@@ -164,9 +166,11 @@ func (t *Telegraf) Execute(_ []string, r <-chan svc.ChangeRequest, changes chan<
 }
 
 type serviceConfig struct {
-	displayName  string
-	restartDelay string
-	autoRestart  bool
+	displayName            string
+	restartDelay           string
+	autoRestart            bool
+	configURLRetryAttempts int           // colixxxx: added support for config-url-retry-attempts in windows service
+	configURLWatchInterval time.Duration // colixxxx: added support for config-url-retry-attempts in windows service
 
 	// Telegraf parameters
 	configs     []string
@@ -201,6 +205,16 @@ func installService(name string, cfg *serviceConfig) error {
 	if cfg.watchConfig != "" {
 		args = append(args, "--watch-config", cfg.watchConfig)
 	}
+
+	// colixxxx: added support for config-url-retry-attempts in windows service
+	if cfg.configURLRetryAttempts > 0 {
+		args = append(args, "--config-url-retry-attempts", fmt.Sprintf("%d", cfg.configURLRetryAttempts))
+	}
+	if cfg.configURLWatchInterval > 0 {
+		args = append(args, "--config-url-watch-interval", cfg.configURLWatchInterval.String())
+	}
+	// colixxxx: end
+
 	// Pass the service name to the command line, to have a custom name when relaunching as a service
 	args = append(args, "--service-name", name)
 
