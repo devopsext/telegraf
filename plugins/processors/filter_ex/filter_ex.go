@@ -27,11 +27,12 @@ type FilterIf struct {
 }
 
 type Filter struct {
-	Ifs    []*FilterIf       `toml:"if"`
-	Fields []string          `toml:"fields,omitempty"`
-	Tags   map[string]string `toml:"tags,omitempty"`
-	Log    telegraf.Logger   `toml:"-"`
-	rAll   *regexp.Regexp
+	DropOriginal bool              `toml:"drop_original"`
+	Ifs          []*FilterIf       `toml:"if"`
+	Fields       []string          `toml:"fields,omitempty"`
+	Tags         map[string]string `toml:"tags,omitempty"`
+	Log          telegraf.Logger   `toml:"-"`
+	rAll         *regexp.Regexp
 }
 
 var description = "Advanced filtering for metrics based on tags"
@@ -158,7 +159,11 @@ func (f *Filter) Apply(metrics ...telegraf.Metric) []telegraf.Metric {
 			}
 		}
 
-		if len(valids) == 0 {
+		if len(valids) == 0 && f.DropOriginal {
+
+			metric.Drop()
+
+		} else if len(valids) == 0 {
 
 			only = append(only, metric)
 
