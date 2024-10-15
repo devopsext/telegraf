@@ -545,6 +545,7 @@ require (
 	github.com/grafana-tools/sdk v0.0.0-00010101000000-000000000000
 	github.com/jinzhu/copier v0.4.0
 	github.com/lxc/incus/v6 v6.4.0
+	github.com/shirou/gopsutil v3.21.11+incompatible
 )
 
 replace github.com/grafana-tools/sdk => github.com/devopsext/sdk v0.9.6
