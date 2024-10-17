@@ -198,7 +198,7 @@ func (m *MtNetResponse) Init() error {
 }
 
 // Gather is called by telegraf when the plugin is executed on its interval.
-// It will call either UDPGather or TCPGather based on the configuration and
+// It will call either ACGather or DCGather based on the configuration and
 // also fill an Accumulator that is supplied.
 func (m *MtNetResponse) Gather(acc telegraf.Accumulator) error {
 	// Prepare data
