@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/textproto"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ type MtNetResponse struct {
 	Send        string
 	Expect      string
 	Type        string
+	ConnStatus  []string
 }
 
 func (*MtNetResponse) SampleConfig() string {
@@ -63,7 +65,10 @@ func (m *MtNetResponse) DCGather() (map[string]string, map[string]interface{}, e
 			if err != nil {
 				return nil, nil, err
 			}
-			if conn.Status == "ESTABLISHED" && strings.Contains(conn.Raddr.IP, host) {
+			tags["protocol"] = "tcp"
+			tags["server"] = host
+			tags["port"] = port
+			if slices.Contains(m.ConnStatus, conn.Status) && strings.Contains(conn.Raddr.IP, host) {
 				// If an active connection is found, perform a connection test
 
 				// Start timer
@@ -75,9 +80,9 @@ func (m *MtNetResponse) DCGather() (map[string]string, map[string]interface{}, e
 				if err != nil {
 					var e net.Error
 					if errors.As(err, &e) && e.Timeout() {
-						setResult(Timeout, tags)
+						setResult(Timeout, fields, tags)
 					} else {
-						setResult(ConnectionFailed, tags)
+						setResult(ConnectionFailed, fields, tags)
 					}
 					return tags, fields, nil
 				}
@@ -98,21 +103,18 @@ func (m *MtNetResponse) DCGather() (map[string]string, map[string]interface{}, e
 
 				// Handle error
 				if err != nil {
-					setResult(ReadFailed, tags)
+					setResult(ReadFailed, fields, tags)
 				} else {
 					// Looking for string in answer
 					regEx := regexp.MustCompile(m.Expect)
 					find := regEx.FindString(data)
 					if find != "" {
-						setResult(Success, tags)
+						setResult(Success, fields, tags)
 					} else {
-						setResult(StringMismatch, tags)
+						setResult(StringMismatch, fields, tags)
 					}
 				}
 				fields["response_time"] = responseTime
-				tags["protocol"] = "tcp"
-				tags["server"] = host
-				tags["port"] = port
 				return tags, fields, nil
 			}
 		}
@@ -137,7 +139,10 @@ func (m *MtNetResponse) ACGather() (map[string]string, map[string]interface{}, e
 			if err != nil {
 				return nil, nil, err
 			}
-			if conn.Status == "ESTABLISHED" && strings.Contains(conn.Raddr.IP, host) {
+			tags["protocol"] = "tcp"
+			tags["server"] = host
+			tags["port"] = port
+			if slices.Contains(m.ConnStatus, conn.Status) && strings.Contains(conn.Raddr.IP, host) {
 				// If an active connection is found, perform a connection test
 
 				//Start timer
@@ -149,18 +154,15 @@ func (m *MtNetResponse) ACGather() (map[string]string, map[string]interface{}, e
 				if err != nil {
 					var e net.Error
 					if errors.As(err, &e) && e.Timeout() {
-						setResult(Timeout, tags)
+						setResult(Timeout, fields, tags)
 					} else {
-						setResult(ConnectionFailed, tags)
+						setResult(ConnectionFailed, fields, tags)
 					}
 					return tags, fields, nil
 				}
 				defer conn.Close()
-				setResult(Success, tags)
+				setResult(Success, fields, tags)
 				fields["response_time"] = responseTime
-				tags["protocol"] = "tcp"
-				tags["server"] = host
-				tags["port"] = port
 				return tags, fields, nil
 			}
 		}
@@ -178,20 +180,19 @@ func (m *MtNetResponse) Init() error {
 	if m.ReadTimeout == 0 {
 		m.ReadTimeout = config.Duration(time.Second)
 	}
-
-	if m.Dc != nil {
-		if m.Send == "" {
-			return errors.New("send string cannot be empty")
-		}
-		if m.Expect == "" {
-			return errors.New("expected string cannot be empty")
-		}
-	}
-	if m.Dc == nil && m.Ac == nil {
-		return errors.New("dc and ac cannot be empty")
+	if m.Addresses == nil {
+		return errors.New("addresses cannot be empty")
 	}
 	if m.Type == "" {
 		return errors.New("type cannot be empty")
+	}
+	if m.Addresses != nil {
+		if m.Type == "dc" && m.Send == "" {
+			return errors.New("send string cannot be empty for dc type")
+		}
+		if m.Type == "dc" && m.Expect == "" {
+			return errors.New("expected string cannot be empty for dc type")
+		}
 	}
 	return nil
 }
@@ -225,11 +226,11 @@ func (m *MtNetResponse) Gather(acc telegraf.Accumulator) error {
 		tags[k] = v
 	}
 	// Add metrics
-	acc.AddFields("net_response", fields, tags)
+	acc.AddFields("mt_net_response", fields, tags)
 	return nil
 }
 
-func setResult(result ResultType, tags map[string]string) {
+func setResult(result ResultType, fields map[string]interface{}, tags map[string]string) {
 	var tag string
 	switch result {
 	case Success:
@@ -245,6 +246,7 @@ func setResult(result ResultType, tags map[string]string) {
 	}
 
 	tags["result"] = tag
+	fields["result_code"] = uint64(result)
 }
 
 func init() {
