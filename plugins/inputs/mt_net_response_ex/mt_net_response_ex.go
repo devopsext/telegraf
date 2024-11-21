@@ -1,11 +1,20 @@
+//go:debug x509negativeserial=1
 //go:generate ../../../tools/readme_config_includer/generator
 package net_response
 
 import (
 	"bufio"
+	"crypto/md5"
+	"crypto/tls"
 	_ "embed"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io"
+	"math/rand"
 	"net"
+	"net/http"
 	"net/textproto"
 	"regexp"
 	"slices"
@@ -41,10 +50,167 @@ type MtNetResponse struct {
 	Expect      string
 	Type        string
 	ConnStatus  []string
+	MD5         string
+	MT5User     string
+}
+
+type MT5Request struct {
+	server string
+	port   int
+	client *http.Client
+}
+
+type AuthResponse struct {
+	SrvRand       string `json:"srv_rand"`
+	CliRand       string `json:"cli_rand"`
+	CliRandAnswer string `json:"cli_rand_answer"`
+	Retcode       string `json:"retcode"`
 }
 
 func (*MtNetResponse) SampleConfig() string {
 	return sampleConfig
+}
+
+func NewMT5Request(server string, port int) *MT5Request {
+	return &MT5Request{
+		server: server,
+		port:   port,
+		client: &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+func (mt5 *MT5Request) Get(path string) (string, error) {
+	url := fmt.Sprintf("https://%s:%d%s", mt5.server, mt5.port, path)
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	mt5.client.Transport = http.DefaultTransport
+	resp, err := mt5.client.Get(url)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return string(body), nil
+}
+
+func (mt5 *MT5Request) Post(path, body string) (string, error) {
+	url := fmt.Sprintf("https://%s:%d%s", mt5.server, mt5.port, path)
+	req, err := http.NewRequest("POST", url, strings.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(body)))
+
+	resp, err := mt5.client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	responseBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return string(responseBody), nil
+}
+
+func (mt5 *MT5Request) ParseBodyJSON(body string) (AuthResponse, error) {
+	var answer AuthResponse
+	if err := json.Unmarshal([]byte(body), &answer); err != nil {
+		return AuthResponse{}, fmt.Errorf("failed to parse JSON: %v", err)
+	}
+
+	if answer.Retcode != "0 Done" {
+		return AuthResponse{}, fmt.Errorf("retcode is not 0, got: %s", answer.Retcode)
+	}
+
+	return answer, nil
+}
+
+func ProcessAuth(md5Combined, SrvRand string) string {
+
+	// Get bytes of MD5 hash
+	md5CombinedBytes, err := hex.DecodeString(md5Combined)
+	if err != nil {
+		fmt.Printf("failed hex decode")
+	}
+	// Get bytes of SrvRand
+	srvRandBytes, _ := hex.DecodeString(SrvRand)
+
+	// Join bytes MD5 hash and SrvRand
+	finalCombinedBytes := append(md5CombinedBytes, srvRandBytes...)
+
+	// Final bytes srv_rand_answer
+	md5FinalAnswer := md5.Sum(finalCombinedBytes)
+
+	// Шаг 6: Результат в HEX-представлении
+	finalHex := hex.EncodeToString(md5FinalAnswer[:])
+	return finalHex
+}
+
+func (mt5 *MT5Request) Auth(md5Combined, login, build, agent string) error {
+	if login == "" || build == "" || agent == "" {
+		return errors.New("missing required parameters")
+	}
+
+	// Start authentication
+	startPath := fmt.Sprintf("/api/auth/start?version=%s&agent=%s&login=%s&type=manager", build, agent, login)
+	body, err := mt5.Get(startPath)
+	if err != nil {
+		return err
+	}
+
+	answer, err := mt5.ParseBodyJSON(body)
+	if err != nil {
+		return err
+	}
+
+	// Process auth step
+	srvRandAnswer := ProcessAuth(md5Combined, answer.SrvRand)
+
+	// Generate client random
+	cliRandom := generateRandomHex()
+
+	// Send answer
+	answerPath := fmt.Sprintf("/api/auth/answer?srv_rand_answer=%s&cli_rand=%s", srvRandAnswer, cliRandom)
+	body, err = mt5.Get(answerPath)
+	if err != nil {
+		return err
+	}
+
+	answer, err = mt5.ParseBodyJSON(body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func generateRandomHex() string {
+	rand.Seed(time.Now().UnixNano())
+	randomBytes := make([]byte, 16)
+	rand.Read(randomBytes)
+
+	hash := md5.New()
+	hash.Write(randomBytes)
+	hashSum := hash.Sum(nil)
+
+	return hex.EncodeToString(hashSum)
 }
 
 // DCGather will execute if there are DC type defined in the configuration.
@@ -147,7 +313,8 @@ func (m *MtNetResponse) ACGather() (map[string]string, map[string]interface{}, e
 
 				//Start timer
 				start := time.Now()
-				conn, err := net.DialTimeout("tcp", ip, time.Duration(m.Timeout))
+				mt5 := NewMT5Request(ip, 443)
+				err := mt5.Auth(m.MD5, m.MT5User, "4656", "test")
 				// Stop timer
 				responseTime := time.Since(start).Seconds()
 				// Handle error
@@ -160,7 +327,6 @@ func (m *MtNetResponse) ACGather() (map[string]string, map[string]interface{}, e
 					}
 					return tags, fields, nil
 				}
-				defer conn.Close()
 				setResult(Success, fields, tags)
 				fields["response_time"] = responseTime
 				return tags, fields, nil
