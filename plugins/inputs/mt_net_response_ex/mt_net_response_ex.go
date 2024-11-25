@@ -1,4 +1,3 @@
-//go:debug x509negativeserial=1
 //go:generate ../../../tools/readme_config_includer/generator
 package net_response
 
@@ -52,6 +51,7 @@ type MtNetResponse struct {
 	ConnStatus  []string
 	MD5         string
 	MT5User     string
+	IgnoreSSL   bool
 }
 
 type MT5Request struct {
@@ -71,75 +71,23 @@ func (*MtNetResponse) SampleConfig() string {
 	return sampleConfig
 }
 
-func NewMT5Request(server string, port int) *MT5Request {
-	return &MT5Request{
-		server: server,
-		port:   port,
-		client: &http.Client{Timeout: 10 * time.Second},
+func NewMT5Request(server string, port int, ssl bool) *MT5Request {
+	if ssl {
+		return &MT5Request{
+			server: server,
+			port:   port,
+			client: &http.Client{Timeout: 10 * time.Second,
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{InsecureSkipVerify: true}},
+			},
+		}
+	} else {
+		return &MT5Request{
+			server: server,
+			port:   port,
+			client: &http.Client{Timeout: 10 * time.Second},
+		}
 	}
-}
-
-func (mt5 *MT5Request) Get(path string) (string, error) {
-	url := fmt.Sprintf("https://%s:%d%s", mt5.server, mt5.port, path)
-	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-	mt5.client.Transport = http.DefaultTransport
-	resp, err := mt5.client.Get(url)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	return string(body), nil
-}
-
-func (mt5 *MT5Request) Post(path, body string) (string, error) {
-	url := fmt.Sprintf("https://%s:%d%s", mt5.server, mt5.port, path)
-	req, err := http.NewRequest("POST", url, strings.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Content-Length", fmt.Sprintf("%d", len(body)))
-
-	resp, err := mt5.client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	responseBody, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-
-	return string(responseBody), nil
-}
-
-func (mt5 *MT5Request) ParseBodyJSON(body string) (AuthResponse, error) {
-	var answer AuthResponse
-	if err := json.Unmarshal([]byte(body), &answer); err != nil {
-		return AuthResponse{}, fmt.Errorf("failed to parse JSON: %v", err)
-	}
-
-	if answer.Retcode != "0 Done" {
-		return AuthResponse{}, fmt.Errorf("retcode is not 0, got: %s", answer.Retcode)
-	}
-
-	return answer, nil
 }
 
 func ProcessAuth(md5Combined, SrvRand string) string {
@@ -161,6 +109,41 @@ func ProcessAuth(md5Combined, SrvRand string) string {
 	// Шаг 6: Результат в HEX-представлении
 	finalHex := hex.EncodeToString(md5FinalAnswer[:])
 	return finalHex
+}
+
+func (mt5 *MT5Request) Get(path string) (string, error) {
+	url := fmt.Sprintf("https://%s:%d%s", mt5.server, mt5.port, path)
+
+	resp, err := mt5.client.Get(url)
+	if err != nil {
+		return "", err
+	}
+
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return string(body), nil
+}
+
+func (mt5 *MT5Request) ParseBodyJSON(body string) (AuthResponse, error) {
+	var answer AuthResponse
+	if err := json.Unmarshal([]byte(body), &answer); err != nil {
+		return AuthResponse{}, fmt.Errorf("failed to parse JSON: %v", err)
+	}
+
+	if answer.Retcode != "0 Done" {
+		return AuthResponse{}, fmt.Errorf("retcode is not 0, got: %s", answer.Retcode)
+	}
+
+	return answer, nil
 }
 
 func (mt5 *MT5Request) Auth(md5Combined, login, build, agent string) error {
@@ -313,8 +296,9 @@ func (m *MtNetResponse) ACGather() (map[string]string, map[string]interface{}, e
 
 				//Start timer
 				start := time.Now()
-				mt5 := NewMT5Request(ip, 443)
+				mt5 := NewMT5Request(host, 443, m.IgnoreSSL)
 				err := mt5.Auth(m.MD5, m.MT5User, "4656", "test")
+				mt5.client.CloseIdleConnections()
 				// Stop timer
 				responseTime := time.Since(start).Seconds()
 				// Handle error
