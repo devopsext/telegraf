@@ -166,15 +166,15 @@ func (t *Telegraf) reloadLoop() error {
 					go t.watchLocalConfig(ctx, signals, fConfig)
 				}
 			}
-			// tsv: watch config dirs
-			for _, dir := range t.configDir {
-				if _, err := os.Stat(dir); err == nil {
-					go t.watchLocalConfigDir(ctx, signals, dir, "\\.watchman-cookie.*")
-				} else {
-					log.Printf("W! Cannot watch config dir %s: %s", dir, err)
-				}
+			// // tsv: watch config dirs
+			// for _, dir := range t.configDir {
+			// 	if _, err := os.Stat(dir); err == nil {
+			// 		go t.watchLocalConfigDir(ctx, signals, dir, "\\.watchman-cookie.*")
+			// 	} else {
+			// 		log.Printf("W! Cannot watch config dir %s: %s", dir, err)
+			// 	}
 
-			}
+			// }
 		}
 		if t.configURLWatchInterval > 0 {
 			remoteConfigs := make([]string, 0)
@@ -232,7 +232,6 @@ func (t *Telegraf) watchLocalConfigDir(ctx context.Context, signals chan os.Sign
 
 	re := regexp.MustCompile(exclusion)
 
-	done := make(chan bool)
 	go func() {
 		for {
 			select {
@@ -278,7 +277,7 @@ func (t *Telegraf) watchLocalConfigDir(ctx context.Context, signals chan os.Sign
 	if err != nil {
 		log.Printf("E! Error watching config subdir: %s\n", err)
 	}
-	<-done
+	<-ctx.Done()
 }
 
 func (t *Telegraf) watchLocalConfig(ctx context.Context, signals chan os.Signal, fConfig string) {
