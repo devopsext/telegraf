@@ -163,13 +163,13 @@ func (t *Telegraf) reloadLoop() error {
 				if _, err := os.Stat(fConfig); err != nil {
 					log.Printf("W! Cannot watch config %s: %s", fConfig, err)
 				} else {
-					go t.watchLocalConfig(signals, fConfig)
+					go t.watchLocalConfig(ctx, signals, fConfig)
 				}
 			}
 			// tsv: watch config dirs
 			for _, dir := range t.configDir {
 				if _, err := os.Stat(dir); err == nil {
-					go t.watchLocalConfigDir(signals, dir, "\\.watchman-cookie.*")
+					go t.watchLocalConfigDir(ctx, signals, dir, "\\.watchman-cookie.*")
 				} else {
 					log.Printf("W! Cannot watch config dir %s: %s", dir, err)
 				}
@@ -222,7 +222,7 @@ func (t *Telegraf) reloadLoop() error {
 }
 
 // tsv: watch config directory for new files
-func (t *Telegraf) watchLocalConfigDir(signals chan os.Signal, dir, exclusion string) {
+func (t *Telegraf) watchLocalConfigDir(ctx context.Context, signals chan os.Signal, dir, exclusion string) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Printf("E! Error watching config dir: %s\n", err)
@@ -281,7 +281,7 @@ func (t *Telegraf) watchLocalConfigDir(signals chan os.Signal, dir, exclusion st
 	<-done
 }
 
-func (t *Telegraf) watchLocalConfig(signals chan os.Signal, fConfig string) {
+func (t *Telegraf) watchLocalConfig(ctx context.Context, signals chan os.Signal, fConfig string) {
 	var mytomb tomb.Tomb
 	var watcher watch.FileWatcher
 	if t.watchConfig == "poll" {

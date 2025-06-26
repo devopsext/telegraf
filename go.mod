@@ -2,7 +2,6 @@ module github.com/influxdata/telegraf
 
 go 1.24.0
 
-
 require (
 	cloud.google.com/go/bigquery v1.69.0
 	cloud.google.com/go/monitoring v1.24.2
@@ -133,8 +132,8 @@ require (
 	github.com/jackc/pgio v1.0.0
 	github.com/jackc/pgtype v1.14.4
 	github.com/jackc/pgx/v4 v4.18.3
-	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/jedib0t/go-pretty/v6 v6.6.7
+	github.com/jellydator/ttlcache/v3 v3.3.0
 	github.com/jeremywohl/flatten/v2 v2.0.0-20211013061545-07e4a09fb8e4
 	github.com/jmespath/go-jmespath v0.4.0
 	github.com/karrick/godirwalk v1.16.2
@@ -211,6 +210,7 @@ require (
 	github.com/tinylib/msgp v1.3.0
 	github.com/urfave/cli/v2 v2.27.7
 	github.com/vapourismo/knx-go v0.0.0-20240915133544-a6ab43471c11
+	github.com/vertica/vertica-sql-go v1.3.3
 	github.com/vishvananda/netlink v1.3.1
 	github.com/vishvananda/netns v0.0.5
 	github.com/vjeantet/grok v1.0.1
@@ -257,17 +257,15 @@ require (
 	github.com/elastic/go-sysinfo v1.8.1 // indirect
 	github.com/elastic/go-windows v1.0.0 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.4 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/gosimple/slug v1.1.1 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
-	github.com/olivere/elastic v6.2.37+incompatible // indirect
 	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
-	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/vertica/vertica-sql-go v1.3.3 // indirect
-	github.com/zitadel/logging v0.6.0 // indirect
-	github.com/zitadel/oidc/v3 v3.26.1 // indirect
-	github.com/zitadel/schema v1.3.0 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/zitadel/logging v0.6.2 // indirect
+	github.com/zitadel/oidc/v3 v3.38.1 // indirect
+	github.com/zitadel/schema v1.3.1 // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
 )
 
@@ -378,7 +376,6 @@ require (
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
 	github.com/go-git/go-billy/v5 v5.6.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
@@ -514,7 +511,6 @@ require (
 	github.com/samber/lo v1.47.0 // indirect
 	github.com/seancfoley/bintree v1.3.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/signalfx/com_signalfx_metrics_protobuf v0.0.3 // indirect
 	github.com/signalfx/gohistogram v0.0.0-20160107210732-1ccfd2ff5083 // indirect
 	github.com/signalfx/sapm-proto v0.12.0 // indirect
@@ -549,9 +545,6 @@ require (
 	github.com/zeebo/errs v1.4.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	github.com/zentures/cityhash v0.0.0-20131128155616-cdd6a94144ab // indirect
-	github.com/zitadel/logging v0.6.2 // indirect
-	github.com/zitadel/oidc/v3 v3.38.1 // indirect
-	github.com/zitadel/schema v1.3.1 // indirect
 	go.bug.st/serial v1.6.2 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.4 // indirect
 	go.opencensus.io v0.24.0 // indirect
@@ -603,7 +596,6 @@ require (
 	github.com/araddon/dateparse v0.0.0-20210429162001-6b43995a97de
 	github.com/grafana-tools/sdk v0.0.0-00010101000000-000000000000
 	github.com/jinzhu/copier v0.4.0
-	github.com/lxc/incus/v6 v6.4.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 )
 
