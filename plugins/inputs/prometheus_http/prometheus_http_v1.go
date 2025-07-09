@@ -34,7 +34,6 @@ type PrometheusHttpV1Response struct {
 }
 
 type PrometheusHttpV1 struct {
-	log      telegraf.Logger
 	ctx      context.Context
 	client   *http.Client
 	name     string
@@ -218,6 +217,7 @@ func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, p
 	dr.unmarshal = time.Since(when)
 	when = time.Now()
 
+	dr.resultType = res.Data.ResultType
 	switch res.Data.ResultType {
 	case "matrix":
 		p.processMatrix(&res, when, push)
@@ -258,7 +258,6 @@ func NewPrometheusHttpV1(client *http.Client, name string, log telegraf.Logger, 
 
 	return &PrometheusHttpV1{
 		name:     name,
-		log:      log,
 		ctx:      ctx,
 		client:   client,
 		url:      url,

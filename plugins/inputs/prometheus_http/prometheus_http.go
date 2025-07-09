@@ -110,9 +110,10 @@ type PrometheusHttp struct {
 type PrometheusHttpPushFunc = func(when time.Time, tags map[string]string, stamp time.Time, value float64)
 
 type PrometheusHttpDatasourceResponse struct {
-	request   time.Duration
-	unmarshal time.Duration
-	process   time.Duration
+	request    time.Duration
+	unmarshal  time.Duration
+	process    time.Duration
+	resultType string
 }
 
 type PrometheusHttpDatasource interface {
@@ -512,13 +513,17 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 	defer w.Done()
 	var push = func(when time.Time, tgs map[string]string, stamp time.Time, value float64) {
 
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			p.Log.Debugf("[%d] %s skipped NaN/Inf value for: %s[%v]", gid, p.Name, pm.Name, tgs)
+			return
+		}
+
 		hash := p.uniqueHash(pm, tgs, stamp)
 		if hash > 0 {
 			if pm.uniques[hash] {
 				return
-			} else {
-				pm.uniques[hash] = true
 			}
+			pm.uniques[hash] = true
 		}
 
 		v, err := p.getTemplateValue(pm.template, value)
@@ -542,12 +547,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 
 		tags = p.getExtraMetricTags(gid, tags, pm)
 
-		if math.IsNaN(v) || math.IsInf(v, 0) {
-			bs, _ := json.Marshal(tags)
-			p.Log.Debugf("[%d] %s skipped NaN/Inf value for: %v[%v]", gid, p.Name, pm.Name, string(bs))
-			return
-		}
-
 		if pm.Round != nil {
 			ratio := math.Pow(10, float64(*pm.Round))
 			v = math.Round(v*ratio) / ratio
@@ -566,7 +565,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 				}
 
 				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
-				p.mtx.Unlock()
+				defer p.mtx.Unlock()
 			}
 		}
 	}
@@ -598,11 +597,10 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 		wg.Add(1)
 
 		go p.setMetrics(&wg, m, ds, func(dr *PrometheusHttpDatasourceResponse, err error) {
-
 			p.requests.Incr(1)
 
 			if dr != nil {
-				p.Log.Debugf("[%d] %s %s request: %s, umarshal: %s, process: %s", gid, p.Name, m.Name, dr.request, dr.unmarshal, dr.process)
+				p.Log.Debugf("[%d] %s %s type: %s, request: %s, umarshal: %s, process: %s", gid, p.Name, m.Name, dr.resultType, dr.request, dr.unmarshal, dr.process)
 			}
 
 			if err != nil {
