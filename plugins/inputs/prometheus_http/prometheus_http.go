@@ -558,14 +558,12 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 		switch p.Version {
 		case "v1":
 
-			if p.mtx.TryLock() {
-
-				if p.client == nil {
-					p.client = p.makeClient(int(timeout))
-				}
-				defer p.mtx.Unlock()
-				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+			p.mtx.Lock()
+			if p.client == nil {
+				p.client = p.makeClient(int(timeout))
 			}
+			defer p.mtx.Unlock()
+			ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
 		}
 	}
 
