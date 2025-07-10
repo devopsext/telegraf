@@ -510,7 +510,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 		params = p.Params
 	}
 
-	defer w.Done()
+	// defer w.Done()
 	var push = func(when time.Time, tgs map[string]string, stamp time.Time, value float64) {
 
 		if math.IsNaN(value) || math.IsInf(value, 0) {
