@@ -276,11 +276,8 @@ func (p *PrometheusHttp) getAllTags(values, metricTags, metricVars map[string]st
 }
 
 func (p *PrometheusHttp) setExtraMetricTag(gid uint64, t *toolsRender.TextTemplate, values, metricTags, metricVars map[string]string, fls *map[string]interface{}) (string, error) {
-	// when := time.Now()
 	m := p.getAllTags(values, metricTags, metricVars, fls)
-	// when2 := time.Since(when)
 	b, err := t.RenderObject(&m)
-	// when3 := time.Since(when)
 	if err != nil {
 		p.Log.Errorf("[%d] %s failed to execute template: %v", gid, p.Name, err)
 		return "", err
@@ -525,7 +522,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			}
 			pm.uniques[hash] = true
 		}
-		// when3 := time.Since(when2)
 
 		v, err := p.getTemplateValue(pm.template, value)
 		if err != nil {
@@ -534,7 +530,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 		}
 
 		tags := make(map[string]string)
-		// when4 := time.Since(when2)
 
 		//millis := when.UTC().UnixMilli()
 		//tags["timestamp"] = strconv.Itoa(int(millis))
@@ -553,16 +548,16 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			ratio := math.Pow(10, float64(*pm.Round))
 			v = math.Round(v*ratio) / ratio
 		}
-		// when5 := time.Since(when2)
 		p.acc.AddFields(p.Prefix, p.addFields(pm.Name, v), tags, stamp)
-		// when6 := time.Since(when2)
-		// p.Log.Debugf("[%d] %s push step duration: %s [1 %s] [2 %s] [3 %s] [4 %s] [5 %s]", gid, p.Name, pm.Name, when3, when4, when5, when6, time.Since(when2))
 	}
 
 	if ds == nil {
 		switch p.Version {
 		case "v1":
 
+			// This version is concurrent non-blocking, meaning it will shoot all requests from a conf file at once
+			// To make this a blocking-type, where next request is executed after previous one
+			// (in bounds of a single config file) use p.tmx.lock() with defer p.tmx.Unlock() instead - Ilia
 			if p.mtx.TryLock() {
 				if p.client == nil {
 					p.client = p.makeClient(int(timeout))
@@ -637,7 +632,6 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource, 
 }
 
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, field, value string) string {
-	// when := time.Now()
 	if obj == nil || utils.IsEmpty(field) || utils.IsEmpty(value) {
 		return ""
 	}
@@ -650,54 +644,46 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if err == nil {
 		v1 := string(entry)
 		if !utils.IsEmpty(v1) {
-			// ptt.input.Log.Infof("fCacheRegexMatchFindKey accessed, CACHED, looking for %s %s, returned %s, duration %s", field, value, v1, time.Since(when))
 			return v1
 		}
 	}
 	if err != nil {
-		// ptt.input.Log.Infof("fCacheRegexMatchFindKey accessed, CACHE ERROR, looking for %s %s, returned %s, duration %s", field, value, err, time.Since(when))
 	}
+
+	// Do not fallback to non-cache method of template process, because everything we have is in cache anyway
+	// - Ilia
 
 	// v2 := ptt.template.RegexMatchFindKey(obj, field, value)
 	// v1 := fmt.Sprintf("%v", v2)
 	// if !utils.IsEmpty(v1) {
 	// 	ptt.input.cache.Set(key, []byte(v1))
-	// 	ptt.input.Log.Infof("fCacheRegexMatchFindKey accessed, NO CACHE, looking for %s %s, returned %s, duration %s", field, value, v1, time.Since(when))
 	// 	return v1
 	// }
-	// ptt.input.Log.Infof("fCacheRegexMatchFindKey accessed, NO CACHE, returned empty, duration %s", time.Since(when))
 	return ""
 }
 
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchObjectByField(obj interface{}, field, value string) interface{} {
-	// when := time.Now()
 	if obj == nil {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, NO OBJECT, return nil")
 		return nil
 	}
 	if ptt.input.cache == nil {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, NO CACHE, return nil")
 		return ""
 	}
 	key := ptt.fCacheRegexMatchFindKey(obj, field, value)
 	if utils.IsEmpty(key) {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, no key found fCacheRegexMatchFindKey, return nil")
 		return nil
 	}
 
 	a, ok := obj.([]interface{})
 	ka, err := strconv.Atoi(key)
 	if ok && err == nil {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, looking for %s %s, returned %v, duration %s", field, value, a[ka], time.Since(when))
 		return a[ka]
 	}
 
 	m, ok := obj.(map[string]interface{})
 	if ok {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, looking for %s %s, returned %v, duration %s", field, value, m[key], time.Since(when))
 		return m[key]
 	}
-	// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, looking for %s %s, returned nil, duration %s", field, value, time.Since(when))
 	return nil
 }
 
@@ -974,6 +960,7 @@ func (p *PrometheusHttp) readFiles(gid uint64, files *sync.Map, hashes *sync.Map
 			}
 		}
 	}
+	p.Log.Debugf("Cache entires %d , length %d", entries, length)
 
 	return entries, length
 }
