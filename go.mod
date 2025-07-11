@@ -124,7 +124,7 @@ require (
 	github.com/influxdata/influxdb-observability/influx2otel v0.5.12
 	github.com/influxdata/influxdb-observability/otel2influx v0.5.12
 	github.com/influxdata/line-protocol/v2 v2.2.1
-	github.com/influxdata/tail v1.0.1-0.20241014115250-3e0015cb677a
+	github.com/influxdata/tail v2.10.6-bug100770-inotify-leak+incompatible
 	github.com/influxdata/toml v0.0.0-20190415235208-270119a8ce65
 	github.com/intel/iaevents v1.1.0
 	github.com/intel/powertelemetry v1.0.2
@@ -259,6 +259,7 @@ require (
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.0.5 // indirect
 	github.com/gosimple/slug v1.1.1 // indirect
+	github.com/howeyc/fsnotify v0.9.0 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/rainycape/unidecode v0.0.0-20150907023854-cb7f23ec59be // indirect
@@ -267,6 +268,7 @@ require (
 	github.com/zitadel/oidc/v3 v3.38.1 // indirect
 	github.com/zitadel/schema v1.3.1 // indirect
 	howett.net/plist v0.0.0-20181124034731-591f970eefbb // indirect
+	launchpad.net/tomb v0.0.0-20140529072043-000000000018 // indirect
 )
 
 require (
