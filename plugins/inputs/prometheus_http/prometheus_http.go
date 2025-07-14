@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -566,14 +565,13 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 		switch p.Version {
 		case "v1":
 
-			if p.mtx.TryLock() {
-				if p.client == nil {
-					p.client = p.makeClient(int(timeout))
-				}
-
-				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
-				p.mtx.Unlock()
+			p.mtx.Lock()
+			if p.client == nil {
+				p.client = p.makeClient(int(timeout))
 			}
+
+			ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+			p.mtx.Unlock()
 
 		}
 	}
@@ -654,64 +652,64 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if err == nil {
 		v1 := string(entry)
 		if !utils.IsEmpty(v1) {
-			ptt.input.Log.Infof("fCacheRegexMatchFindKey, CACHED, looking for %s %s, returned %s, duration %s", field, value, v1, time.Since(when))
+			ptt.input.Log.Debugf("fCacheRegexMatchFindKey, CACHED, looking for %s %s, returned %s, duration %s", field, value, v1, time.Since(when))
 			return v1
 		}
 	}
 	if err != nil {
-		ptt.input.Log.Infof("fCacheRegexMatchFindKey, CACHE ERROR, looking for %s %s, returned %s, duration %s", field, value, err, time.Since(when))
+		ptt.input.Log.Debugf("fCacheRegexMatchFindKey, CACHE ERROR, looking for %s %s, returned %s, duration %s", field, value, err, time.Since(when))
 	}
 	when2 := time.Now()
-	//v2 := ptt.template.RegexMatchFindKey(obj, field, value)
-	var v2 []any
-	if !utils.IsEmpty(field) || !utils.IsEmpty(value) {
+	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
+	// var v2 []any
+	// if !utils.IsEmpty(field) || !utils.IsEmpty(value) {
 
-		a, ok := obj.([]any)
-		if ok {
-			for k, v := range a {
-				m, ok := v.(map[string]any)
-				if !ok {
-					continue
-				}
-				if m[field] == nil {
-					continue
-				}
-				s := fmt.Sprintf("%v", m[field])
-				match, _ := regexp.MatchString(fmt.Sprintf("^%s", s), value)
-				if match {
-					v2 = append(v2, k)
-					break
-				}
-			}
-		}
-		m, ok := obj.(map[string]any)
-		if ok {
-			for k, v := range m {
-				m, ok := v.(map[string]any)
-				if !ok {
-					continue
-				}
-				if m[field] == nil {
-					continue
-				}
-				s := fmt.Sprintf("%v", m[field])
-				match, _ := regexp.MatchString(fmt.Sprintf("^%s", s), value)
-				if match {
-					v2 = append(v2, k)
-					break
-				}
-			}
-		}
-	}
+	// 	a, ok := obj.([]any)
+	// 	if ok {
+	// 		for k, v := range a {
+	// 			m, ok := v.(map[string]any)
+	// 			if !ok {
+	// 				continue
+	// 			}
+	// 			if m[field] == nil {
+	// 				continue
+	// 			}
+	// 			s := fmt.Sprintf("%v", m[field])
+	// 			match, _ := regexp.MatchString(fmt.Sprintf("^%s", s), value)
+	// 			if match {
+	// 				v2 = append(v2, k)
+	// 				break
+	// 			}
+	// 		}
+	// 	}
+	// 	m, ok := obj.(map[string]any)
+	// 	if ok {
+	// 		for k, v := range m {
+	// 			m, ok := v.(map[string]any)
+	// 			if !ok {
+	// 				continue
+	// 			}
+	// 			if m[field] == nil {
+	// 				continue
+	// 			}
+	// 			s := fmt.Sprintf("%v", m[field])
+	// 			match, _ := regexp.MatchString(fmt.Sprintf("^%s", s), value)
+	// 			if match {
+	// 				v2 = append(v2, k)
+	// 				break
+	// 			}
+	// 		}
+	// 	}
+	// }
 	v1 := fmt.Sprintf("%v", v2)
 	if !utils.IsEmpty(v1) {
 		when3 := time.Now()
-		ptt.input.Log.Infof("fCacheRegexMatchFindKey, NO CACHE, looking for %s %s, returned %s, duration %s", field, value, v1, time.Since(when2))
-		go ptt.input.cache.Set(key, []byte(v1))
-		ptt.input.Log.Infof("fCacheRegexMatchFindKey, value %s cached with key %s, duration %s", v1, key, time.Since(when3))
+		ptt.input.Log.Debugf("fCacheRegexMatchFindKey, NO CACHE, looking for %s %s, returned %s, duration %s", field, value, v1, time.Since(when2))
+		ptt.input.cache.Set(key, []byte(v1))
+		ptt.input.Log.Debugf("fCacheRegexMatchFindKey, value %s cached with key %s, duration %s", v1, key, time.Since(when3))
 		return v1
 	}
-	ptt.input.Log.Infof("fCacheRegexMatchFindKey, NO CACHE, returned empty, duration %s", time.Since(when))
+	ptt.input.Log.Debugf("fCacheRegexMatchFindKey, NO CACHE, returned empty, duration %s", time.Since(when))
 	return ""
 }
 
