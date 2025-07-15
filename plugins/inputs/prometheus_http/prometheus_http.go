@@ -570,9 +570,8 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 				p.client = p.makeClient(int(timeout))
 			}
 
+			defer p.mtx.Unlock()
 			ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
-			p.mtx.Unlock()
-
 		}
 	}
 
@@ -617,7 +616,7 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource, 
 	}
 	wg.Wait()
 
-	p.Log.Debugf("[%d] %s gathering finished [%s]", gid, p.Name, time.Since(when))
+	p.Log.Debugf("[%d] %s gathering finished, %d requests made [%s]", gid, p.Name, p.requests.counter, time.Since(when))
 
 	// availability = (requests - errors) / requests * 100
 	// availability = (100 - 0) / 100 * 100 = 100%
@@ -640,6 +639,7 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource, 
 
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, field, value string) string {
 	when := time.Now()
+	gid := utils.GoRoutineID()
 	if obj == nil || utils.IsEmpty(field) || utils.IsEmpty(value) {
 		return ""
 	}
@@ -652,12 +652,12 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if err == nil {
 		v1 := string(entry)
 		if !utils.IsEmpty(v1) {
-			ptt.input.Log.Debugf("fCacheRegexMatchFindKey, CACHED, looking for %s %s, returned %s, duration %s", field, value, v1, time.Since(when))
+			ptt.input.Log.Debugf("[%d] fCacheRegexMatchFindKey, CACHED, looking for %s %s, returned %s, duration %s", gid, field, value, v1, time.Since(when))
 			return v1
 		}
 	}
 	if err != nil {
-		ptt.input.Log.Debugf("fCacheRegexMatchFindKey, CACHE ERROR, looking for %s %s, returned %s, duration %s", field, value, err, time.Since(when))
+		ptt.input.Log.Debugf("[%d] fCacheRegexMatchFindKey, CACHE ERROR, looking for %s %s, returned %s, duration %s", gid, field, value, err, time.Since(when))
 	}
 	when2 := time.Now()
 	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
@@ -704,12 +704,12 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	v1 := fmt.Sprintf("%v", v2)
 	if !utils.IsEmpty(v1) {
 		when3 := time.Now()
-		ptt.input.Log.Debugf("fCacheRegexMatchFindKey, NO CACHE, looking for %s %s, returned %s, duration %s", field, value, v1, time.Since(when2))
+		ptt.input.Log.Debugf("[%d] fCacheRegexMatchFindKey, NO CACHE, looking for %s %s, returned %s, duration %s", gid, field, value, v1, time.Since(when2))
 		ptt.input.cache.Set(key, []byte(v1))
 		ptt.input.Log.Debugf("fCacheRegexMatchFindKey, value %s cached with key %s, duration %s", v1, key, time.Since(when3))
 		return v1
 	}
-	ptt.input.Log.Debugf("fCacheRegexMatchFindKey, NO CACHE, returned empty, duration %s", time.Since(when))
+	ptt.input.Log.Debugf("[%d] fCacheRegexMatchFindKey, NO CACHE, returned empty, duration %s", gid, time.Since(when))
 	return ""
 }
 
