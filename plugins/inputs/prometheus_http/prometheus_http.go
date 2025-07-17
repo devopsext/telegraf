@@ -34,7 +34,6 @@ type PrometheusHttpTextTemplate struct {
 	template *toolsRender.TextTemplate
 	input    *PrometheusHttp
 	metric   *PrometheusHttpMetric
-	files    *map[string]any
 	name     string
 	tag      string
 	value    string
@@ -1038,7 +1037,7 @@ func (p *PrometheusHttp) Init() error {
 		seconds := time.Duration(p.Timeout).Seconds()
 
 		if p.CacheDuration <= 0 {
-			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds) * 3)
+			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
