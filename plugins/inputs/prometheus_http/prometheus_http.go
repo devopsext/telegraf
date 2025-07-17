@@ -12,7 +12,6 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -287,18 +286,15 @@ func (p *PrometheusHttp) getAllTags(values, metricTags, metricVars map[string]st
 }
 
 func (p *PrometheusHttp) setExtraMetricTag(gid uint64, t *toolsRender.TextTemplate, values, metricTags, metricVars map[string]string) (string, error) {
-	// when := time.Now()
 	m := p.getAllTags(values, metricTags, metricVars)
-	// when2 := time.Since(when)
 	b, err := t.RenderObject(&m)
-	// when3 := time.Since(when)
+
 	if err != nil {
 		p.Log.Errorf("[%d] %s failed to execute template: %v", gid, p.Name, err)
 		return "", err
 	}
 	r := strings.TrimSpace(string(b))
 	// simplify <no value> => empty string
-	// p.Log.Debugf("[%d] %s setExtraMetricTag duration [1 %s] [2 %s]", gid, p.Name, when2, when3)
 	return strings.ReplaceAll(r, "<no value>", ""), nil
 }
 
@@ -398,9 +394,7 @@ func (p *PrometheusHttp) getExtraMetricTags(gid uint64, values map[string]string
 	for _, k := range mTags {
 		tpl := m.templates[k]
 		if tpl != nil {
-			when := time.Now()
 			vk, err := p.setExtraMetricTag(gid, tpl, values, m.Tags, vars)
-			p.Log.Debugf("[%d] %s setExtraMetricTag duration template %s tag result %s [1 %s] ", gid, p.Name, k, vk, time.Since(when))
 
 			if err != nil {
 				vars[k] = "error"
@@ -563,10 +557,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			ratio := math.Pow(10, float64(*pm.Round))
 			v = math.Round(v*ratio) / ratio
 		}
-		// when5 := time.Since(when2)
 		p.acc.AddFields(p.Prefix, p.addFields(pm.Name, v), tags, stamp)
-		// when6 := time.Since(when2)
-		// p.Log.Debugf("[%d] %s push step duration: %s [1 %s] [2 %s] [3 %s] [4 %s] [5 %s]", gid, p.Name, pm.Name, when3, when4, when5, when6, time.Since(when2))
 	}
 
 	if ds == nil {
@@ -575,8 +566,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 
 			switch p.ExecutionType {
 			case "concurrent":
-				p.Log.Debugf("[%d] %s %s Executing concurrently", gid, p.Name, pm.Name)
-
 				if p.client == nil {
 					p.client = p.makeClient(int(timeout))
 				}
@@ -584,7 +573,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
 
 			default:
-				p.Log.Debugf("[%d] %s %s Executing sequentially", gid, p.Name, pm.Name)
 				p.mtx.Lock()
 				if p.client == nil {
 					p.client = p.makeClient(int(timeout))
@@ -597,9 +585,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 
 	if ds != nil {
 		period := p.getMetricPeriod(pm)
-		when := time.Now()
 		callback(ds.GetData(pm.Query, period, push))
-		p.Log.Debugf("[%d] %s %s Request block exit at %v after %s", gid, p.Name, pm.Name, time.Now().UTC(), time.Since(when))
 	}
 }
 
@@ -660,8 +646,6 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 }
 
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, field, value string) string {
-	when := time.Now()
-	gid := utils.GoRoutineID()
 	if obj == nil || utils.IsEmpty(field) || utils.IsEmpty(value) {
 		return ""
 	}
@@ -674,95 +658,43 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if err == nil {
 		v1 := string(entry)
 		if !utils.IsEmpty(v1) {
-			ptt.input.Log.Debugf("[%d] fCacheRegexMatchFindKey, CACHED, looking for %s %s, returned %s, duration %s", gid, field, value, v1, time.Since(when))
 			return v1
 		}
 	}
 	if err != nil {
-		ptt.input.Log.Debugf("[%d] fCacheRegexMatchFindKey, CACHE ERROR, looking for %s %s, returned %s, duration %s", gid, field, value, err, time.Since(when))
 	}
-	when2 := time.Now()
-	var v2 []any
-	if !utils.IsEmpty(field) || !utils.IsEmpty(value) {
-
-		a, ok := obj.([]any)
-		if ok {
-			for k, v := range a {
-				m, ok := v.(map[string]any)
-				if !ok {
-					continue
-				}
-				if m[field] == nil {
-					continue
-				}
-				s := fmt.Sprintf("%v", m[field])
-				match, _ := regexp.MatchString(fmt.Sprintf("^%s", s), value)
-				if match {
-					v2 = append(v2, k)
-					break
-				}
-			}
-		}
-		m, ok := obj.(map[string]any)
-		if ok {
-			for k, v := range m {
-				m, ok := v.(map[string]any)
-				if !ok {
-					continue
-				}
-				if m[field] == nil {
-					continue
-				}
-				s := fmt.Sprintf("%v", m[field])
-				match, _ := regexp.MatchString(fmt.Sprintf("^%s", s), value)
-				if match {
-					v2 = append(v2, k)
-					break
-				}
-			}
-		}
-	}
+	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
 	v1 := fmt.Sprintf("%v", v2)
 	if !utils.IsEmpty(v1) {
-		when3 := time.Now()
-		ptt.input.Log.Debugf("[%d] fCacheRegexMatchFindKey, NO CACHE, looking for %s %s, returned %s, duration %s", gid, field, value, v1, time.Since(when2))
+
 		ptt.input.cache.Set(key, []byte(v1))
-		ptt.input.Log.Debugf("fCacheRegexMatchFindKey, value %s cached with key %s, duration %s", v1, key, time.Since(when3))
 		return v1
 	}
-	ptt.input.Log.Debugf("[%d] fCacheRegexMatchFindKey, NO CACHE, returned empty, duration %s", gid, time.Since(when))
 	return ""
 }
 
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchObjectByField(obj interface{}, field, value string) interface{} {
-	// when := time.Now()
 	if obj == nil {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, NO OBJECT, return nil")
 		return nil
 	}
 	if ptt.input.cache == nil {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, NO CACHE, return nil")
 		return ""
 	}
 	key := ptt.fCacheRegexMatchFindKey(obj, field, value)
 	if utils.IsEmpty(key) {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, no key found fCacheRegexMatchFindKey, return nil")
 		return nil
 	}
 
 	a, ok := obj.([]interface{})
 	ka, err := strconv.Atoi(key)
 	if ok && err == nil {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, looking for %s %s, returned %v, duration %s", field, value, a[ka], time.Since(when))
 		return a[ka]
 	}
 
 	m, ok := obj.(map[string]interface{})
 	if ok {
-		// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, looking for %s %s, returned %v, duration %s", field, value, m[key], time.Since(when))
 		return m[key]
 	}
-	// ptt.input.Log.Infof("fCacheRegexMatchObjectByField accessed, looking for %s %s, returned nil, duration %s", field, value, time.Since(when))
 	return nil
 }
 
