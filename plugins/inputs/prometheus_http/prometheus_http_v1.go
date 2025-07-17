@@ -35,6 +35,7 @@ type PrometheusHttpV1Response struct {
 }
 
 type PrometheusHttpV1 struct {
+	log      telegraf.Logger
 	ctx      context.Context
 	client   *http.Client
 	name     string
@@ -255,6 +256,7 @@ func NewPrometheusHttpV1(client *http.Client, name string, log telegraf.Logger, 
 	}
 
 	return &PrometheusHttpV1{
+		log:      log,
 		name:     name,
 		ctx:      ctx,
 		client:   client,

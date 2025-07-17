@@ -68,7 +68,6 @@ type PrometheusHttpFile struct {
 	Name string `toml:"name"`
 	Path string `toml:"path"`
 	Type string `toml:"type"`
-	Data map[string]interface{}
 }
 
 // PrometheusHttpPeriod struct
@@ -286,9 +285,9 @@ func (p *PrometheusHttp) getAllTags(values, metricTags, metricVars map[string]st
 }
 
 func (p *PrometheusHttp) setExtraMetricTag(gid uint64, t *toolsRender.TextTemplate, values, metricTags, metricVars map[string]string) (string, error) {
+
 	m := p.getAllTags(values, metricTags, metricVars)
 	b, err := t.RenderObject(&m)
-
 	if err != nil {
 		p.Log.Errorf("[%d] %s failed to execute template: %v", gid, p.Name, err)
 		return "", err
@@ -392,10 +391,10 @@ func (p *PrometheusHttp) getExtraMetricTags(gid uint64, values map[string]string
 	vars := make(map[string]string)
 	mTags := p.sortMetricTags(m)
 	for _, k := range mTags {
+
 		tpl := m.templates[k]
 		if tpl != nil {
 			vk, err := p.setExtraMetricTag(gid, tpl, values, m.Tags, vars)
-
 			if err != nil {
 				vars[k] = "error"
 				continue
@@ -529,7 +528,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			}
 			pm.uniques[hash] = true
 		}
-		// when3 := time.Since(when2)
 
 		v, err := p.getTemplateValue(pm.template, value)
 		if err != nil {
@@ -538,7 +536,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 		}
 
 		tags := make(map[string]string)
-		// when4 := time.Since(when2)
 
 		//millis := when.UTC().UnixMilli()
 		//tags["timestamp"] = strconv.Itoa(int(millis))
@@ -610,6 +607,7 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 		wg.Add(1)
 
 		go p.setMetrics(&wg, m, ds, func(dr *PrometheusHttpDatasourceResponse, err error) {
+
 			p.requests.Incr(1)
 
 			if dr != nil {
@@ -646,6 +644,7 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 }
 
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, field, value string) string {
+
 	if obj == nil || utils.IsEmpty(field) || utils.IsEmpty(value) {
 		return ""
 	}
@@ -661,12 +660,9 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 			return v1
 		}
 	}
-	if err != nil {
-	}
 	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
 	v1 := fmt.Sprintf("%v", v2)
 	if !utils.IsEmpty(v1) {
-
 		ptt.input.cache.Set(key, []byte(v1))
 		return v1
 	}
@@ -674,6 +670,7 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 }
 
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchObjectByField(obj interface{}, field, value string) interface{} {
+
 	if obj == nil {
 		return nil
 	}
