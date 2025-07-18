@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -105,11 +106,6 @@ func (p *PrometheusHttpV1) processMatrix(res *PrometheusHttpV1Response, when tim
 			continue
 		}
 
-		tags := make(map[string]string)
-		for k, m := range d.Metric {
-			tags[k] = m
-		}
-
 		for _, v := range d.Values {
 			if len(v) == 2 {
 
@@ -124,7 +120,11 @@ func (p *PrometheusHttpV1) processMatrix(res *PrometheusHttpV1Response, when tim
 					continue
 				}
 				if f, err := strconv.ParseFloat(vv, 64); err == nil {
-					push(when, tags, time.Unix(ts, 0), f)
+					if math.IsNaN(f) || math.IsInf(f, 0) {
+						continue
+					} else {
+						push(when, d.Metric, time.Unix(ts, 0), f)
+					}
 				}
 			}
 		}
@@ -132,16 +132,10 @@ func (p *PrometheusHttpV1) processMatrix(res *PrometheusHttpV1Response, when tim
 }
 
 func (p *PrometheusHttpV1) processVector(res *PrometheusHttpV1Response, when time.Time, push PrometheusHttpPushFunc) {
-
 	for _, d := range res.Data.Result {
 
 		if len(d.Value) != 2 {
 			continue
-		}
-
-		tags := make(map[string]string)
-		for k, m := range d.Metric {
-			tags[k] = m
 		}
 
 		vt, ok := d.Value[0].(float64)
@@ -155,7 +149,11 @@ func (p *PrometheusHttpV1) processVector(res *PrometheusHttpV1Response, when tim
 			continue
 		}
 		if f, err := strconv.ParseFloat(vv, 64); err == nil {
-			push(when, tags, time.Unix(ts, 0), f)
+			if math.IsNaN(f) || math.IsInf(f, 0) {
+				continue
+			} else {
+				push(when, d.Metric, time.Unix(ts, 0), f)
+			}
 		}
 	}
 }
@@ -218,6 +216,7 @@ func (p *PrometheusHttpV1) GetData(query string, period *PrometheusHttpPeriod, p
 	dr.unmarshal = time.Since(when)
 	when = time.Now()
 
+	dr.resultType = res.Data.ResultType
 	switch res.Data.ResultType {
 	case "matrix":
 		p.processMatrix(&res, when, push)
@@ -257,8 +256,8 @@ func NewPrometheusHttpV1(client *http.Client, name string, log telegraf.Logger, 
 	}
 
 	return &PrometheusHttpV1{
-		name:     name,
 		log:      log,
+		name:     name,
 		ctx:      ctx,
 		client:   client,
 		url:      url,

@@ -94,6 +94,7 @@ type PrometheusHttp struct {
 	CacheDuration config.Duration         `toml:"cache_duration"`
 	CacheSize     config.Size             `toml:"cache_size"`
 	Files         []*PrometheusHttpFile   `toml:"file"`
+	ExecutionType string                  `toml:"execution_type"`
 
 	Log telegraf.Logger `toml:"-"`
 	acc telegraf.Accumulator
@@ -110,9 +111,10 @@ type PrometheusHttp struct {
 type PrometheusHttpPushFunc = func(when time.Time, tags map[string]string, stamp time.Time, value float64)
 
 type PrometheusHttpDatasourceResponse struct {
-	request   time.Duration
-	unmarshal time.Duration
-	process   time.Duration
+	request    time.Duration
+	unmarshal  time.Duration
+	process    time.Duration
+	resultType string
 }
 
 type PrometheusHttpDatasource interface {
@@ -277,6 +279,7 @@ func (p *PrometheusHttp) getAllTags(values, metricTags, metricVars map[string]st
 		return true
 	})
 	m["files"] = files
+
 	return m
 }
 
@@ -511,14 +514,18 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 
 	defer w.Done()
 	var push = func(when time.Time, tgs map[string]string, stamp time.Time, value float64) {
+		// when2 := time.Now()
+		// if math.IsNaN(value) || math.IsInf(value, 0) {
+		// 	p.Log.Debugf("[%d] %s skipped NaN/Inf value for: %s[%v]", gid, p.Name, pm.Name, tgs)
+		// 	return
+		// }
 
 		hash := p.uniqueHash(pm, tgs, stamp)
 		if hash > 0 {
 			if pm.uniques[hash] {
 				return
-			} else {
-				pm.uniques[hash] = true
 			}
+			pm.uniques[hash] = true
 		}
 
 		v, err := p.getTemplateValue(pm.template, value)
@@ -542,12 +549,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 
 		tags = p.getExtraMetricTags(gid, tags, pm)
 
-		if math.IsNaN(v) || math.IsInf(v, 0) {
-			bs, _ := json.Marshal(tags)
-			p.Log.Debugf("[%d] %s skipped NaN/Inf value for: %v[%v]", gid, p.Name, pm.Name, string(bs))
-			return
-		}
-
 		if pm.Round != nil {
 			ratio := math.Pow(10, float64(*pm.Round))
 			v = math.Round(v*ratio) / ratio
@@ -559,14 +560,33 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 		switch p.Version {
 		case "v1":
 
-			if p.mtx.TryLock() {
+			switch p.ExecutionType {
+			case "concurrent":
+				for {
+					if p.mtx.TryLock() {
+						if p.client == nil {
+							p.client = p.makeClient(int(timeout))
+						}
 
+						ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+						p.mtx.Unlock()
+						break
+					} else {
+						// In some occurrences mutex will not lock and the query would be skipped otherwise
+						// As per testing, this will happen at least once on first cycle after boot
+						time.Sleep(time.Millisecond)
+					}
+				}
+
+			default:
+				// This approach is blocking. In plain words, queries in bounds of SAME config file
+				// will be executed one after another. Other config files will be running in parallel
+				p.mtx.Lock()
 				if p.client == nil {
 					p.client = p.makeClient(int(timeout))
 				}
-
+				defer p.mtx.Unlock()
 				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
-				p.mtx.Unlock()
 			}
 		}
 	}
@@ -602,7 +622,7 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 			p.requests.Incr(1)
 
 			if dr != nil {
-				p.Log.Debugf("[%d] %s %s request: %s, umarshal: %s, process: %s", gid, p.Name, m.Name, dr.request, dr.unmarshal, dr.process)
+				p.Log.Debugf("[%d] %s %s type: %s, request: %s, umarshal: %s, process: %s", gid, p.Name, m.Name, dr.resultType, dr.request, dr.unmarshal, dr.process)
 			}
 
 			if err != nil {
@@ -613,7 +633,7 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 	}
 	wg.Wait()
 
-	p.Log.Debugf("[%d] %s gathering finished [%s]", gid, p.Name, time.Since(when))
+	p.Log.Debugf("[%d] %s gathering finished, %d requests made [%s]", gid, p.Name, p.requests.counter, time.Since(when))
 
 	// availability = (requests - errors) / requests * 100
 	// availability = (100 - 0) / 100 * 100 = 100%
@@ -642,7 +662,7 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if ptt.input.cache == nil {
 		return ""
 	}
-	key := fmt.Sprintf("%s.%s.%s.%s", ptt.name, ptt.tag, field, value)
+	key := fmt.Sprintf("%s.%s.%s", ptt.tag, field, value)
 
 	entry, err := ptt.input.cache.Get(key)
 	if err == nil {
@@ -651,7 +671,6 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 			return v1
 		}
 	}
-
 	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
 	v1 := fmt.Sprintf("%v", v2)
 	if !utils.IsEmpty(v1) {
