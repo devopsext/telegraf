@@ -562,13 +562,25 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 
 			switch p.ExecutionType {
 			case "concurrent":
-				if p.client == nil {
-					p.client = p.makeClient(int(timeout))
+				for {
+					if p.mtx.TryLock() {
+						if p.client == nil {
+							p.client = p.makeClient(int(timeout))
+						}
+
+						ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+						p.mtx.Unlock()
+						break
+					} else {
+						// In some occurrences mutex will not lock and the query would be skipped otherwise
+						// As per testing, this will happen at least once on first cycle after boot
+						time.Sleep(time.Millisecond)
+					}
 				}
 
-				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
-
 			default:
+				// This approach is blocking. In plain words, queries in bounds of SAME config file
+				// will be executed one after another. Other config files will be running in parallel
 				p.mtx.Lock()
 				if p.client == nil {
 					p.client = p.makeClient(int(timeout))
