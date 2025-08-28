@@ -10,6 +10,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -574,6 +575,50 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 	if ds != nil {
 		period := p.getMetricPeriod(pm)
 		callback(ds.GetData(pm.Query, period, push))
+		dsHttpV1, ok := ds.(*PrometheusHttpV1)
+		if ok {
+			dsHttpV1.processRetryQueue(w, push, callback)
+		}
+	}
+}
+
+func (p *PrometheusHttpV1) processRetryQueue(wg *sync.WaitGroup, push func(time.Time, map[string]string, time.Time, float64), callback func(*PrometheusHttpDatasourceResponse, error) ) { // Best effort processing, will not report errors or stop processing new requests if they arise
+	defer wg.Done()
+	requestBuffer := make([]http.Request, 15)
+	for req := range p.retryQueue {
+		requestBuffer = append(requestBuffer, req)
+		if len(requestBuffer) == 15 {
+			requestBufferCopy := make([]http.Request, len(requestBuffer))
+			copy(requestBufferCopy, requestBuffer)
+		
+			for _, v := range requestBufferCopy {
+				resp, _ := p.client.Do(&v)
+				data, _ := io.ReadAll(resp.Body)
+
+				var res PrometheusHttpV1Response
+				err := json.Unmarshal(data, &res)
+				if err != nil || res.Status != "success" || res.Data == nil {
+					continue
+				}
+
+				dr := &PrometheusHttpDatasourceResponse{}
+				switch res.Data.ResultType {
+				case "matrix":
+					p.processMatrix(&res, time.Now(), push)
+				case "vector":
+					p.processVector(&res, time.Now(), push)
+				default:
+					dr.process = time.Since(time.Now())
+				}
+				
+				callback(dr, nil)
+
+				time.Sleep(20*time.Millisecond) 
+				resp.Body.Close()
+			}
+			time.Sleep(2 * time.Second) // Exponential backoff may be good to have
+			requestBuffer = make([]http.Request, 15)	
+		}
 	}
 }
 
