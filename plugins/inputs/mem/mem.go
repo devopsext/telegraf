@@ -14,9 +14,15 @@ import (
 //go:embed sample.conf
 var sampleConfig string
 
+// extendedMemoryStats provides extended memory statistics for a platform.
+type extendedMemoryStats interface {
+	addFields(fields map[string]interface{}) error
+}
+
 type Mem struct {
 	ps       psutil.PS
 	platform string
+	exStats  extendedMemoryStats
 }
 
 func (*Mem) SampleConfig() string {
@@ -25,6 +31,9 @@ func (*Mem) SampleConfig() string {
 
 func (ms *Mem) Init() error {
 	ms.platform = runtime.GOOS
+	if ms.exStats == nil {
+		ms.exStats = newExtendedMemoryStats()
+	}
 	return nil
 }
 
@@ -92,6 +101,10 @@ func (ms *Mem) Gather(acc telegraf.Accumulator) error {
 		fields["vmalloc_used"] = vm.VmallocUsed
 		fields["write_back_tmp"] = vm.WriteBackTmp
 		fields["write_back"] = vm.WriteBack
+
+		if err := ms.exStats.addFields(fields); err != nil {
+			acc.AddError(fmt.Errorf("error getting extended virtual memory info: %w", err))
+		}
 	}
 
 	acc.AddGauge("mem", fields, nil)
