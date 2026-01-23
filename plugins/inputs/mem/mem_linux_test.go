@@ -136,7 +136,7 @@ func TestMemStatsLinux(t *testing.T) {
 				"active_file":   uint64(1073741824),
 				"inactive_file": uint64(2147483648),
 				"active_anon":   uint64(536870912),
-				"inactive_anon": uint64(268435457),
+				"inactive_anon": uint64(268435456),
 				"unevictable":   uint64(134217728),
 				"percpu":        uint64(67108864),
 			},
