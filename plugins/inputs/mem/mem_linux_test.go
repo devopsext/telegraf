@@ -16,14 +16,12 @@ import (
 
 // mockExtendedMemoryStats implements extendedMemoryStats for testing.
 type mockExtendedMemoryStats struct {
-	addFieldsFunc func(fields map[string]interface{}) error
+	fields map[string]interface{}
+	err    error
 }
 
-func (m *mockExtendedMemoryStats) addFields(fields map[string]interface{}) error {
-	if m.addFieldsFunc != nil {
-		return m.addFieldsFunc(fields)
-	}
-	return nil
+func (m *mockExtendedMemoryStats) getFields() (map[string]interface{}, error) {
+	return m.fields, m.err
 }
 
 func TestMemStatsLinux(t *testing.T) {
@@ -70,14 +68,13 @@ func TestMemStatsLinux(t *testing.T) {
 
 	// Inject mock for extended memory stats
 	mockExStats := &mockExtendedMemoryStats{
-		addFieldsFunc: func(fields map[string]interface{}) error {
-			fields["active_file"] = uint64(1073741824)
-			fields["inactive_file"] = uint64(2147483648)
-			fields["active_anon"] = uint64(536870912)
-			fields["inactive_anon"] = uint64(268435456)
-			fields["unevictable"] = uint64(134217728)
-			fields["percpu"] = uint64(67108864)
-			return nil
+		fields: map[string]interface{}{
+			"active_file":   uint64(1073741824),
+			"inactive_file": uint64(2147483648),
+			"active_anon":   uint64(536870912),
+			"inactive_anon": uint64(268435456),
+			"unevictable":   uint64(134217728),
+			"percpu":        uint64(67108864),
 		},
 	}
 
@@ -139,7 +136,7 @@ func TestMemStatsLinux(t *testing.T) {
 				"active_file":   uint64(1073741824),
 				"inactive_file": uint64(2147483648),
 				"active_anon":   uint64(536870912),
-				"inactive_anon": uint64(268435456),
+				"inactive_anon": uint64(268435457),
 				"unevictable":   uint64(134217728),
 				"percpu":        uint64(67108864),
 			},

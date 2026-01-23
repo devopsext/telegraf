@@ -16,7 +16,7 @@ var sampleConfig string
 
 // extendedMemoryStats provides extended memory statistics for a platform.
 type extendedMemoryStats interface {
-	addFields(fields map[string]interface{}) error
+	getFields() (map[string]interface{}, error)
 }
 
 type Mem struct {
@@ -102,8 +102,12 @@ func (ms *Mem) Gather(acc telegraf.Accumulator) error {
 		fields["write_back_tmp"] = vm.WriteBackTmp
 		fields["write_back"] = vm.WriteBack
 
-		if err := ms.exStats.addFields(fields); err != nil {
+		extFields, err := ms.exStats.getFields()
+		if err != nil {
 			acc.AddError(fmt.Errorf("error getting extended virtual memory info: %w", err))
+		}
+		for k, v := range extFields {
+			fields[k] = v
 		}
 	}
 

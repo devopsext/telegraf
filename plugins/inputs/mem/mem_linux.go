@@ -10,17 +10,18 @@ func newExtendedMemoryStats() extendedMemoryStats {
 	return &linuxExtendedMemoryStats{}
 }
 
-// addFields adds extended virtual memory statistics from /proc/meminfo to the fields map.
-func (l *linuxExtendedMemoryStats) addFields(fields map[string]interface{}) error {
+// getFields returns extended virtual memory statistics from /proc/meminfo.
+func (l *linuxExtendedMemoryStats) getFields() (map[string]interface{}, error) {
 	exVM, err := mem.NewExLinux().VirtualMemory()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	fields["active_file"] = exVM.ActiveFile
-	fields["inactive_file"] = exVM.InactiveFile
-	fields["active_anon"] = exVM.ActiveAnon
-	fields["inactive_anon"] = exVM.InactiveAnon
-	fields["unevictable"] = exVM.Unevictable
-	fields["percpu"] = exVM.Percpu
-	return nil
+	return map[string]interface{}{
+		"active_file":   exVM.ActiveFile,
+		"inactive_file": exVM.InactiveFile,
+		"active_anon":   exVM.ActiveAnon,
+		"inactive_anon": exVM.InactiveAnon,
+		"unevictable":   exVM.Unevictable,
+		"percpu":        exVM.Percpu,
+	}, nil
 }
