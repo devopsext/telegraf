@@ -9,6 +9,6 @@ func newExtendedMemoryStats() extendedMemoryStats {
 }
 
 // getFields returns nil on non-Linux platforms as extended VM stats are not available.
-func (n *noopExtendedMemoryStats) getFields() (map[string]interface{}, error) {
+func (*noopExtendedMemoryStats) getFields() (map[string]interface{}, error) {
 	return nil, nil
 }

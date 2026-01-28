@@ -11,7 +11,7 @@ func newExtendedMemoryStats() extendedMemoryStats {
 }
 
 // getFields returns extended virtual memory statistics from /proc/meminfo.
-func (l *linuxExtendedMemoryStats) getFields() (map[string]interface{}, error) {
+func (*linuxExtendedMemoryStats) getFields() (map[string]interface{}, error) {
 	exVM, err := mem.NewExLinux().VirtualMemory()
 	if err != nil {
 		return nil, err
