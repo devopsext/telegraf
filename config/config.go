@@ -916,6 +916,9 @@ func AddHostParams(url *url.URL) (string, error) {
 
 	val := url.Query()
 
+	// Mostly for kube, where we can supersede pod's hostname with another value (coming from node name)
+	hostenv := os.Getenv("HOSTNAME")
+
 	host, err := os.Hostname()
 	if err != nil {
 		return "", err
@@ -933,7 +936,11 @@ func AddHostParams(url *url.URL) (string, error) {
 		os_version = LinuxInfo.Version
 	}
 
-	val.Add("host", host)
+	if len(hostenv) > 0 {
+		val.Add("host", hostenv)
+	} else {
+		val.Add("host", host)
+	}
 	val.Add("platform", platform)
 	val.Add("os", os_name)
 	val.Add("version", os_version)
