@@ -103,8 +103,6 @@ type PrometheusHttp struct {
 	errors   *RateCounter
 	client   *http.Client
 	mtx      *sync.Mutex
-	files    *sync.Map
-	hashes   *sync.Map
 	cache    *bigcache.BigCache
 }
 
@@ -123,11 +121,23 @@ type PrometheusHttpDatasource interface {
 
 var description = "Collect data from Prometheus http api"
 
+var globalFiles = sync.Map{}
+var globalHashes = sync.Map{}
+
 const pluginName = "prometheus_http"
 
 // Description will return a short string to explain what the plugin does.
 func (*PrometheusHttp) Description() string {
 	return description
+}
+
+func resetGlobalFileCache() {
+	globalFiles = sync.Map{}
+	globalHashes = sync.Map{}
+}
+
+func (*PrometheusHttp) OnConfigReload() {
+	resetGlobalFileCache()
 }
 
 var sampleConfig = `
@@ -271,12 +281,7 @@ func (p *PrometheusHttp) getAllTags(values, metricTags, metricVars map[string]st
 
 	files := make(map[string]interface{})
 
-	if p.files == nil {
-		m["files"] = files
-		return m
-	}
-
-	p.files.Range(func(key, value interface{}) bool {
+	globalFiles.Range(func(key, value interface{}) bool {
 		files[fmt.Sprint(key)] = value
 		return true
 	})
@@ -989,16 +994,10 @@ func (p *PrometheusHttp) readFiles(gid uint64, files *sync.Map, hashes *sync.Map
 func (p *PrometheusHttp) Gather(acc telegraf.Accumulator) error {
 
 	p.acc = acc
-	if p.files == nil {
-		p.files = &sync.Map{}
-	}
-	if p.hashes == nil {
-		p.hashes = &sync.Map{}
-	}
 
 	var ds PrometheusHttpDatasource = nil
 	gid := utils.GoRoutineID()
-	p.readFiles(gid, p.files, p.hashes, p.Metrics, false)
+	p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, false)
 	// Gather data
 	err := p.gatherMetrics(gid, ds)
 	return err
@@ -1048,12 +1047,10 @@ func (p *PrometheusHttp) Init() error {
 	p.requests = NewRateCounter(time.Duration(p.Interval))
 	p.errors = NewRateCounter(time.Duration(p.Interval))
 	p.mtx = &sync.Mutex{}
-	p.files = &sync.Map{}
-	p.hashes = &sync.Map{}
 
 	if len(p.Files) > 0 {
 
-		entries, length := p.readFiles(gid, p.files, p.hashes, p.Metrics, true)
+		entries, length := p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, true)
 
 		seconds := time.Duration(p.Timeout).Seconds()
 

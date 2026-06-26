@@ -1,7 +1,6 @@
 package prometheus_http
 
 import (
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -19,23 +18,31 @@ func TestDescription(t *testing.T) {
 	require.Equal(t, output, description, "Description output is not correct")
 }
 
-func TestGetAllTagsUsesInstanceFiles(t *testing.T) {
-	p1 := &PrometheusHttp{files: &sync.Map{}}
-	p2 := &PrometheusHttp{files: &sync.Map{}}
+func TestGetAllTagsUsesGlobalFiles(t *testing.T) {
+	resetGlobalFileCache()
+	t.Cleanup(resetGlobalFileCache)
 
-	p1.files.Store("first", map[string]interface{}{"value": "one"})
-	p2.files.Store("second", map[string]interface{}{"value": "two"})
+	globalFiles.Store("shared", map[string]interface{}{"value": "one"})
 
-	tags1 := p1.getAllTags(map[string]string{"metric": "a"}, nil, nil)
-	tags2 := p2.getAllTags(map[string]string{"metric": "b"}, nil, nil)
+	tags := (&PrometheusHttp{}).getAllTags(map[string]string{"metric": "a"}, nil, nil)
 
-	files1, ok := tags1["files"].(map[string]interface{})
+	files, ok := tags["files"].(map[string]interface{})
 	require.True(t, ok)
-	require.Contains(t, files1, "first")
-	require.NotContains(t, files1, "second")
+	require.Contains(t, files, "shared")
+}
 
-	files2, ok := tags2["files"].(map[string]interface{})
-	require.True(t, ok)
-	require.Contains(t, files2, "second")
-	require.NotContains(t, files2, "first")
+func TestOnConfigReloadClearsGlobalFiles(t *testing.T) {
+	resetGlobalFileCache()
+	t.Cleanup(resetGlobalFileCache)
+
+	globalFiles.Store("shared", map[string]interface{}{"value": "one"})
+	globalHashes.Store("shared", uint64(123))
+
+	(&PrometheusHttp{}).OnConfigReload()
+
+	files := (&PrometheusHttp{}).getAllTags(nil, nil, nil)["files"].(map[string]interface{})
+	require.Empty(t, files)
+
+	_, ok := globalHashes.Load("shared")
+	require.False(t, ok)
 }

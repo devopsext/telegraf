@@ -518,6 +518,11 @@ func (t *Telegraf) runAgent(ctx context.Context, reloadConfig bool) error {
 		if c, err = t.loadConfiguration(); err != nil {
 			return err
 		}
+		for _, input := range c.Inputs {
+			if plugin, ok := input.Input.(telegraf.ConfigReloader); ok {
+				plugin.OnConfigReload()
+			}
+		}
 	}
 
 	if !t.test && t.testWait == 0 && len(c.Outputs) == 0 {
