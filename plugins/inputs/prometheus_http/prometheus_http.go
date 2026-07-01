@@ -1049,7 +1049,7 @@ func (p *PrometheusHttp) Init() error {
 		seconds := time.Duration(p.Timeout).Seconds()
 
 		if p.CacheDuration <= 0 {
-			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
+			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds) * 10)
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
