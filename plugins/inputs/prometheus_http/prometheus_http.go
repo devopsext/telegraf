@@ -643,6 +643,7 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 
 	fields := p.addFields("requests", p.requests.counter.Value())
 	fields["errors"] = p.errors.counter.Value()
+	p.addCacheStats(fields)
 
 	r1 := float64(p.requests.counter.Value())
 	r2 := float64(p.errors.counter.Value())
@@ -654,6 +655,22 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 	return nil
 }
 
+func (p *PrometheusHttp) addCacheStats(fields map[string]interface{}) {
+
+	if p.cache == nil {
+		return
+	}
+
+	stats := p.cache.Stats()
+	fields["cache_hits"] = stats.Hits
+	fields["cache_misses"] = stats.Misses
+	fields["cache_delete_hits"] = stats.DelHits
+	fields["cache_delete_misses"] = stats.DelMisses
+	fields["cache_collisions"] = stats.Collisions
+	fields["cache_len"] = p.cache.Len()
+	fields["cache_capacity_bytes"] = p.cache.Capacity()
+}
+
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, field, value string) string {
 
 	if obj == nil || utils.IsEmpty(field) || utils.IsEmpty(value) {
@@ -662,7 +679,7 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if ptt.input.cache == nil {
 		return ""
 	}
-	key := fmt.Sprintf("%s.%s.%s", ptt.tag, field, value)
+	key := fmt.Sprintf("%s.%s.%s.%s", ptt.input.Name, ptt.tag, field, value)
 
 	entry, err := ptt.input.cache.Get(key)
 	if err == nil {
@@ -991,6 +1008,7 @@ func (p *PrometheusHttp) Gather(acc telegraf.Accumulator) error {
 	var ds PrometheusHttpDatasource = nil
 	gid := utils.GoRoutineID()
 	p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, false)
+
 	// Gather data
 	err := p.gatherMetrics(gid, ds)
 	return err
@@ -1049,12 +1067,11 @@ func (p *PrometheusHttp) Init() error {
 		seconds := time.Duration(p.Timeout).Seconds()
 
 		if p.CacheDuration <= 0 {
-			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds) * 10)
+			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
 		config.Shards = 256
-		config.CleanWindow = time.Duration(p.CacheDuration * 3)
 		/*if seconds > 0 {
 			t := int(math.Round(seconds / 2))
 			if t > 1 {
@@ -1076,8 +1093,9 @@ func (p *PrometheusHttp) Init() error {
 		}
 		config.HardMaxCacheSize = maxSizeInMb
 
-		config.Logger = p
+		// config.Logger = p
 		config.Verbose = true
+		config.StatsEnabled = true
 
 		cache, err := bigcache.NewBigCache(config)
 		if err != nil {
