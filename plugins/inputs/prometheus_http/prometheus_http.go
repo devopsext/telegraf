@@ -1054,7 +1054,7 @@ func (p *PrometheusHttp) Init() error {
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
 		config.Shards = 256
-		config.CleanWindow = 0
+		config.CleanWindow = time.Duration(p.CacheDuration * 3)
 		/*if seconds > 0 {
 			t := int(math.Round(seconds / 2))
 			if t > 1 {
