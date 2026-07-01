@@ -62,9 +62,3 @@ type StatefulPlugin interface {
 type ProbePlugin interface {
 	Probe() error
 }
-
-// ConfigReloader allows a plugin to react when Telegraf has loaded a fresh
-// configuration during a runtime reload and before the new agent starts.
-type ConfigReloader interface {
-	OnConfigReload()
-}

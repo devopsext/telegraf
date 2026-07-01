@@ -103,7 +103,9 @@ type PrometheusHttp struct {
 	errors   *RateCounter
 	client   *http.Client
 	mtx      *sync.Mutex
-	cache    *bigcache.BigCache
+	//files    *sync.Map
+	//fileHash map[string]string
+	cache *bigcache.BigCache
 }
 
 type PrometheusHttpPushFunc = func(when time.Time, tags map[string]string, stamp time.Time, value float64)
@@ -129,15 +131,6 @@ const pluginName = "prometheus_http"
 // Description will return a short string to explain what the plugin does.
 func (*PrometheusHttp) Description() string {
 	return description
-}
-
-func resetGlobalFileCache() {
-	globalFiles = sync.Map{}
-	globalHashes = sync.Map{}
-}
-
-func (*PrometheusHttp) OnConfigReload() {
-	resetGlobalFileCache()
 }
 
 var sampleConfig = `
@@ -1044,6 +1037,7 @@ func (p *PrometheusHttp) Init() error {
 		p.setDefaultMetric(gid, m)
 	}
 
+	//p.files = &sync.Map{}
 	p.requests = NewRateCounter(time.Duration(p.Interval))
 	p.errors = NewRateCounter(time.Duration(p.Interval))
 	p.mtx = &sync.Mutex{}

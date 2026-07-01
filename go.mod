@@ -36,7 +36,7 @@ require (
 	github.com/alitto/pond v1.9.2
 	github.com/alitto/pond/v2 v2.3.4
 	github.com/aliyun/alibaba-cloud-sdk-go v1.63.107
-	github.com/allegro/bigcache v1.2.1
+	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/amir/raidman v0.0.0-20170415203553-1ccc43bfb9c9
 	github.com/antchfx/jsonquery v1.3.6
 	github.com/antchfx/xmlquery v1.4.4
