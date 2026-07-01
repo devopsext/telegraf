@@ -108,6 +108,11 @@ type PrometheusHttp struct {
 	cache *bigcache.BigCache
 }
 
+// Panic implements [common.Logger].
+func (p *PrometheusHttp) Panic(obj interface{}, args ...interface{}) {
+	panic("unimplemented")
+}
+
 type PrometheusHttpPushFunc = func(when time.Time, tags map[string]string, stamp time.Time, value float64)
 
 type PrometheusHttpDatasourceResponse struct {
@@ -662,11 +667,11 @@ func (p *PrometheusHttp) addCacheStats(fields map[string]interface{}) {
 	}
 
 	stats := p.cache.Stats()
-	fields["cache_hits"] = stats.Hits
-	fields["cache_misses"] = stats.Misses
-	fields["cache_delete_hits"] = stats.DelHits
-	fields["cache_delete_misses"] = stats.DelMisses
-	fields["cache_collisions"] = stats.Collisions
+	fields["cache_hits_count"] = stats.Hits
+	fields["cache_misses_count"] = stats.Misses
+	fields["cache_delete_hits_count"] = stats.DelHits
+	fields["cache_delete_misses_count"] = stats.DelMisses
+	fields["cache_collisions_count"] = stats.Collisions
 	fields["cache_len"] = p.cache.Len()
 	fields["cache_capacity_bytes"] = p.cache.Capacity()
 }
@@ -684,16 +689,24 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	entry, err := ptt.input.cache.Get(key)
 	if err == nil {
 		v1 := string(entry)
-		if !utils.IsEmpty(v1) {
-			return v1
+		if v1 == "nil" {
+			return ""
 		}
+		return v1
 	}
-	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
+	var v2 any
+	keys := ptt.template.RegexMatchFindKeys(obj, field, value)
+	if len(keys) == 0 {
+		v2 = ""
+	} else {
+		v2 = keys[0]
+	}
 	v1 := fmt.Sprintf("%v", v2)
 	if !utils.IsEmpty(v1) {
 		ptt.input.cache.Set(key, []byte(v1))
 		return v1
 	}
+	ptt.input.cache.Set(key, []byte("nil"))
 	return ""
 }
 
@@ -1067,7 +1080,7 @@ func (p *PrometheusHttp) Init() error {
 		seconds := time.Duration(p.Timeout).Seconds()
 
 		if p.CacheDuration <= 0 {
-			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
+			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds) * 10)
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
