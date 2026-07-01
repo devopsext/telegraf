@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/allegro/bigcache"
+	"github.com/allegro/bigcache/v3"
 	"github.com/araddon/dateparse"
 	"gopkg.in/yaml.v3"
 
