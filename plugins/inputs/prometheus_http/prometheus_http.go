@@ -1075,6 +1075,10 @@ func (p *PrometheusHttp) Init() error {
 
 	if len(p.Files) > 0 {
 
+		if p.cache != nil {
+			p.cache.Reset()
+		}
+
 		entries, length := p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, true)
 
 		seconds := time.Duration(p.Timeout).Seconds()
@@ -1084,7 +1088,8 @@ func (p *PrometheusHttp) Init() error {
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
-		config.Shards = 256
+		config.CleanWindow = 0
+		config.Shards = 64
 		/*if seconds > 0 {
 			t := int(math.Round(seconds / 2))
 			if t > 1 {
@@ -1097,9 +1102,9 @@ func (p *PrometheusHttp) Init() error {
 
 		maxSizeInMb := 0
 		if p.CacheSize > 0 {
-			maxSizeInMb = int(p.CacheSize) / (1024 * 1024)
+			maxSizeInMb = int(p.CacheSize) / (1024)
 		} else {
-			maxSizeInMb = (entries * length * int(seconds)) / (1024 * 1024)
+			maxSizeInMb = (entries * length * int(seconds)) / (1024)
 		}
 		if maxSizeInMb == 0 {
 			maxSizeInMb = 1
