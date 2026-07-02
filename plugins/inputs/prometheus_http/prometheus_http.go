@@ -532,7 +532,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			}
 			pm.uniques[hash] = true
 		}
-
 		v, err := p.getTemplateValue(pm.template, value)
 		if err != nil {
 			p.Log.Error(err)
@@ -551,8 +550,11 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			}
 			tags[k] = t
 		}
-
+		t1 := time.Now()
 		tags = p.getExtraMetricTags(gid, tags, pm)
+		t2 := time.Since(t1)
+
+		p.Log.Debugf("DBG! tags %v time %s", tags, t2)
 
 		if pm.Round != nil {
 			ratio := math.Pow(10, float64(*pm.Round))
@@ -566,7 +568,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 		case "v1":
 
 			switch p.ExecutionType {
-			default:
+			case "concurrent":
 				for {
 					if p.mtx.TryLock() {
 						if p.client == nil {
@@ -583,15 +585,15 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 					}
 				}
 
-				// default:
-				// 	// This approach is blocking. In plain words, queries in bounds of SAME config file
-				// 	// will be executed one after another. Other config files will be running in parallel
-				// 	p.mtx.Lock()
-				// 	if p.client == nil {
-				// 		p.client = p.makeClient(int(timeout))
-				// 	}
-				// 	defer p.mtx.Unlock()
-				// 	ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+			default:
+				// This approach is blocking. In plain words, queries in bounds of SAME config file
+				// will be executed one after another. Other config files will be running in parallel
+				p.mtx.Lock()
+				if p.client == nil {
+					p.client = p.makeClient(int(timeout))
+				}
+				defer p.mtx.Unlock()
+				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
 			}
 		}
 	}
@@ -1111,7 +1113,7 @@ func (p *PrometheusHttp) Init() error {
 		// }
 		config.HardMaxCacheSize = maxSizeInMb
 
-		// config.Logger = p
+		config.Logger = p
 		config.Verbose = true
 		config.StatsEnabled = true
 
