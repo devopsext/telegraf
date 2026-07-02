@@ -684,14 +684,14 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if ptt.input.cache == nil {
 		return ""
 	}
-	key := fmt.Sprintf("%s.%s.%s.%s", ptt.input.Name, ptt.tag, field, value)
+	key := fmt.Sprintf("%s.%s.%s", ptt.tag, field, value)
 
 	entry, err := ptt.input.cache.Get(key)
 	if err == nil {
 		v1 := string(entry)
 		if v1 == "nil" {
 			md := ptt.input.cache.KeyMetadata(key)
-			if md.RequestCount > 100 {
+			if md.RequestCount > 1000 {
 				ptt.input.cache.Delete(key)
 			}
 			return ""
@@ -1095,7 +1095,7 @@ func (p *PrometheusHttp) Init() error {
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
 		config.CleanWindow = 0
-		config.Shards = 64
+		config.Shards = 1024
 
 		config.MaxEntriesInWindow = lMetrics * maxltags
 		config.MaxEntrySize = length
