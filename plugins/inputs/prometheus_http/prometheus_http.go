@@ -690,6 +690,10 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if err == nil {
 		v1 := string(entry)
 		if v1 == "nil" {
+			md := ptt.input.cache.KeyMetadata(key)
+			if md.RequestCount > 100 {
+				ptt.input.cache.Delete(key)
+			}
 			return ""
 		}
 		return v1
@@ -1062,53 +1066,49 @@ func (p *PrometheusHttp) Init() error {
 		return err
 	}
 
-	p.Log.Debugf("[%d] %s metrics amount: %d", gid, p.Name, lMetrics)
+	maxltags := 0
 
 	for _, m := range p.Metrics {
 		p.setDefaultMetric(gid, m)
+		ltags := len(m.Tags)
+		if maxltags < ltags {
+			maxltags = ltags
+		}
 	}
+
+	p.Log.Debugf("[%d] %s metrics amount: %d, max tags %d", gid, p.Name, lMetrics, maxltags)
 
 	//p.files = &sync.Map{}
 	p.requests = NewRateCounter(time.Duration(p.Interval))
 	p.errors = NewRateCounter(time.Duration(p.Interval))
 	p.mtx = &sync.Mutex{}
 
-	if len(p.Files) > 0 {
+	if len(p.Files) > 0 && p.cache == nil {
 
-		if p.cache != nil {
-			p.cache.Reset()
-		}
-
-		entries, length := p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, true)
+		_, length := p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, true)
 
 		seconds := time.Duration(p.Timeout).Seconds()
 
 		if p.CacheDuration <= 0 {
-			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds) * 10)
+			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
 		config.CleanWindow = 0
 		config.Shards = 64
-		/*if seconds > 0 {
-			t := int(math.Round(seconds / 2))
-			if t > 1 {
-				config.CleanWindow = time.Duration(time.Second * time.Duration(t))
-			}
-		}*/
 
-		config.MaxEntriesInWindow = entries
+		config.MaxEntriesInWindow = lMetrics * maxltags
 		config.MaxEntrySize = length
 
-		maxSizeInMb := 0
-		if p.CacheSize > 0 {
-			maxSizeInMb = int(p.CacheSize) / (1024)
-		} else {
-			maxSizeInMb = (entries * length * int(seconds)) / (1024)
-		}
-		if maxSizeInMb == 0 {
-			maxSizeInMb = 1
-		}
+		maxSizeInMb := 1
+		// if p.CacheSize > 0 {
+		// 	maxSizeInMb = int(p.CacheSize) / (1024)
+		// } else {
+		// 	maxSizeInMb = (entries * length * int(seconds)) / (1024)
+		// }
+		// if maxSizeInMb == 0 {
+		// 	maxSizeInMb = 1
+		// }
 		config.HardMaxCacheSize = maxSizeInMb
 
 		// config.Logger = p
