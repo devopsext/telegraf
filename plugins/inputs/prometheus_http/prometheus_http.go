@@ -105,7 +105,9 @@ type PrometheusHttp struct {
 	mtx      *sync.Mutex
 	//files    *sync.Map
 	//fileHash map[string]string
-	cache *bigcache.BigCache
+	cache  *bigcache.BigCache
+	ctx    context.Context
+	cancel context.CancelFunc
 }
 
 // Panic implements [common.Logger].
@@ -191,6 +193,13 @@ func (p *PrometheusHttp) Warn(obj interface{}, args ...interface{}) {
 		return
 	}
 	p.Log.Warnf(s, args)
+}
+
+func (p *PrometheusHttp) ensureContext() {
+	if p.ctx != nil {
+		return
+	}
+	p.ctx, p.cancel = context.WithCancel(context.Background())
 }
 
 func (p *PrometheusHttp) Debug(obj interface{}, args ...interface{}) {
@@ -573,7 +582,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 							p.client = p.makeClient(int(timeout))
 						}
 
-						ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+						ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, p.ctx, p.URL, p.User, p.Password, int(timeout), step, params)
 						p.mtx.Unlock()
 						break
 					} else {
@@ -591,7 +600,7 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 					p.client = p.makeClient(int(timeout))
 				}
 				defer p.mtx.Unlock()
-				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
+				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, p.ctx, p.URL, p.User, p.Password, int(timeout), step, params)
 			}
 		}
 	}
@@ -1035,9 +1044,30 @@ func (p *PrometheusHttp) Printf(format string, v ...interface{}) {
 	p.Log.Debugf(format, v)
 }
 
+func (p *PrometheusHttp) Start(telegraf.Accumulator) error {
+	p.ensureContext()
+	return nil
+}
+
+func (p *PrometheusHttp) Stop() {
+	if p.cancel != nil {
+		p.cancel()
+		p.cancel = nil
+	}
+	p.ctx = nil
+
+	if p.cache != nil {
+		if err := p.cache.Close(); err != nil {
+			p.Log.Warnf("%s cache close error: %s", p.Name, err)
+		}
+		p.cache = nil
+	}
+}
+
 func (p *PrometheusHttp) Init() error {
 
 	gid := utils.GoRoutineID()
+	p.ensureContext()
 
 	if p.Interval <= 0 {
 		p.Interval = config.Duration(time.Second) * 5
@@ -1095,7 +1125,7 @@ func (p *PrometheusHttp) Init() error {
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
 		config.CleanWindow = 0
-		config.Shards = 1024
+		config.Shards = 32
 
 		config.MaxEntriesInWindow = lMetrics * maxltags
 		config.MaxEntrySize = length
@@ -1115,7 +1145,7 @@ func (p *PrometheusHttp) Init() error {
 		config.Verbose = true
 		config.StatsEnabled = true
 
-		cache, err := bigcache.NewBigCache(config)
+		cache, err := bigcache.New(p.ctx, config)
 		if err != nil {
 			p.Log.Warnf("[%d] %s cache error: %s", gid, err)
 		}
