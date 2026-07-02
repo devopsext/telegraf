@@ -105,9 +105,7 @@ type PrometheusHttp struct {
 	mtx      *sync.Mutex
 	//files    *sync.Map
 	//fileHash map[string]string
-	cache  *bigcache.BigCache
-	ctx    context.Context
-	cancel context.CancelFunc
+	cache *bigcache.BigCache
 }
 
 // Panic implements [common.Logger].
@@ -193,13 +191,6 @@ func (p *PrometheusHttp) Warn(obj interface{}, args ...interface{}) {
 		return
 	}
 	p.Log.Warnf(s, args)
-}
-
-func (p *PrometheusHttp) ensureContext() {
-	if p.ctx != nil {
-		return
-	}
-	p.ctx, p.cancel = context.WithCancel(context.Background())
 }
 
 func (p *PrometheusHttp) Debug(obj interface{}, args ...interface{}) {
@@ -575,14 +566,14 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 		case "v1":
 
 			switch p.ExecutionType {
-			case "concurrent":
+			default:
 				for {
 					if p.mtx.TryLock() {
 						if p.client == nil {
 							p.client = p.makeClient(int(timeout))
 						}
 
-						ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, p.ctx, p.URL, p.User, p.Password, int(timeout), step, params)
+						ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
 						p.mtx.Unlock()
 						break
 					} else {
@@ -592,15 +583,15 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 					}
 				}
 
-			default:
-				// This approach is blocking. In plain words, queries in bounds of SAME config file
-				// will be executed one after another. Other config files will be running in parallel
-				p.mtx.Lock()
-				if p.client == nil {
-					p.client = p.makeClient(int(timeout))
-				}
-				defer p.mtx.Unlock()
-				ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, p.ctx, p.URL, p.User, p.Password, int(timeout), step, params)
+				// default:
+				// 	// This approach is blocking. In plain words, queries in bounds of SAME config file
+				// 	// will be executed one after another. Other config files will be running in parallel
+				// 	p.mtx.Lock()
+				// 	if p.client == nil {
+				// 		p.client = p.makeClient(int(timeout))
+				// 	}
+				// 	defer p.mtx.Unlock()
+				// 	ds = NewPrometheusHttpV1(p.client, p.Name, p.Log, context.Background(), p.URL, p.User, p.Password, int(timeout), step, params)
 			}
 		}
 	}
@@ -693,7 +684,7 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if ptt.input.cache == nil {
 		return ""
 	}
-	key := fmt.Sprintf("%s.%s.%s", ptt.tag, field, value)
+	key := fmt.Sprintf("%s.%s.%s.%s", ptt.name, ptt.tag, field, value)
 
 	entry, err := ptt.input.cache.Get(key)
 	if err == nil {
@@ -1044,30 +1035,9 @@ func (p *PrometheusHttp) Printf(format string, v ...interface{}) {
 	p.Log.Debugf(format, v)
 }
 
-func (p *PrometheusHttp) Start(telegraf.Accumulator) error {
-	p.ensureContext()
-	return nil
-}
-
-func (p *PrometheusHttp) Stop() {
-	if p.cancel != nil {
-		p.cancel()
-		p.cancel = nil
-	}
-	p.ctx = nil
-
-	if p.cache != nil {
-		if err := p.cache.Close(); err != nil {
-			p.Log.Warnf("%s cache close error: %s", p.Name, err)
-		}
-		p.cache = nil
-	}
-}
-
 func (p *PrometheusHttp) Init() error {
 
 	gid := utils.GoRoutineID()
-	p.ensureContext()
 
 	if p.Interval <= 0 {
 		p.Interval = config.Duration(time.Second) * 5
@@ -1120,7 +1090,7 @@ func (p *PrometheusHttp) Init() error {
 		seconds := time.Duration(p.Timeout).Seconds()
 
 		if p.CacheDuration <= 0 {
-			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
+			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds) * 60)
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
@@ -1145,7 +1115,7 @@ func (p *PrometheusHttp) Init() error {
 		config.Verbose = true
 		config.StatsEnabled = true
 
-		cache, err := bigcache.New(p.ctx, config)
+		cache, err := bigcache.NewBigCache(config)
 		if err != nil {
 			p.Log.Warnf("[%d] %s cache error: %s", gid, err)
 		}
