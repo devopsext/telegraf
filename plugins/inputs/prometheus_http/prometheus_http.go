@@ -550,11 +550,8 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			}
 			tags[k] = t
 		}
-		t1 := time.Now()
-		tags = p.getExtraMetricTags(gid, tags, pm)
-		t2 := time.Since(t1)
 
-		p.Log.Debugf("DBG! tags %v time %s", tags, t2)
+		tags = p.getExtraMetricTags(gid, tags, pm)
 
 		if pm.Round != nil {
 			ratio := math.Pow(10, float64(*pm.Round))
