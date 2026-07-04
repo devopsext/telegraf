@@ -18,7 +18,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Masterminds/sprig/v3"
 	"github.com/allegro/bigcache/v3"
 	"github.com/araddon/dateparse"
 	"gopkg.in/yaml.v3"
@@ -131,7 +130,6 @@ var description = "Collect data from Prometheus http api"
 
 var globalFiles = sync.Map{}
 var globalHashes = sync.Map{}
-var sprigGet = sprig.TxtFuncMap()["get"].(func(map[string]interface{}, string) interface{})
 
 const pluginName = "prometheus_http"
 
@@ -691,10 +689,10 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if err == nil {
 		v1 := string(entry)
 		if v1 == "nil" {
-			// md := ptt.input.cache.KeyMetadata(key)
-			// if md.RequestCount > 1000 {
-			// 	ptt.input.cache.Delete(key)
-			// }
+			md := ptt.input.cache.KeyMetadata(key)
+			if md.RequestCount > 1000 {
+				ptt.input.cache.Delete(key)
+			}
 			return ""
 		}
 		return v1
@@ -741,45 +739,6 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchObjectByField(obj interfa
 	return nil
 }
 
-func (ptt *PrometheusHttpTextTemplate) fCacheGet(obj interface{}, value string) interface{} {
-
-	if obj == nil || utils.IsEmpty(value) {
-		return ""
-	}
-	m, ok := obj.(map[string]interface{})
-	if !ok {
-		return ""
-	}
-	if ptt.input.cache == nil {
-		return sprigGet(m, value)
-	}
-	key := fmt.Sprintf("%s.%s.%s.%s", "fget", ptt.name, ptt.tag, value)
-
-	entry, err := ptt.input.cache.Get(key)
-	if err == nil {
-		var v1 any
-		if string(entry) == "nil" {
-			// md := ptt.input.cache.KeyMetadata(key)
-			// if md.RequestCount > 1000 {
-			// 	ptt.input.cache.Delete(key)
-			// }
-			return ""
-		}
-		json.Unmarshal(entry, &v1)
-		return v1
-	}
-
-	v := sprigGet(m, value)
-	if !utils.IsEmpty(v) {
-		v1, _ := json.Marshal(v)
-		ptt.input.cache.Set(key, []byte(v1))
-		return v
-	}
-	ptt.input.cache.Set(key, []byte("nil"))
-	return v
-
-}
-
 func (p *PrometheusHttp) getDefaultTemplate(m *PrometheusHttpMetric, name, tag, value string) *toolsRender.TextTemplate {
 
 	if value == "" {
@@ -791,7 +750,6 @@ func (p *PrometheusHttp) getDefaultTemplate(m *PrometheusHttpMetric, name, tag, 
 	//funcs["renderMetricTag"] = p.fRenderMetricTag
 	funcs["regexMatchFindKey"] = ptt.fCacheRegexMatchFindKey
 	funcs["regexMatchObjectByField"] = ptt.fCacheRegexMatchObjectByField
-	funcs["get"] = ptt.fCacheGet
 
 	tpl, err := toolsRender.NewTextTemplate(toolsRender.TemplateOptions{
 		Name:        fmt.Sprintf("%s_template", fmt.Sprintf("%s_%s", name, tag)),
@@ -1135,7 +1093,7 @@ func (p *PrometheusHttp) Init() error {
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
-		config.CleanWindow = time.Duration(p.Timeout)
+		config.CleanWindow = 0
 		config.Shards = 32
 
 		config.MaxEntriesInWindow = lMetrics * maxltags
