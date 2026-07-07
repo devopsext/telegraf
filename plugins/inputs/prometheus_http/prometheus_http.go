@@ -18,7 +18,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/allegro/bigcache"
+	"github.com/allegro/bigcache/v3"
 	"github.com/araddon/dateparse"
 	"gopkg.in/yaml.v3"
 
@@ -106,6 +106,11 @@ type PrometheusHttp struct {
 	//files    *sync.Map
 	//fileHash map[string]string
 	cache *bigcache.BigCache
+}
+
+// Panic implements [common.Logger].
+func (p *PrometheusHttp) Panic(obj interface{}, args ...interface{}) {
+	panic("unimplemented")
 }
 
 type PrometheusHttpPushFunc = func(when time.Time, tags map[string]string, stamp time.Time, value float64)
@@ -527,7 +532,6 @@ func (p *PrometheusHttp) setMetrics(w *sync.WaitGroup, pm *PrometheusHttpMetric,
 			}
 			pm.uniques[hash] = true
 		}
-
 		v, err := p.getTemplateValue(pm.template, value)
 		if err != nil {
 			p.Log.Error(err)
@@ -643,6 +647,7 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 
 	fields := p.addFields("requests", p.requests.counter.Value())
 	fields["errors"] = p.errors.counter.Value()
+	p.addCacheStats(fields)
 
 	r1 := float64(p.requests.counter.Value())
 	r2 := float64(p.errors.counter.Value())
@@ -654,6 +659,22 @@ func (p *PrometheusHttp) gatherMetrics(gid uint64, ds PrometheusHttpDatasource) 
 	return nil
 }
 
+func (p *PrometheusHttp) addCacheStats(fields map[string]interface{}) {
+
+	if p.cache == nil {
+		return
+	}
+
+	stats := p.cache.Stats()
+	fields["cache_hits_count"] = stats.Hits
+	fields["cache_misses_count"] = stats.Misses
+	fields["cache_delete_hits_count"] = stats.DelHits
+	fields["cache_delete_misses_count"] = stats.DelMisses
+	fields["cache_collisions_count"] = stats.Collisions
+	fields["cache_len"] = p.cache.Len()
+	fields["cache_capacity_bytes"] = p.cache.Capacity()
+}
+
 func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, field, value string) string {
 
 	if obj == nil || utils.IsEmpty(field) || utils.IsEmpty(value) {
@@ -662,21 +683,33 @@ func (ptt *PrometheusHttpTextTemplate) fCacheRegexMatchFindKey(obj interface{}, 
 	if ptt.input.cache == nil {
 		return ""
 	}
-	key := fmt.Sprintf("%s.%s.%s", ptt.tag, field, value)
+	key := fmt.Sprintf("%s.%s.%s.%s", ptt.name, ptt.tag, field, value)
 
 	entry, err := ptt.input.cache.Get(key)
 	if err == nil {
 		v1 := string(entry)
-		if !utils.IsEmpty(v1) {
-			return v1
+		if v1 == "nil" {
+			md := ptt.input.cache.KeyMetadata(key)
+			if md.RequestCount > 1000 {
+				ptt.input.cache.Delete(key)
+			}
+			return ""
 		}
+		return v1
 	}
-	v2 := ptt.template.RegexMatchFindKey(obj, field, value)
+	var v2 any
+	keys := ptt.template.RegexMatchFindKeys(obj, field, value)
+	if len(keys) == 0 {
+		v2 = ""
+	} else {
+		v2 = keys[0]
+	}
 	v1 := fmt.Sprintf("%v", v2)
 	if !utils.IsEmpty(v1) {
 		ptt.input.cache.Set(key, []byte(v1))
 		return v1
 	}
+	ptt.input.cache.Set(key, []byte("nil"))
 	return ""
 }
 
@@ -991,6 +1024,7 @@ func (p *PrometheusHttp) Gather(acc telegraf.Accumulator) error {
 	var ds PrometheusHttpDatasource = nil
 	gid := utils.GoRoutineID()
 	p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, false)
+
 	// Gather data
 	err := p.gatherMetrics(gid, ds)
 	return err
@@ -1031,53 +1065,54 @@ func (p *PrometheusHttp) Init() error {
 		return err
 	}
 
-	p.Log.Debugf("[%d] %s metrics amount: %d", gid, p.Name, lMetrics)
+	maxltags := 0
 
 	for _, m := range p.Metrics {
 		p.setDefaultMetric(gid, m)
+		ltags := len(m.Tags)
+		if maxltags < ltags {
+			maxltags = ltags
+		}
 	}
+
+	p.Log.Debugf("[%d] %s metrics amount: %d, max tags %d", gid, p.Name, lMetrics, maxltags)
 
 	//p.files = &sync.Map{}
 	p.requests = NewRateCounter(time.Duration(p.Interval))
 	p.errors = NewRateCounter(time.Duration(p.Interval))
 	p.mtx = &sync.Mutex{}
 
-	if len(p.Files) > 0 {
+	if len(p.Files) > 0 && p.cache == nil {
 
-		entries, length := p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, true)
+		_, length := p.readFiles(gid, &globalFiles, &globalHashes, p.Metrics, true)
 
 		seconds := time.Duration(p.Timeout).Seconds()
 
 		if p.CacheDuration <= 0 {
-			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds))
+			p.CacheDuration = config.Duration(time.Second * time.Duration(seconds) * 60)
 		}
 
 		config := bigcache.DefaultConfig(time.Duration(p.CacheDuration))
-		config.Shards = 256
 		config.CleanWindow = 0
-		/*if seconds > 0 {
-			t := int(math.Round(seconds / 2))
-			if t > 1 {
-				config.CleanWindow = time.Duration(time.Second * time.Duration(t))
-			}
-		}*/
+		config.Shards = 32
 
-		config.MaxEntriesInWindow = entries
+		config.MaxEntriesInWindow = lMetrics * maxltags
 		config.MaxEntrySize = length
 
-		maxSizeInMb := 0
-		if p.CacheSize > 0 {
-			maxSizeInMb = int(p.CacheSize) / (1024 * 1024)
-		} else {
-			maxSizeInMb = (entries * length * int(seconds)) / (1024 * 1024)
-		}
-		if maxSizeInMb == 0 {
-			maxSizeInMb = 1
-		}
+		maxSizeInMb := 1
+		// if p.CacheSize > 0 {
+		// 	maxSizeInMb = int(p.CacheSize) / (1024)
+		// } else {
+		// 	maxSizeInMb = (entries * length * int(seconds)) / (1024)
+		// }
+		// if maxSizeInMb == 0 {
+		// 	maxSizeInMb = 1
+		// }
 		config.HardMaxCacheSize = maxSizeInMb
 
 		config.Logger = p
 		config.Verbose = true
+		config.StatsEnabled = true
 
 		cache, err := bigcache.NewBigCache(config)
 		if err != nil {
