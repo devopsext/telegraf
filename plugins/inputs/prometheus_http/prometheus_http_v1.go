@@ -38,6 +38,7 @@ type PrometheusHttpV1 struct {
 	log      telegraf.Logger
 	ctx      context.Context
 	client   *http.Client
+	retryQueue chan http.Request
 	name     string
 	url      string
 	user     string
@@ -75,6 +76,9 @@ func (p *PrometheusHttpV1) httpDoRequest(method, query string, params url.Values
 	}
 
 	resp, err := p.client.Do(req)
+	if resp.StatusCode == 429 {
+		p.retryQueue <- *req.Clone(ctx)
+	}
 	if err != nil {
 		return nil, 0, err
 	}
@@ -260,6 +264,7 @@ func NewPrometheusHttpV1(client *http.Client, name string, log telegraf.Logger, 
 		name:     name,
 		ctx:      ctx,
 		client:   client,
+		retryQueue: make(chan http.Request, 100),
 		url:      url,
 		user:     user,
 		password: password,
